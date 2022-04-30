@@ -1,0 +1,7 @@
+*.pyc
+*.ipynb
+.vscode*
+data.nosync/*
+.python-version
+*.csv
+**.DS_Store
