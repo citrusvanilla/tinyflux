@@ -197,61 +197,6 @@ class Index:
         """
         return set(self._measurements.keys())
 
-    def invalidate(self):
-        """Invalidate an Index.
-
-        This method is invoked when the Index no longer represents the
-        current state of TinyFlux and its Storage instance.
-
-        Usage:
-            >>> i = Index()
-            >>> i.invalidate()
-        """
-        # Empty out the index.
-        self._reset()
-
-        # Set 'valid' to False.
-        self._valid = False
-
-        return
-
-    def search(self, query: Union[CompoundQuery, SimpleQuery]) -> IndexResult:
-        """Handle a TinyFlux query.
-
-        Parses the query, generates a new IndexResult, and returns it.
-
-        Args:
-            query: A tinyflux.queries.SimpleQuery.
-
-        Returns:
-            An IndexResult instance.
-
-        Usage:
-            >>> i = Index().build([Point()])
-            >>> q = TimeQuery() < datetime.utcnow()
-            >>> r = i.search(q)
-        """
-        return self._search_helper(query)
-
-    def remove(self, r_items: Set[int]) -> None:
-        """Remove items from the index."""
-        self._remove_timestamps(r_items)
-        self._remove_measurements(r_items)
-        self._remove_tags(r_items)
-        self._remove_fields(r_items)
-        self._all_items = self._all_items.difference(r_items)
-
-        return
-
-    def update(self, u_items: dict[int, int]) -> None:
-        """ """
-        self._update_measurements(u_items)
-        self._update_tags(u_items)
-        self._update_fields(u_items)
-        self._update_all_items(u_items)
-
-        return
-
     def insert(self, points: List[Point] = []) -> None:
         """Update index with new points.
 
@@ -277,66 +222,60 @@ class Index:
 
         return
 
-    def _search_helper(
-        self, query: Optional[Union[CompoundQuery, SimpleQuery]]
-    ) -> IndexResult:
-        """Return an IndexResult from a parsed query.
+    def invalidate(self):
+        """Invalidate an Index.
 
-        This method is recursive in order to handle compound queries.
+        This method is invoked when the Index no longer represents the
+        current state of TinyFlux and its Storage instance.
+
+        Usage:
+            >>> i = Index()
+            >>> i.invalidate()
+        """
+        # Empty out the index.
+        self._reset()
+
+        # Set 'valid' to False.
+        self._valid = False
+
+        return
+
+    def remove(self, r_items: Set[int]) -> None:
+        """Remove items from the index."""
+        self._remove_timestamps(r_items)
+        self._remove_measurements(r_items)
+        self._remove_tags(r_items)
+        self._remove_fields(r_items)
+        self._all_items = self._all_items.difference(r_items)
+
+        return
+
+    def search(self, query: Union[CompoundQuery, SimpleQuery]) -> IndexResult:
+        """Handle a TinyFlux query.
+
+        Parses the query, generates a new IndexResult, and returns it.
 
         Args:
-            query: A CompoundQuert or SimpleQuery.
+            query: A tinyflux.queries.SimpleQuery.
 
         Returns:
             An IndexResult instance.
+
+        Usage:
+            >>> i = Index().build([Point()])
+            >>> q = TimeQuery() < datetime.utcnow()
+            >>> r = i.search(q)
         """
-        if isinstance(query, CompoundQuery):
-            if query.operator == operator.and_:
-                rst1 = self._search_helper(query.query1)
-                rst2 = self._search_helper(query.query2)
-                return rst1 & rst2
+        return self._search_helper(query)
 
-            if query.operator == operator.or_:
-                rst1 = self._search_helper(query.query1)
-                rst2 = self._search_helper(query.query2)
-                return rst1 | rst2
+    def update(self, u_items: dict[int, int]) -> None:
+        """ """
+        self._update_measurements(u_items)
+        self._update_tags(u_items)
+        self._update_fields(u_items)
+        self._update_all_items(u_items)
 
-            if query.operator == operator.not_:
-                rst = self._search_helper(query.query1)
-
-                # For logical-NOT with a FieldQuery, we have to check every
-                # single item in storage :(
-                if (
-                    isinstance(query.query1, SimpleQuery)
-                    and query.query1._point_attr == "_fields"
-                ):
-                    rst._items = rst._all_items
-                    return rst
-                else:
-                    return ~rst
-
-        if isinstance(query, SimpleQuery):
-            if query.point_attr == "_time":
-                return IndexResult(
-                    self._search_timestamps(query), True, self._all_items
-                )
-
-            if query.point_attr == "_measurement":
-                return IndexResult(
-                    self._search_measurement(query), True, self._all_items
-                )
-
-            if query.point_attr == "_tags":
-                return IndexResult(
-                    self._search_tags(query), True, self._all_items
-                )
-
-            if query.point_attr == "_fields":
-                return IndexResult(
-                    self._search_fields(query), False, self._all_items
-                )
-
-        raise TypeError("Query must be SimpleQuery or CompoundQuery.")
+        return
 
     def _index_fields(self, idx: int, fields: dict[str, str]) -> None:
         """Index a field value.
@@ -439,6 +378,67 @@ class Index:
             continue
 
         return rst_items
+
+    def _search_helper(
+        self, query: Optional[Union[CompoundQuery, SimpleQuery]]
+    ) -> IndexResult:
+        """Return an IndexResult from a parsed query.
+
+        This method is recursive in order to handle compound queries.
+
+        Args:
+            query: A CompoundQuert or SimpleQuery.
+
+        Returns:
+            An IndexResult instance.
+        """
+        if isinstance(query, CompoundQuery):
+            if query.operator == operator.and_:
+                rst1 = self._search_helper(query.query1)
+                rst2 = self._search_helper(query.query2)
+                return rst1 & rst2
+
+            if query.operator == operator.or_:
+                rst1 = self._search_helper(query.query1)
+                rst2 = self._search_helper(query.query2)
+                return rst1 | rst2
+
+            if query.operator == operator.not_:
+                rst = self._search_helper(query.query1)
+
+                # For logical-NOT with a FieldQuery, we have to check every
+                # single item in storage :(
+                if (
+                    isinstance(query.query1, SimpleQuery)
+                    and query.query1._point_attr == "_fields"
+                ):
+                    rst._items = rst._all_items
+                    return rst
+                else:
+                    return ~rst
+
+        if isinstance(query, SimpleQuery):
+            if query.point_attr == "_time":
+                return IndexResult(
+                    self._search_timestamps(query), True, self._all_items
+                )
+
+            if query.point_attr == "_measurement":
+                return IndexResult(
+                    self._search_measurement(query), True, self._all_items
+                )
+
+            if query.point_attr == "_tags":
+                return IndexResult(
+                    self._search_tags(query), True, self._all_items
+                )
+
+            if query.point_attr == "_fields":
+                return IndexResult(
+                    self._search_fields(query), False, self._all_items
+                )
+
+        raise TypeError("Query must be SimpleQuery or CompoundQuery.")
 
     def _search_measurement(self, query: SimpleQuery) -> set:
         """Search the index for measurement matches.
@@ -589,15 +589,16 @@ class Index:
 
             return items
 
-    def _remove_timestamps(self, r_items):
-        """ """
-        new_timestamps = []
+    def _remove_fields(self, r_items):
+        """"""
+        new_fields = {}
 
-        for i, ts in enumerate(self._timestamps):
-            if i not in r_items:
-                new_timestamps.append(ts)
+        for field_key, old_items in self._fields.items():
+            new_items = old_items.difference(r_items)
+            if new_items:
+                new_fields[field_key] = new_items
 
-        self._timestamps = new_timestamps
+        self._fields = new_fields
 
         return
 
@@ -634,16 +635,35 @@ class Index:
 
         return
 
-    def _remove_fields(self, r_items):
+    def _remove_timestamps(self, r_items):
+        """ """
+        new_timestamps = []
+
+        for i, ts in enumerate(self._timestamps):
+            if i not in r_items:
+                new_timestamps.append(ts)
+
+        self._timestamps = new_timestamps
+
+        return
+
+    def _update_all_items(self, u_items):
         """"""
-        new_fields = {}
+        updated_items = set({})
+        for i in self._all_items:
+            updated_items.add(u_items[i])
 
+        self._all_items = updated_items
+
+        return
+
+    def _update_fields(self, u_items):
+        """"""
         for field_key, old_items in self._fields.items():
-            new_items = old_items.difference(r_items)
-            if new_items:
-                new_fields[field_key] = new_items
-
-        self._fields = new_fields
+            updated_items = set({})
+            for i in old_items:
+                updated_items.add(u_items[i])
+            self._fields[field_key] = updated_items
 
         return
 
@@ -672,25 +692,5 @@ class Index:
                 for i in old_items:
                     updated_items.add(u_items[i])
                 self._tags[tag_key][value] = updated_items
-
-        return
-
-    def _update_fields(self, u_items):
-        """"""
-        for field_key, old_items in self._fields.items():
-            updated_items = set({})
-            for i in old_items:
-                updated_items.add(u_items[i])
-            self._fields[field_key] = updated_items
-
-        return
-
-    def _update_all_items(self, u_items):
-        """"""
-        updated_items = set({})
-        for i in self._all_items:
-            updated_items.add(u_items[i])
-
-        self._all_items = updated_items
 
         return
