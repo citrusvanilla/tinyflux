@@ -39,10 +39,10 @@ def test_repr():
     q3 = MeasurementQuery() == "some measurement"
     q4 = TimeQuery() != t1
 
-    r1 = "SimpleQuery('tags', '==', ('city',), 'los angeles')"
-    r2 = "SimpleQuery('fields', '<=', ('temperature',), 70.0)"
-    r3 = "SimpleQuery('measurement', '==', (), 'some measurement')"
-    r4 = f"SimpleQuery('time', '!=', (), {repr(t1)})"
+    r1 = "SimpleQuery('_tags', '==', ('city',), 'los angeles')"
+    r2 = "SimpleQuery('_fields', '<=', ('temperature',), 70.0)"
+    r3 = "SimpleQuery('_measurement', '==', (), 'some measurement')"
+    r4 = f"SimpleQuery('_time', '!=', (), {repr(t1)})"
 
     assert repr(q1) == r1
     assert repr(q2) == r2
@@ -157,6 +157,9 @@ def test_callable_in_path_with_chain():
 
 def test_eq():
     """Test simple equality."""
+    taq_q = TagQuery().city == ["a", "b"]
+    assert not taq_q(Point(tags={"city": "los angeles"}))
+
     # Test for tag key "city".
     taq_q = TagQuery().city == "los angeles"
     assert taq_q(Point(tags={"city": "los angeles"}))
@@ -441,7 +444,7 @@ def test_and():
     t2 = datetime.utcnow() + timedelta(days=365 * 1)
     q1, q2 = TimeQuery() >= t1, TimeQuery() <= t2
     q3 = q1 & q2
-    assert q3(Point())
+    assert q3(Point(time=datetime.utcnow()))
     assert not q3(Point(time=t1 + timedelta(days=365 * 10)))
     assert not q3(Point(time=t1 - timedelta(days=365 * 10)))
     assert hash(q3)

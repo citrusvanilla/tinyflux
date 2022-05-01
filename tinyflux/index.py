@@ -305,29 +305,29 @@ class Index:
                 rst = self._search_helper(query.query1)
                 if (
                     isinstance(query.query1, SimpleQuery)
-                    and query.query1._point_attr == "fields"
+                    and query.query1._point_attr == "_fields"
                 ):
                     return rst
                 else:
                     return ~rst
 
         if isinstance(query, SimpleQuery):
-            if query.point_attr == "time":
+            if query.point_attr == "_time":
                 return IndexResult(
                     self._search_timestamps(query), True, self._all_items
                 )
 
-            if query.point_attr == "measurement":
+            if query.point_attr == "_measurement":
                 return IndexResult(
                     self._search_measurement(query), True, self._all_items
                 )
 
-            if query.point_attr == "tags":
+            if query.point_attr == "_tags":
                 return IndexResult(
                     self._search_tags(query), True, self._all_items
                 )
 
-            if query.point_attr == "fields":
+            if query.point_attr == "_fields":
                 return IndexResult(
                     self._search_fields(query), False, self._all_items
                 )
@@ -425,11 +425,14 @@ class Index:
 
         for field_key, items in self._fields.items():
             # Transform the key.
-            value = query._path_resolver({field_key: ""})
+            try:
+                query._path_resolver({field_key: ""})
+            except:
+                continue
 
-            # If it matches, update the set.
-            if not isinstance(value, Exception):
-                rst_items.update(items)
+            rst_items.update(items)
+
+            continue
 
         return rst_items
 
@@ -468,9 +471,9 @@ class Index:
         for tag_key, tag_values in self._tags.items():
             for value, items in tag_values.items():
                 # Transform the key.
-                test_value = query._path_resolver({tag_key: value})
-
-                if isinstance(test_value, Exception):
+                try:
+                    test_value = query._path_resolver({tag_key: value})
+                except:
                     continue
 
                 # If it matches, update the set.

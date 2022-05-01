@@ -144,15 +144,3 @@ def find_ge(sorted_list: List, x: int) -> Optional[int]:
         return i
 
     return None
-
-
-def is_sequence(obj: object) -> bool:
-    """Test if object is a non-string sequence.
-
-    Args:
-        obj: Any python object.
-
-    Returns:
-        The object is a sequece.
-    """
-    return hasattr(obj, "__iter__") and not isinstance(obj, str)
