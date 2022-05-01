@@ -303,10 +303,14 @@ class Index:
 
             if query.operator == operator.not_:
                 rst = self._search_helper(query.query1)
+
+                # For logical-NOT with a FieldQuery, we have to check every
+                # single item in storage :(
                 if (
                     isinstance(query.query1, SimpleQuery)
                     and query.query1._point_attr == "_fields"
                 ):
+                    rst._items = rst._all_items
                     return rst
                 else:
                     return ~rst
