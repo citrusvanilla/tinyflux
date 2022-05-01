@@ -392,8 +392,14 @@ def test_search_compound_query_not():
     assert rst.items == {0, 1}
     assert rst.is_complete
 
-    # Field query.
+    # Field query. Note for Field Queries, a NOT operator means we have to
+    # check every single item in the storage layer.
     rst = index.search(~fiel_q)
+    assert rst.items == {0, 1}
+    assert not rst.is_complete
+
+    # Compount NOT FieldQuery.
+    rst = index.search(~fiel_q & tags_q)
     assert rst.items == {0}
     assert not rst.is_complete
 

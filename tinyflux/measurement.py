@@ -21,7 +21,7 @@ from typing import (
     Union,
 )
 
-from .point import FieldSet, Point, TagSet
+from .point import Point, validate_tags, validate_fields
 from .queries import CompoundQuery, MeasurementQuery, SimpleQuery
 from .index import Index
 from .storages import Storage
@@ -373,6 +373,9 @@ class Measurement:
             if not isinstance(point, Point):
                 raise TypeError("Data must be a Point instance.")
 
+            if not point.time:
+                point.time = datetime.utcnow()
+
             # Update the measurement name if it doesn't match.
             if point.measurement != self._name:
                 point.measurement = self._name
@@ -402,6 +405,7 @@ class Measurement:
         """
         # Return value.
         count = 0
+        t = datetime.utcnow()
 
         # Now, we update the table and add the document
         def updater(inp_points: List[Point]):
@@ -416,6 +420,9 @@ class Measurement:
                 # Update the measurement name if it doesn't match.
                 if point.measurement != self._name:
                     point.measurement = self._name
+
+                if not point.time:
+                    point.time = t
 
                 inp_points.append(point)
                 count += 1
@@ -762,6 +769,23 @@ class Measurement:
                 "Must include time, measurement, tags, and/or fields."
             )
 
+        # Validation.
+        if time and not callable(time) and not isinstance(time, datetime):
+            raise ValueError("Time must be datetime object.")
+
+        if (
+            measurement
+            and not callable(measurement)
+            and not isinstance(measurement, str)
+        ):
+            raise ValueError("Measurement must be str.")
+
+        if tags and not callable(tags):
+            validate_tags(tags)
+
+        if fields and not callable(fields):
+            validate_fields(fields)
+
         # Return value.
         count = 0
 
@@ -787,13 +811,13 @@ class Measurement:
                 if callable(tags):
                     point.tags.update(tags(point.tags))
                 else:
-                    point.tags.update(TagSet(tags))
+                    point.tags.update(tags)
 
             if fields:
                 if callable(fields):
                     point.fields.update(fields(point.fields))
                 else:
-                    point.fields.update(FieldSet(fields))
+                    point.fields.update(fields)
 
             if point != old_point:
                 count += 1

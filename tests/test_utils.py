@@ -9,7 +9,6 @@ from tinyflux.utils import (
     find_gt,
     find_le,
     find_lt,
-    is_sequence,
 )
 
 
@@ -194,17 +193,3 @@ def test_find_ge():
 
     for n in absent_numbers2:
         assert find_ge(my_list, n) is None
-
-
-def test_is_sequence():
-    """Test the is_sequence function."""
-    assert is_sequence([]) is True
-    assert is_sequence([1, 2]) is True
-    assert is_sequence(set({})) is True
-    assert is_sequence(set({1, 2})) is True
-    assert is_sequence({}) is True
-    assert is_sequence({"key": "value"}) is True
-
-    assert is_sequence(True) is False
-    assert is_sequence(1) is False
-    assert is_sequence("a") is False

@@ -27,7 +27,6 @@ from typing import (
 )
 
 from .point import Point
-from .utils import is_sequence
 
 
 class QueryLike(Protocol):  # pragma: no cover
@@ -269,9 +268,10 @@ class SimpleQuery:
             Whether the point matches this query.
         """
         obj_attr = getattr(point, self._point_attr)
-        value = self._path_resolver(obj_attr)
 
-        if isinstance(value, Exception):
+        try:
+            value = self._path_resolver(obj_attr)
+        except:
             return False
 
         return self._test(value)
@@ -457,6 +457,7 @@ class BaseQuery:
         operator: Callable,
         test_against_rhs: bool,
         rhs: Any,
+        args: Any,
         hashval: Tuple,
     ) -> SimpleQuery:
         """Generate a SimpleQuery and its components.
@@ -487,8 +488,8 @@ class BaseQuery:
             if not test_against_rhs:
                 return operator(x)
 
-            if is_sequence(rhs):
-                return operator(x, *rhs)
+            if args:
+                return operator(x, *args)
 
             # Wrap this in a try/except block.
             # Some operators do not work against None types.
@@ -515,7 +516,7 @@ class BaseQuery:
                 return value
 
             except Exception as e:
-                return e
+                raise e
 
         return SimpleQuery(
             point_attr=self._point_attr,
@@ -541,6 +542,7 @@ class BaseQuery:
             operator=operator.eq,
             test_against_rhs=True,
             rhs=rhs,
+            args=None,
             hashval=(self._point_attr, "==", self._path, rhs),
         )
 
@@ -559,6 +561,7 @@ class BaseQuery:
             operator=operator.ne,
             test_against_rhs=True,
             rhs=rhs,
+            args=None,
             hashval=(self._point_attr, "!=", self._path, rhs),
         )
 
@@ -575,6 +578,7 @@ class BaseQuery:
             operator=operator.lt,
             test_against_rhs=True,
             rhs=rhs,
+            args=None,
             hashval=(self._point_attr, "<", self._path, rhs),
         )
 
@@ -591,6 +595,7 @@ class BaseQuery:
             operator=operator.le,
             test_against_rhs=True,
             rhs=rhs,
+            args=None,
             hashval=(self._point_attr, "<=", self._path, rhs),
         )
 
@@ -607,6 +612,7 @@ class BaseQuery:
             operator=operator.gt,
             test_against_rhs=True,
             rhs=rhs,
+            args=None,
             hashval=(self._point_attr, ">", self._path, rhs),
         )
 
@@ -623,6 +629,7 @@ class BaseQuery:
             operator=operator.ge,
             test_against_rhs=True,
             rhs=rhs,
+            args=None,
             hashval=(self._point_attr, ">=", self._path, rhs),
         )
 
@@ -673,8 +680,9 @@ class BaseQuery:
         """
         return self._generate_simple_query(
             operator=func,
-            test_against_rhs=True,
-            rhs=args,
+            test_against_rhs=False,
+            rhs=None,
+            args=args,
             hashval=(self._point_attr, "test", self._path, func, args),
         )
 
@@ -700,6 +708,7 @@ class BaseQuery:
             operator=test,
             test_against_rhs=False,
             rhs=None,
+            args=None,
             hashval=(self._point_attr, "matches", self._path, regex),
         )
 
@@ -721,6 +730,7 @@ class BaseQuery:
             operator=test,
             test_against_rhs=False,
             rhs=None,
+            args=None,
             hashval=(self._point_attr, "search", self._path, regex),
         )
 
@@ -774,7 +784,7 @@ class TagQuery(BaseQuery):
     def __init__(self) -> None:
         """Initialize a TagQuery instance."""
         super().__init__()
-        self._point_attr = "tags"
+        self._point_attr = "_tags"
         self._path_required = True
         self._hash = ("tags",)
 
@@ -787,6 +797,7 @@ class TagQuery(BaseQuery):
             operator=lambda _: True,
             test_against_rhs=False,
             rhs=None,
+            args=None,
             hashval=("TagQuery", "exists", self._path),
         )
 
@@ -804,7 +815,7 @@ class FieldQuery(BaseQuery):
     def __init__(self) -> None:
         """Initialize a FieldQuery instance."""
         super().__init__()
-        self._point_attr = "fields"
+        self._point_attr = "_fields"
         self._path_required = True
         self._hash = ("fields",)
 
@@ -818,6 +829,7 @@ class FieldQuery(BaseQuery):
             operator=lambda _: True,
             test_against_rhs=False,
             rhs=None,
+            args=None,
             hashval=("FieldQuery", "exists", self._path),
         )
 
@@ -843,7 +855,7 @@ class MeasurementQuery(BaseQuery):
     def __init__(self) -> None:
         """Initialize a MeasurementQuery instance."""
         super().__init__()
-        self._point_attr = "measurement"
+        self._point_attr = "_measurement"
         self._path_required = False
         self._hash = ("measurement",)
 
@@ -862,7 +874,7 @@ class TimeQuery(BaseQuery):
     def __init__(self) -> None:
         """Initialize a TimeQuery instance."""
         super().__init__()
-        self._point_attr = "time"
+        self._point_attr = "_time"
         self._path_required = False
         self._hash = ("time",)
 

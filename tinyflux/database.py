@@ -16,7 +16,7 @@ from typing import (
 
 from .measurement import Measurement
 from .index import Index
-from .point import Point, TagSet, FieldSet
+from .point import Point, validate_fields, validate_tags
 from .queries import CompoundQuery, MeasurementQuery, SimpleQuery
 from .storages import CSVStorage, Storage
 
@@ -198,7 +198,7 @@ class TinyFlux:
 
             rst = self.index.search(query)
 
-            if not rst.items:
+            if not rst._items:
                 return False
 
             if rst._is_complete:
@@ -210,7 +210,10 @@ class TinyFlux:
                 eval_count = 0
 
                 for i, row in enumerate(r):
-                    if i not in rst.items:
+                    if (
+                        len(rst._items) < len(self.index)
+                        and i not in rst._items
+                    ):
                         continue
 
                     if query(deserializer(row)):
@@ -218,7 +221,7 @@ class TinyFlux:
                         break
 
                     eval_count += 1
-                    if eval_count == len(rst.items):
+                    if eval_count == len(rst._items):
                         break
 
                 return
@@ -258,43 +261,47 @@ class TinyFlux:
 
             rst = self.index.search(query)
 
-            if not rst.items:
+            if not rst._items:
                 return 0
 
             if rst._is_complete:
-                return len(rst.items)
+                return len(rst._items)
 
-            def counter(r: Iterator, deserializer: Callable, _) -> None:
-                """Count over an iterator."""
-                nonlocal count
-                eval_count = 0
+            if len(rst._items) < len(self.index):
 
-                for i, row in enumerate(r):
-                    if i not in rst.items:
-                        continue
+                def counter(r: Iterator, deserializer: Callable, _) -> None:
+                    """Count over an iterator."""
+                    nonlocal count
+                    eval_count = 0
 
-                    # Match found.
-                    if query(deserializer(row)):
-                        count += 1
+                    for i, row in enumerate(r):
+                        if i not in rst._items:
+                            continue
 
-                    eval_count += 1
-                    if eval_count == len(rst.items):
-                        break
+                        # Match found.
+                        if query(deserializer(row)):
+                            count += 1
 
-                return
+                        eval_count += 1
+                        if eval_count == len(rst._items):
+                            break
+
+                    return
+
+                self._search_storage(counter)
+
+                return count
 
         # Otherwise, check all points.
-        else:
+        def counter(r: Iterator, deserializer: Callable, _) -> None:
+            """Count over an iterator."""
+            nonlocal count
 
-            def counter(r: Iterator, deserializer: Callable, _) -> None:
-                """Count over an iterator."""
-                nonlocal count
+            for row in r:
+                if query(deserializer(row)):
+                    count += 1
 
-                for row in r:
-                    if query(deserializer(row)):
-                        count += 1
-
-                return
+            return
 
         self._search_storage(counter)
 
@@ -317,7 +324,7 @@ class TinyFlux:
             q = MeasurementQuery() == name
             rst = self.index.search(q)
 
-            if not rst.items:
+            if not rst._items:
                 return 0
 
             def filter_func(
@@ -335,7 +342,7 @@ class TinyFlux:
 
                 for i, row in enumerate(r):
                     # Match. Filter.
-                    if i in rst.items:
+                    if i in rst._items:
                         filtered_items.add(i)
                         items_filtered = True
                         continue
@@ -439,7 +446,7 @@ class TinyFlux:
             # Get indices out of the index.
             rst = self.index.search(query)
 
-            if not rst.items:
+            if not rst._items:
                 return None
 
             def searcher(r: Iterator, deserializer: Callable, _) -> None:
@@ -451,11 +458,11 @@ class TinyFlux:
                 for i, row in enumerate(r):
 
                     # Not a candidate.
-                    if i not in rst.items:
+                    if i not in rst._items:
                         continue
 
                     # No further evaluation necessary.
-                    if rst.is_complete:
+                    if rst._is_complete:
                         found_point = deserializer(row)
                         return
 
@@ -467,7 +474,7 @@ class TinyFlux:
 
                     # Increment eval count.
                     eval_count += 1
-                    if eval_count == len(rst.items):
+                    if eval_count == len(rst._items):
                         break
 
                 # No matches found.
@@ -509,12 +516,14 @@ class TinyFlux:
         Todo:
             profile the isinstance call.
         """
-        # Now, we update the table and add the document
+        if not isinstance(point, Point):
+            raise TypeError("Data must be a Point instance.")
+
+        if not point.time:
+            point.time = datetime.utcnow()
+
         def inserter(points: List[Point]) -> None:
             """Update function."""
-            if not isinstance(point, Point):
-                raise TypeError("Data must be a Point instance.")
-
             points.append(point)
 
             return
@@ -537,6 +546,7 @@ class TinyFlux:
         """
         # Return value.
         count = 0
+        t = datetime.utcnow()
 
         # Now, we update the table and add the document
         def updater(inp_points: List[Point]) -> None:
@@ -546,6 +556,9 @@ class TinyFlux:
             for point in points:
                 if not isinstance(point, Point):
                     raise TypeError("Data must be a Point instance.")
+
+                if not point.time:
+                    point.time = t
 
                 inp_points.append(point)
                 count += 1
@@ -636,23 +649,6 @@ class TinyFlux:
 
         return
 
-    def _build_index(self):
-        """Build the Index instance.
-
-        This assumes the storage layer is sorted, so it should not be accessed
-        through public interface.  To check that the storage layer is indeed
-        sorted before building the index, use the 'reindex' method.
-        """
-        # Dump index.
-        self._index._reset()
-
-        # Build the index.
-        for item in self._storage:
-            _point = self._storage._deserialize_storage_item(item)
-            self._index.insert([_point])
-
-        return
-
     def remove(self, query: Union[CompoundQuery, SimpleQuery]) -> int:
         """Remove Points from this database by query.
 
@@ -671,7 +667,7 @@ class TinyFlux:
             # Get indices out of the index.
             rst = self.index.search(query)
 
-            if not rst.items:
+            if not rst._items:
                 return 0
 
             def filter_func(
@@ -688,7 +684,7 @@ class TinyFlux:
 
                 for i, row in enumerate(r):
                     # Not a candidate. Keep.
-                    if i not in rst.items:
+                    if i not in rst._items:
                         temp_memory.append(row)
                         updated_items[i] = new_index
                         new_index += 1
@@ -696,7 +692,7 @@ class TinyFlux:
                         continue
 
                     # Match. Filter
-                    if rst.is_complete:
+                    if rst._is_complete:
                         filtered_items.add(i)
                         items_filtered = True
                         continue
@@ -795,7 +791,7 @@ class TinyFlux:
             rst = self.index.search(query)
 
             # No candidates -> return None.
-            if not rst.items:
+            if not rst._items:
                 return []
 
             def searcher(r: Iterator, deserializer: Callable, _) -> None:
@@ -804,18 +800,18 @@ class TinyFlux:
 
                 for i, row in enumerate(r):
                     # Not a candidate, skip.
-                    if i not in rst.items:
+                    if i not in rst._items:
                         continue
 
                     _point = deserializer(row)
 
                     # Match or candidate match.
-                    if rst.is_complete or query(_point):
+                    if rst._is_complete or query(_point):
                         found_points.append(_point)
 
                     # Check to see if we need to eval any further.
                     eval_count += 1
-                    if eval_count == len(rst.items):
+                    if eval_count == len(rst._items):
                         break
 
                 return
@@ -868,6 +864,23 @@ class TinyFlux:
         # Return value.
         count = 0
 
+        # Validation.
+        if time and not callable(time) and not isinstance(time, datetime):
+            raise ValueError("Time must be datetime object.")
+
+        if (
+            measurement
+            and not callable(measurement)
+            and not isinstance(measurement, str)
+        ):
+            raise ValueError("Measurement must be str.")
+
+        if tags and not callable(tags):
+            validate_tags(tags)
+
+        if fields and not callable(fields):
+            validate_fields(fields)
+
         # Define the function that will perform the update
         def perform_update(point: Point) -> None:
             """Update points."""
@@ -890,13 +903,13 @@ class TinyFlux:
                 if callable(tags):
                     point.tags.update(tags(point.tags))
                 else:
-                    point.tags.update(TagSet(tags))
+                    point.tags.update(tags)
 
             if fields:
                 if callable(fields):
                     point.fields.update(fields(point.fields))
                 else:
-                    point.fields.update(FieldSet(fields))
+                    point.fields.update(fields)
 
             if point != old_point:
                 count += 1
@@ -939,7 +952,7 @@ class TinyFlux:
 
                 rst = self.index.search(_query)
 
-                if not rst.items:
+                if not rst._items:
                     return 0
 
                 def updater(
@@ -954,14 +967,14 @@ class TinyFlux:
 
                     for i, item in enumerate(r):
                         # Not a query match.
-                        if i not in rst.items:
+                        if i not in rst._items:
                             temp_memory.append(item)
                             continue
 
                         _point = deserializer(item)
 
                         # Query match.
-                        if rst.is_complete:
+                        if rst._is_complete:
                             u = perform_update(_point)
 
                             if u:
@@ -1033,6 +1046,23 @@ class TinyFlux:
 
         return count
 
+    def _build_index(self):
+        """Build the Index instance.
+
+        This assumes the storage layer is sorted, so it should not be accessed
+        through public interface.  To check that the storage layer is indeed
+        sorted before building the index, use the 'reindex' method.
+        """
+        # Dump index.
+        self._index._reset()
+
+        # Build the index.
+        for item in self._storage:
+            _point = self._storage._deserialize_storage_item(item)
+            self._index.insert([_point])
+
+        return
+
     def _insert_point(self, updater: Callable) -> None:
         """Insert point helper.
 
@@ -1053,19 +1083,6 @@ class TinyFlux:
 
         return
 
-    def _search_storage(self, func: Callable) -> None:
-        """Search storage layer helper.
-
-        Args:
-            func: A callable that accepts an iterator.
-
-        Returns:
-            A list of Points.
-        """
-        self._storage.search(func)
-
-        return
-
     def _reset_database(self) -> None:
         """Reset TinyFlux and storage."""
         # Write empty list to storage.
@@ -1077,5 +1094,18 @@ class TinyFlux:
         # Build an index.
         if self._auto_index:
             self._index.build([])
+
+        return
+
+    def _search_storage(self, func: Callable) -> None:
+        """Search storage layer helper.
+
+        Args:
+            func: A callable that accepts an iterator.
+
+        Returns:
+            A list of Points.
+        """
+        self._storage.search(func)
 
         return

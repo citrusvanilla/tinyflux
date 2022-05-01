@@ -237,13 +237,13 @@ class CSVStorage(Storage):
 
         return csv.reader(self._handle, **self.kwargs)
 
-    def _deserialize_timestamp(self, row: List[str]) -> datetime:
-        """ """
-        return datetime.fromisoformat(row[self._timestamp_idx])
-
     def _deserialize_measurement(self, row: List[str]) -> str:
         """ """
         return row[self._measurement_idx]
+
+    def _deserialize_timestamp(self, row: List[str]) -> datetime:
+        """ """
+        return datetime.fromisoformat(row[self._timestamp_idx])
 
     def _deserialize_storage_item(self, row: List[str]) -> Point:
         """Deserialize a row from storage to a Point."""

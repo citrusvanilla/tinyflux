@@ -533,8 +533,10 @@ def test_multiple_appends(
     assert storage.read_count == 0
 
     # Append a bunch of points in-order. No reads should be performed.
+    t = datetime.utcnow()
+
     for i in range(10):
-        storage.append([Point()])
+        storage.append([Point(time=t)])
         assert storage.append_count == i + 1
         assert storage.read_count == 0
         assert storage.write_count == 0
@@ -558,7 +560,7 @@ def test_multiple_appends(
 
     # Append a bunch of points in-order. No reads should be performed.
     for i in range(10):
-        storage.append([Point()])
+        storage.append([Point(time=t)])
         assert storage.append_count == i + 1
         assert storage.read_count == 0
         assert storage.write_count == 0
@@ -571,7 +573,7 @@ def test_multiple_appends(
 
     # Append a bunch of points in-order. No reads should be performed.
     for i in range(10):
-        storage.append([Point()])
+        storage.append([Point(time=t)])
         assert storage.append_count == i + 1
         assert storage.read_count == 0
         assert storage.write_count == 0
@@ -584,10 +586,12 @@ def test_multiple_reads(
     """Test read/write counts for multiple reads in a row."""
     # Mock CSV store.  Insert points in order.
     path = os.path.join(tmpdir, "test.csv")
+    t = datetime.utcnow()
+
     with open(path, "w") as f:
         w = csv.writer(f)
         for _ in range(10):
-            w.writerow(Point()._serialize())
+            w.writerow(Point(time=t)._serialize())
 
     # Init storage object.  No reads should be performed.
     storage = csv_storage_with_counters(path)
@@ -608,7 +612,7 @@ def test_multiple_reads(
     with open(path, "w") as f:
         w = csv.writer(f)
         for _ in range(10):
-            w.writerow(Point()._serialize())
+            w.writerow(Point(time=t)._serialize())
         w.writerow(
             Point(time=datetime.utcnow() - timedelta(days=365))._serialize()
         )
@@ -632,7 +636,7 @@ def test_multiple_reads(
 
     # Append a bunch of points in-order. No reads should be performed.
     for i in range(10):
-        storage.append([Point()])
+        storage.append([Point(time=t)])
 
     for i in range(5):
         storage.read(True)

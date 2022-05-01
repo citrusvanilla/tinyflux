@@ -1,7 +1,7 @@
 """Tests for the tinyflux.point module."""
 from datetime import datetime, timedelta
 import pytest
-from tinyflux.point import TagSet, FieldSet, Point
+from tinyflux.point import Point
 
 
 def test_repr():
@@ -63,126 +63,6 @@ def test_args_and_kwargs():
     # Point with bad measurement type.
     with pytest.raises(ValueError):
         Point(measurement=1)
-
-
-def test_tagset():
-    """Test TagSet class and objects."""
-    # Empty tag set.
-    t = TagSet({})
-    assert t == {}
-    assert isinstance(t, TagSet)
-
-    # Bad instatiation.
-    with pytest.raises(ValueError, match="Tag set must be a mapping."):
-        TagSet(3)
-
-    with pytest.raises(
-        ValueError, match="Tag set must contain only string keys."
-    ):
-        TagSet({1: "a"})
-
-    with pytest.raises(
-        ValueError, match="Tag set must contain only string values."
-    ):
-        TagSet({"a": 1})
-
-    # Bad tag key setter.
-    with pytest.raises(
-        ValueError, match="Tag set must contain only string keys."
-    ):
-        t[1] = "a"
-
-    # Bad tag value setter.
-    with pytest.raises(
-        ValueError, match="Tag set must contain only string values."
-    ):
-        t["a"] = 1
-
-
-def test_fieldset():
-    """Test FieldSet class and objects."""
-    # Bad instatiation.
-    with pytest.raises(ValueError, match="Field set must be a mapping."):
-        FieldSet(3)
-
-    with pytest.raises(
-        ValueError, match="Field set must contain only string keys."
-    ):
-        FieldSet({1: "a"})
-
-    with pytest.raises(
-        ValueError, match="Field set must contain only numeric values."
-    ):
-        FieldSet({"a": "b"})
-
-    # Bad tag key setter.
-    with pytest.raises(
-        ValueError, match="Field set must contain only string keys."
-    ):
-        FieldSet({})[1] = "a"
-
-    # Bad tag value setter.
-    with pytest.raises(
-        ValueError, match="Field set must contain only numeric values."
-    ):
-        FieldSet({})["a"] = "b"
-
-    # Invalid value types.
-    with pytest.raises(ValueError, match="Field set must be a mapping."):
-        FieldSet("a")
-
-    with pytest.raises(ValueError, match="Field set must be a mapping."):
-        FieldSet([])
-
-    with pytest.raises(ValueError, match="Field set must be a mapping."):
-        FieldSet(1)
-
-    with pytest.raises(ValueError, match="Field set must be a mapping."):
-        FieldSet(True)
-
-    with pytest.raises(ValueError, match="Field set must be a mapping."):
-        FieldSet({3})
-
-    with pytest.raises(
-        ValueError, match="Field set must contain only string keys."
-    ):
-        FieldSet({3: 1})
-
-    with pytest.raises(
-        ValueError, match="Field set must contain only string keys."
-    ):
-        FieldSet({True: 1})
-
-    with pytest.raises(
-        ValueError,
-        match="Field set must contain only numeric values.",
-    ):
-        FieldSet({"a": "a"})
-
-    with pytest.raises(
-        ValueError,
-        match="Field set must contain only numeric values.",
-    ):
-        FieldSet({"a": True})
-
-    with pytest.raises(
-        ValueError,
-        match="Field set must contain only numeric values.",
-    ):
-        FieldSet({"a": {}})
-
-    with pytest.raises(
-        ValueError,
-        match="Field set must contain only numeric values.",
-    ):
-        FieldSet({"a": []})
-
-    # Field Set setter.
-    fs = FieldSet({})
-    fs["a"] = None
-    assert fs["a"] == None
-    fs["b"] = 1
-    assert fs["b"] == 1
 
 
 def test_time():
@@ -264,8 +144,7 @@ def test_tags():
     p = Point()
     tags = {"a": "b"}
 
-    assert p.tags == p._tags == {} == TagSet({})
-    assert isinstance(p.tags, TagSet)
+    assert p.tags == p._tags == {}
     p.tags = tags
     assert p.tags == p._tags == tags
 
@@ -312,11 +191,6 @@ def test_fields():
                 tags={"key1", "value1"},
                 fields=i,
             )
-
-    # Empty field set.
-    t = FieldSet({})
-    assert t == {}
-    assert isinstance(t, FieldSet)
 
     p = Point()
     fields = {"a": 1.0}
@@ -494,53 +368,5 @@ def test_deserialize_invalid_point():
     with pytest.raises(
         ValueError,
         match="Invalid isoformat string: 'ASDF'",
-    ):
-        Point()._deserialize(p_list)
-
-    # Bad value type.
-    p_list = [
-        time_now_str,
-        "_default",
-        "_field_temp_f",
-        "asdf",
-    ]
-
-    with pytest.raises(ValueError, match="Invalid field value 'asdf'"):
-        Point()._deserialize(p_list)
-
-    p_list = [
-        time_now_str,
-        "_default",
-        "_field_temp_f",
-        "True",
-    ]
-
-    with pytest.raises(ValueError, match="Invalid field value 'True'"):
-        Point()._deserialize(p_list)
-
-    # Bad columns.
-    p_list = [
-        time_now_str,
-        "_default",
-        "_fieldzzz_temp_f",
-        "75.1",
-    ]
-
-    with pytest.raises(
-        RuntimeError, match="Unexpected schema for column '_fieldzzz_temp_f'"
-    ):
-        Point()._deserialize(p_list)
-
-    p_list = [
-        time_now_str,
-        "_default",
-        "_field_temp_f",
-        "75.1",
-        "bad_column",
-        "1",
-    ]
-
-    with pytest.raises(
-        RuntimeError, match="Unexpected schema for column 'bad_column'"
     ):
         Point()._deserialize(p_list)

@@ -4,9 +4,9 @@ A Point is the data type upon which TinyFlux manages.  It contains the time
 data and metadata for an individual observation.  Points are serialized and
 deserialized from Storage.  SimpleQuerys act upon individual Points.
 
-A Point is comprised of a timestamp, a measurement, a FieldSet, and a TagSet.
+A Point is comprised of a timestamp, a measurement, fields, and tags.
 
-A FieldSet contains string/numeric key-values, while TagSets contain
+Fields contains string/numeric key-values, while tags contain
 string/string key-values.  This is enforced upon Point instantiation.
 
 Usage:
@@ -25,109 +25,40 @@ from datetime import datetime
 from typing import Mapping, List, Tuple
 
 
-class TagSet(dict):
-    """Definition for the TagSet class.
+def validate_tags(tags):
+    """"""
+    if not isinstance(tags, Mapping):
+        raise ValueError("Tag set must be a mapping.")
 
-    Instantiation enforces TagSet dict to be str,str key/value pairs.
+    # Check keys.
+    if not all(isinstance(i, str) for i in tags.keys()):
+        raise ValueError("Tag set must contain only string keys.")
 
-    Usage:
-        >>> ts = TagSet({"a": "1"})
-    """
+    # Check values.
+    if not all(i is None or isinstance(i, str) for i in tags.values()):
+        raise ValueError("Tag set must contain only string values.")
 
-    def __init__(self, value: Mapping) -> None:
-        """Init a TagSet.
-
-        Args:
-            value: The key/values as a dict.
-        """
-        if not isinstance(value, Mapping):
-            raise ValueError("Tag set must be a mapping.")
-
-        # Check keys.
-        if not all(isinstance(i, str) for i in value.keys()):
-            raise ValueError("Tag set must contain only string keys.")
-
-        # Check values.
-        if not all(i is None or isinstance(i, str) for i in value.values()):
-            raise ValueError("Tag set must contain only string values.")
-
-        super().__init__(value)
-
-    def __setitem__(self, key, value):
-        """Define __setitem__.
-
-        Override dict built-in to assert key/val types.
-
-        Args:
-            key: String.
-            value: String.
-        """
-        # Check keys.
-        if not isinstance(key, str):
-            raise ValueError("Tag set must contain only string keys.")
-
-        # Check values.
-        if not isinstance(value, str):
-            raise ValueError("Tag set must contain only string values.")
-
-        super(TagSet, self).__setitem__(key, value)
+    return
 
 
-class FieldSet(dict):
-    """Definition for the FieldSet class.
+def validate_fields(fields):
+    """"""
+    if not isinstance(fields, Mapping):
+        raise ValueError("Field set must be a mapping.")
 
-    Instantiation enforces FieldSet dict to be str,numeric key/value pairs.
+    # Check keys.
+    if not all(isinstance(i, str) for i in fields):
+        raise ValueError("Field set must contain only string keys.")
 
-    Usage:
-        >>> ts = FieldSet({"a": 1})
-    """
+    # Check values.
+    for i in fields.values():
+        if i is None:
+            continue
 
-    def __init__(self, value: Mapping) -> None:
-        """Init a FieldSet.
-
-        Args:
-            value: The key/values as a dict.
-        """
-        if not isinstance(value, Mapping):
-            raise ValueError("Field set must be a mapping.")
-
-        # Check keys.
-        if not all(isinstance(i, str) for i in value.keys()):
-            raise ValueError("Field set must contain only string keys.")
-
-        # Check values.
-        for i in value.values():
-            if i is None:
-                continue
-
-            if isinstance(i, bool) or not isinstance(i, (int, float)):
-                raise ValueError("Field set must contain only numeric values.")
-
-        super().__init__(value)
-
-    def __setitem__(self, key, value):
-        """Define __setitem__.
-
-        Override dict built-in to assert key/val types.
-
-        Args:
-            key: String.
-            value: Numeric.
-        """
-        # Check None.
-        if value is None:
-            super(FieldSet, self).__setitem__(key, value)
-            return
-
-        # Check keys.
-        if not isinstance(key, str):
-            raise ValueError("Field set must contain only string keys.")
-
-        # Check values.
-        if not isinstance(value, (int, float)):
+        if isinstance(i, bool) or not isinstance(i, (int, float)):
             raise ValueError("Field set must contain only numeric values.")
 
-        super(FieldSet, self).__setitem__(key, value)
+    return
 
 
 class Point:
@@ -152,6 +83,7 @@ class Point:
     _none_str = "_none"
     default_measurement_name = "_default"
     _valid_kwargs = set(["time", "measurement", "tags", "fields"])
+    __slots__ = ("_time", "_measurement", "_tags", "_fields")
 
     def __init__(
         self,
@@ -166,18 +98,27 @@ class Point:
             tags: Tag set. Defaults to empty set.
             fields: Field set. Defaults to empty set.
         """
-        self._validate_args(args, kwargs)
+        # Test for args.
+        if args:
+            raise TypeError(
+                "Point may contain keyword args for time, "
+                "measurement, tags, and fields only."
+            )
 
-        self._time: datetime = kwargs.get("time", datetime.utcnow())
-        self._measurement: str = kwargs.get(
-            "measurement", self.default_measurement_name
-        )
-        self._tags: TagSet = (
-            TagSet(kwargs.get("tags")) if "tags" in kwargs else {}
-        )
-        self._fields: FieldSet = (
-            FieldSet(kwargs.get("fields")) if "fields" in kwargs else {}
-        )
+        if kwargs:
+            self._validate_kwargs(kwargs)
+
+            self._time: datetime = kwargs.get("time", datetime.utcnow())
+            self._measurement: str = kwargs.get(
+                "measurement", self.default_measurement_name
+            )
+            self._tags: Mapping = kwargs.get("tags", {})
+            self._fields: Mapping = kwargs.get("fields", {})
+        else:
+            self._time = None
+            self._measurement = self.default_measurement_name
+            self._tags = {}
+            self._fields = {}
 
     @property
     def time(self):
@@ -207,7 +148,8 @@ class Point:
     @tags.setter
     def tags(self, value):
         """Set tags."""
-        self._tags = TagSet(value)
+        validate_tags(value)
+        self._tags = value
 
     @property
     def fields(self):
@@ -217,7 +159,8 @@ class Point:
     @fields.setter
     def fields(self, value):
         """Get fields."""
-        self._fields = FieldSet(value)
+        validate_fields(value)
+        self._fields = value
 
     def __eq__(self, other):
         """Define __eq__.
@@ -229,7 +172,12 @@ class Point:
             All point attributes are equivalent.
         """
         if isinstance(other, self.__class__):
-            return self.__dict__ == other.__dict__
+            return (
+                self._time == other._time
+                and self._measurement == other._measurement
+                and self._tags == other._tags
+                and self._fields == other._fields
+            )
 
         return False
 
@@ -290,32 +238,27 @@ class Point:
             i += 2
 
         # Check for field key/values.
-        while i < row_len and row[i][1] == "f":
+        while i < row_len:
             f_key, f_value = row[i][7:], row[i + 1]
 
             try:
                 p_fields[f_key] = int(f_value)
                 i += 2
                 continue
-            except Exception:
+            except:
                 pass
 
             try:
                 p_fields[f_key] = float(f_value)
                 i += 2
                 continue
-            except Exception:
+            except:
                 pass
 
-            if f_value == self._none_str:
-                p_fields[f_key] = None
-                i += 2
-                continue
+            p_fields[f_key] = None
+            i += 2
 
-            raise ValueError(f"Invalid field value '{f_value}'")
-
-        if i < row_len:
-            raise RuntimeError(f"Unexpected schema for column '{row[i]}'")
+            continue
 
         self._time = p_time
         self._measurement = p_measurement
@@ -355,7 +298,7 @@ class Point:
 
         return row
 
-    def _validate_args(self, args, kwargs):
+    def _validate_kwargs(self, kwargs):
         """Validate args and kwargs.
 
         Helper function validates types of 'time' and 'measurement' arguments.
@@ -368,15 +311,6 @@ class Point:
             TypeError: Bad argument keyword.
             ValueError: Unexpected type encountered.
         """
-        # Test for args.
-        if args:
-            raise TypeError(
-                "Point may contain keyword args for time, "
-                "measurement, tags, and fields only."
-            )
-
-        if not kwargs:
-            return
 
         # Test for bad kwargs.
         unexpected_kwargs = set(kwargs.keys()) - self._valid_kwargs
@@ -387,12 +321,22 @@ class Point:
                 f"{', '.join(sorted(list(unexpected_kwargs)))}"
             )
 
-        # Check types.
+        # Check time.
         if "time" in kwargs and not isinstance(kwargs["time"], datetime):
             raise ValueError("Time must be datetime object.")
 
-        # Check tags.
+        # Check measurement.
         if "measurement" in kwargs and not isinstance(
             kwargs["measurement"], str
         ):
             raise ValueError("Measurement must be str.")
+
+        # check
+        if "tags" in kwargs:
+            validate_tags(kwargs["tags"])
+
+        # Check fields.
+        if "fields" in kwargs:
+            validate_fields(kwargs["fields"])
+
+        return

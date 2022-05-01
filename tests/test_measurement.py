@@ -315,8 +315,6 @@ def test_insert_multiple():
 def test_build_index(capsys, tmpdir):
     """Test storage initialization when auto_index is False."""
     # Some mock points.
-    assert False
-
     p1 = Point(measurement="m1", time=datetime.utcnow() - timedelta(days=10))
     p2 = Point(measurement="m2", time=datetime.utcnow())
     p3 = Point(measurement="m2", time=datetime.utcnow() + timedelta(days=10))
@@ -347,8 +345,8 @@ def test_build_index(capsys, tmpdir):
     assert not db._storage._index_intact
     assert len(m2) == 2
 
-    # Reindex.
-    m1._reindex()
+    # Reindex the storage layer.
+    db.storage.reindex()
 
     # Check storage layer is sorted.
     f = open(path, "r+")
@@ -361,6 +359,9 @@ def test_build_index(capsys, tmpdir):
     assert db._storage._is_sorted()
     assert db._storage._index_intact
 
+    # Reindex.
+    m1._build_index()
+
     # Check new index.
     assert db.index.valid
     assert not db.index.empty
@@ -369,11 +370,6 @@ def test_build_index(capsys, tmpdir):
     assert db.index._measurements == {"m1": {0}, "m2": {1, 2}}
     assert not db.index._tags
     assert not db.index._fields
-
-    # Try to index again.
-    m2._reindex()
-    captured = capsys.readouterr()
-    assert captured.out == "Index already valid.\n"
 
 
 def test_remove():
@@ -674,5 +670,6 @@ def test_auto_index_off(mem_storage_with_counters):
     m.insert(p)
     assert m.all() == [p]
     assert m.update(fields={"fk": 2}) == 1
+    assert m.get(q2) is None
     assert m.get(~q2) == p
     assert m.get(q1) == p
