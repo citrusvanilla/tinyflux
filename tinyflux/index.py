@@ -28,22 +28,20 @@ class IndexResult:
             be passed onto the storage layer for further querying.
 
     Usage:
-        >>> IndexResult(items=set(), is_complete=True, all_items=set())
+        >>> IndexResult(items=set(), is_complete=True, index_count=0)
     """
 
-    def __init__(
-        self, items: Set[int], is_complete: bool, all_items: Set[int]
-    ):
+    def __init__(self, items: Set[int], is_complete: bool, index_count: int):
         """Init IndexResult.
 
         Args:
             items: Matching items from a query as indicies.
             is_complete: Items should be passed to another search.
-            all_items: All candidates for a result (useful for a complement).
+            index_count: Number of items in the index..
         """
         self._items = items
         self._is_complete = is_complete
-        self._all_items = all_items
+        self._index_count = index_count
 
     @property
     def items(self):
@@ -64,10 +62,16 @@ class IndexResult:
         Usage:
             >>> ~IndexResult()
         """
+        # Invert items.
+        new_items = set({})
+        for i in range(self._index_count):
+            if i not in self._items:
+                new_items.add(i)
+
         return IndexResult(
-            self._all_items.difference(self._items),
+            new_items,
             self._is_complete,
-            self._all_items,
+            self._index_count,
         )
 
     def __and__(self, other: "IndexResult") -> "IndexResult":
@@ -85,7 +89,7 @@ class IndexResult:
         return IndexResult(
             self._items.intersection(other._items),
             self._is_complete and other._is_complete,
-            self._all_items,
+            self._index_count,
         )
 
     def __or__(self, other: "IndexResult") -> "IndexResult":
@@ -103,7 +107,7 @@ class IndexResult:
         return IndexResult(
             self._items.union(other._items),
             self._is_complete and other._is_complete,
-            self._all_items,
+            self._index_count,
         )
 
 
@@ -129,7 +133,7 @@ class Index:
         Args:
             valid: Index represents current state of TinyFlux.
         """
-        self._all_items: set = set({})
+        self._num_items: int = 0
         self._tags: dict[str, dict[str, set]] = {}
         self._fields: dict[str, set] = {}
         self._measurements: dict[str, set] = {}
@@ -140,7 +144,7 @@ class Index:
     def empty(self) -> bool:
         """Return an empty index."""
         return (
-            not self._all_items
+            not self._num_items
             and not self._tags
             and not self._fields
             and not self._measurements
@@ -154,7 +158,7 @@ class Index:
 
     def __len__(self) -> int:
         """Return number of items in the index."""
-        return len(self._all_items)
+        return self._num_items
 
     def __repr__(self) -> str:
         """Return printable representation of Index."""
@@ -178,7 +182,7 @@ class Index:
         self._reset()
 
         for idx, point in enumerate(points):
-            self._all_items.add(idx)
+            self._num_items += 1
             self._index_time(point.time)
             self._index_tags(idx, point.tags)
             self._index_fields(idx, point.fields)
@@ -214,7 +218,7 @@ class Index:
         for idx, point in enumerate(points):
             new_idx = start_idx + idx
 
-            self._all_items.add(new_idx)
+            self._num_items += 1
             self._index_time(point.time)
             self._index_tags(new_idx, point.tags)
             self._index_fields(new_idx, point.fields)
@@ -246,7 +250,7 @@ class Index:
         self._remove_measurements(r_items)
         self._remove_tags(r_items)
         self._remove_fields(r_items)
-        self._all_items = self._all_items.difference(r_items)
+        self._num_items -= len(r_items)
 
         return
 
@@ -273,7 +277,6 @@ class Index:
         self._update_measurements(u_items)
         self._update_tags(u_items)
         self._update_fields(u_items)
-        self._update_all_items(u_items)
 
         return
 
@@ -341,7 +344,7 @@ class Index:
 
         Empty the index out.
         """
-        self._all_items = set({})
+        self._num_items = 0
         self._tags = {}
         self._fields = {}
         self._measurements = {}
@@ -412,7 +415,7 @@ class Index:
                     isinstance(query.query1, SimpleQuery)
                     and query.query1._point_attr == "_fields"
                 ):
-                    rst._items = rst._all_items
+                    rst._items = {i for i in range(self._num_items)}
                     return rst
                 else:
                     return ~rst
@@ -420,22 +423,22 @@ class Index:
         if isinstance(query, SimpleQuery):
             if query.point_attr == "_time":
                 return IndexResult(
-                    self._search_timestamps(query), True, self._all_items
+                    self._search_timestamps(query), True, self._num_items
                 )
 
             if query.point_attr == "_measurement":
                 return IndexResult(
-                    self._search_measurement(query), True, self._all_items
+                    self._search_measurement(query), True, self._num_items
                 )
 
             if query.point_attr == "_tags":
                 return IndexResult(
-                    self._search_tags(query), True, self._all_items
+                    self._search_tags(query), True, self._num_items
                 )
 
             if query.point_attr == "_fields":
                 return IndexResult(
-                    self._search_fields(query), False, self._all_items
+                    self._search_fields(query), False, self._num_items
                 )
 
         raise TypeError("Query must be SimpleQuery or CompoundQuery.")
@@ -644,16 +647,6 @@ class Index:
                 new_timestamps.append(ts)
 
         self._timestamps = new_timestamps
-
-        return
-
-    def _update_all_items(self, u_items):
-        """"""
-        updated_items = set({})
-        for i in self._all_items:
-            updated_items.add(u_items[i])
-
-        self._all_items = updated_items
 
         return
 

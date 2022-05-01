@@ -22,8 +22,8 @@ def test_initialize_empty_index():
     """Test initializing an empty Index."""
     index = Index()
 
-    assert isinstance(index._all_items, set)
-    assert not index._all_items
+    assert isinstance(index._num_items, int)
+    assert not index._num_items
 
     assert isinstance(index._tags, dict)
     assert not index._tags
@@ -62,15 +62,15 @@ def test_build():
     assert index.empty
 
     index.build([Point(), Point()])
-    assert len(index._all_items) == 2
+    assert index._num_items == 2
 
     index.build([Point()])
-    assert len(index._all_items) == 1
+    assert index._num_items == 1
 
     index = Index()
     index.build([p1, p2, p3])
 
-    assert index._all_items == {0, 1, 2}
+    assert index._num_items == 3
 
     assert index._tags == {
         "city": {"la": {0}, "sf": {1}},
@@ -108,10 +108,10 @@ def test_update():
     index = Index()
 
     index.insert([Point(), Point()])
-    assert len(index._all_items) == 2
+    assert index._num_items == 2
 
     index.insert([Point()])
-    assert len(index._all_items) == 3
+    assert index._num_items == 3
 
 
 def test_index_time_method():

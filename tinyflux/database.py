@@ -143,7 +143,7 @@ class TinyFlux:
         """Get a printable representation of the TinyFlux instance."""
         if self._auto_index and self._index.valid:
             args = [
-                f"all_points_count={len(self._index._all_items)}",
+                f"all_points_count={len(self._index)}",
                 f"auto_index_ON={self._auto_index}",
                 f"index_valid={self._index.valid}",
             ]

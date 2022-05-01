@@ -8,3 +8,4 @@
 performance_tests/**
 
 **.icloud
+.coverage
