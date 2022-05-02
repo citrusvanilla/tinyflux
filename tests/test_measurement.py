@@ -26,7 +26,6 @@ def test_init():
     assert m2._name == "b"
     assert db.storage == m.storage == m2.storage
     assert db.index == m.index == m2.index
-    assert db._auto_index == m._auto_index == m2._auto_index
 
 
 def test_iter():
@@ -109,7 +108,7 @@ def test_storage():
     db = TinyFlux(storage=MemoryStorage)
     m1 = db.measurement("a")
     m2 = db.measurement("b")
-    assert m1.storage == m1._storage == m2.storage == m2._storage == db.storage
+    assert m1.storage == m2.storage == db.storage
 
 
 def test_all():
@@ -310,66 +309,6 @@ def test_insert_multiple():
     # Generator.
     assert m2.insert_multiple(Point() for _ in range(2)) == 2
     assert len(m2) == 4
-
-
-def test_build_index(capsys, tmpdir):
-    """Test storage initialization when auto_index is False."""
-    # Some mock points.
-    p1 = Point(measurement="m1", time=datetime.utcnow() - timedelta(days=10))
-    p2 = Point(measurement="m2", time=datetime.utcnow())
-    p3 = Point(measurement="m2", time=datetime.utcnow() + timedelta(days=10))
-
-    # Mock CSV store.  Insert points out of order.
-    path = os.path.join(tmpdir, "test.csv")
-    f = open(path, "w")
-    w = csv.writer(f)
-    w.writerow(p2._serialize())
-    w.writerow(p1._serialize())
-    f.close()
-
-    # Open up the DB with TinyFlux.
-    db = TinyFlux(path, auto_index=True, storage=CSVStorage)
-    m1 = db.measurement("m1")
-    m2 = db.measurement("m2")
-    assert not db.storage._index_intact
-    assert not db.index.valid
-    assert db.index.empty
-    assert len(m1) == 1
-    assert len(m2) == 1
-
-    # Append a point.
-    db.insert(p3)
-    assert not db.index.valid
-    assert db.index.empty
-    assert not db._storage._is_sorted()
-    assert not db._storage._index_intact
-    assert len(m2) == 2
-
-    # Reindex the storage layer.
-    db.storage.reindex()
-
-    # Check storage layer is sorted.
-    f = open(path, "r+")
-    r = csv.reader(f)
-    for row, point in zip(r, [p1, p2, p3]):
-        assert tuple(row) == point._serialize()
-        assert Point()._deserialize(row) == point
-    f.close()
-
-    assert db._storage._is_sorted()
-    assert db._storage._index_intact
-
-    # Reindex.
-    m1._build_index()
-
-    # Check new index.
-    assert db.index.valid
-    assert not db.index.empty
-    assert len(db.index) == 3
-    assert db.index._timestamps == [i.time.timestamp() for i in [p1, p2, p3]]
-    assert db.index._measurements == {"m1": [0], "m2": [1, 2]}
-    assert not db.index._tags
-    assert not db.index._fields
 
 
 def test_remove():

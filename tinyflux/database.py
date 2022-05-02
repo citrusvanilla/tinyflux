@@ -223,6 +223,7 @@ class TinyFlux:
                     j = 0
 
                     for i, row in enumerate(r):
+
                         # Not a candidate.
                         if i != index_rst._items[j]:
                             continue
@@ -729,11 +730,8 @@ class TinyFlux:
 
         # Otherwise, create a new Measurement object.
         measurement = Measurement(
-            self,
-            self._auto_index,
-            self._storage,
-            self._index,
             name,
+            self,
             **kwargs,
         )
         self._measurements[name] = measurement

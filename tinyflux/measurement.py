@@ -1,6 +1,6 @@
 """Defintion of TinyFlux measurement class.
 
-The measurement class provides a convenient interface a the subset of
+The measurement class provides a convenient interface into a subset of
 data points with a common measurement name.  A measurement is analogous to a
 table in a traditional RDBMS.
 
@@ -10,7 +10,6 @@ Usage:
 """
 from __future__ import annotations
 
-import copy
 from datetime import datetime
 from typing import (
     Callable,
@@ -24,8 +23,8 @@ from typing import (
 )
 
 
-from .point import Point, validate_tags, validate_fields
-from .queries import CompoundQuery, MeasurementQuery, SimpleQuery
+from .point import Point
+from .queries import MeasurementQuery, SimpleQuery
 from .index import Index
 from .storages import Storage
 
@@ -49,11 +48,8 @@ class Measurement:
 
     def __init__(
         self,
-        parent_database: TinyFlux,
-        auto_index: bool,
-        storage: Storage,
-        index: Index,
         name: str,
+        parent_database: TinyFlux,
     ) -> None:
         """Initialize a measurement instance.
 
@@ -66,9 +62,6 @@ class Measurement:
         """
         self._name = name
         self._db = parent_database
-        self._storage = storage
-        self._index = index
-        self._auto_index = auto_index
 
     @property
     def name(self) -> str:
@@ -78,26 +71,26 @@ class Measurement:
     @property
     def storage(self) -> Storage:
         """Get the measurement storage instance."""
-        return self._storage
+        return self._db._storage
 
     @property
     def index(self) -> Index:
         """Get the measurement storage instance."""
-        return self._index
+        return self._db._index
 
     def __iter__(self) -> Generator:
         """Define the iterator for this class."""
-        for item in self._storage:
-            _measurement = self._storage._deserialize_measurement(item)
+        for item in self._db._storage:
+            _measurement = self._db._storage._deserialize_measurement(item)
             if _measurement == self._name:
-                yield self._storage._deserialize_storage_item(item)
+                yield self._db._storage._deserialize_storage_item(item)
 
     def __len__(self) -> int:
         """Get total number of points in this measurement."""
         # Check the index first.
-        if self._auto_index and self._index.valid:
-            if self.name in self._index._measurements:
-                return len(self._index._measurements[self.name])
+        if self._db._auto_index and self._db._index.valid:
+            if self.name in self._db._index._measurements:
+                return len(self._db._index._measurements[self.name])
             else:
                 return 0
 
@@ -114,27 +107,27 @@ class Measurement:
 
             return
 
-        self._search_storage(counter)
+        self._db._search_storage(counter)
 
         return count
 
     def __repr__(self) -> str:
         """Get a printable representation of this measurement."""
-        if self._auto_index and self._index.valid:
-            if self._name in self._index._measurements:
-                count = len(self._index._measurements[self._name])
+        if self._db._auto_index and self._db._index.valid:
+            if self._name in self._db._index._measurements:
+                count = len(self._db._index._measurements[self._name])
             else:
                 count = 0
 
             args = [
                 f"name={self.name}",
                 f"total={count}",
-                f"storage={self._storage}",
+                f"storage={self._db._storage}",
             ]
         else:
             args = [
                 f"name={self.name}",
-                f"storage={self._storage}",
+                f"storage={self._db._storage}",
             ]
 
         return f'<{type(self).__name__} {", ".join(args)}>'
@@ -291,48 +284,3 @@ class Measurement:
         q = MeasurementQuery().noop()
 
         return self._db.update(q, time, measurement, tags, fields, self._name)
-
-    def _build_index(self):
-        """ """
-        # Dump index.
-        self._index._reset()
-
-        # Build the index.
-        for item in self._storage:
-            _point = self._storage._deserialize_storage_item(item)
-            self._index.insert([_point])
-
-        return
-
-    def _insert_point(self, updater: Callable) -> None:
-        """Insert point helper.
-
-        Args:
-            updater: Update function.
-        """
-        # Insert the points into storage.
-        new_points: List[Point] = []
-        updater(new_points)
-        self._storage.append(new_points)
-
-        # Update the index.
-        if self._auto_index and self._index.valid:
-            if self._storage.index_intact:
-                self._index.insert(new_points)
-            else:
-                self._index.invalidate()
-
-        return
-
-    def _search_storage(self, func: Callable) -> None:
-        """Search storage layer helper.
-
-        Args:
-            func: A callable that accepts an iterator.
-
-        Returns:
-            A list of Points.
-        """
-        self._storage.search(func)
-
-        return
