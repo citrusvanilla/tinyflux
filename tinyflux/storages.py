@@ -17,6 +17,7 @@ from abc import ABC, abstractmethod
 import csv
 from datetime import datetime
 from email.generator import Generator
+import gc
 import os
 from pathlib import Path
 from typing import Callable, Iterable, List, Optional, Union
@@ -360,6 +361,9 @@ class CSVStorage(Storage):
         os.fsync(self._handle.fileno())
         self._handle.truncate()
 
+        del tmp_memory
+        gc.collect()
+
         return
 
     def read(self, reindex_on_read: bool) -> List[Point]:
@@ -455,6 +459,7 @@ class CSVStorage(Storage):
         self._lastest_time = self._deserialize_timestamp(tmp_memory[-1])
         self._index_intact = True
         del tmp_memory
+        gc.collect()
 
         return
 
@@ -534,6 +539,9 @@ class CSVStorage(Storage):
         self._handle.flush()
         os.fsync(self._handle.fileno())
         self._handle.truncate()
+
+        del tmp_memory
+        gc.collect()
 
         return
 
