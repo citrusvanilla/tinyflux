@@ -1,6 +1,6 @@
 """Defintion of TinyFlux utils."""
 import bisect
-from typing import List, Optional
+from typing import Generator, List, Optional
 
 
 class FrozenDict(dict):
@@ -144,3 +144,77 @@ def find_ge(sorted_list: List, x: int) -> Optional[int]:
         return i
 
     return None
+
+
+def difference_generator_and_sorted_lists(
+    generator: Generator, inp_list: List
+):
+    """ """
+    rst = []
+    j = 0
+
+    for i in generator:
+        # Run out rest of generator.
+        if j == len(inp_list):
+            rst.append(i)
+            continue
+
+        # Match. Skip
+        if i == inp_list[j]:
+            j += 1
+
+        # Not a match. Keep.
+        else:
+            rst.append(i)
+
+    return rst
+
+
+def intersection_two_sorted_lists(list1, list2):
+    """ """
+    rst = []
+    i, j = 0, 0
+
+    while i < len(list1) and j < len(list2):
+        # Duplicates, keep.
+        if list1[i] == list2[j]:
+            rst.append(list1[i])
+            i += 1
+            j += 1
+            continue
+
+        if list1[i] > list2[j]:
+            j += 1
+        else:
+            i += 1
+
+    return rst
+
+
+def union_two_sorted_lists(list1, list2):
+    """ """
+    rst = []
+    i, j = 0, 0
+
+    while i < len(list1) and j < len(list2):
+        # Duplicates. Skip.
+        if list1[i] == list2[j]:
+            i += 1
+            continue
+
+        if list1[i] > list2[j]:
+            rst.append(list2[j])
+            j += 1
+        else:
+            rst.append(list1[i])
+            i += 1
+
+    while i < len(list1):
+        rst.append(list1[i])
+        i += 1
+
+    while j < len(list2):
+        rst.append(list2[j])
+        j += 1
+
+    return rst

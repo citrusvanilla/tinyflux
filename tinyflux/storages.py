@@ -328,6 +328,9 @@ class CSVStorage(Storage):
 
         # No items were removed.
         if not items_filtered:
+            del tmp_memory
+            gc.collect()
+
             return
 
         # Delete all contents from the file..
@@ -515,7 +518,6 @@ class CSVStorage(Storage):
             self._deserialize_timestamp,
             self._deserialize_measurement,
         )
-
         # No updates performed.  Exit.
         if not updates_performed:
             return
@@ -786,7 +788,7 @@ class MemoryStorage(Storage):
 
         self._memory = tmp_memory
 
-        if reindex and not self._index_intact:
+        if reindex:
             self._index_sorter(self._memory)
             self._index_intact = True
             self._lastest_time = (

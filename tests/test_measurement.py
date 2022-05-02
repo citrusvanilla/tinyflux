@@ -367,7 +367,7 @@ def test_build_index(capsys, tmpdir):
     assert not db.index.empty
     assert len(db.index) == 3
     assert db.index._timestamps == [i.time.timestamp() for i in [p1, p2, p3]]
-    assert db.index._measurements == {"m1": {0}, "m2": {1, 2}}
+    assert db.index._measurements == {"m1": [0], "m2": [1, 2]}
     assert not db.index._tags
     assert not db.index._fields
 
@@ -586,19 +586,19 @@ def test_update():
 
     with pytest.raises(
         ValueError,
-        match="Selector must be a query or None.",
+        match="Argument 'query' must be a TinyFlux Query.",
     ):
         m1.update(3, tags={"a": "b"})
 
     with pytest.raises(
         ValueError, match="Tag set must contain only string values."
     ):
-        m1.update(tags={"a": 1})
+        m1.update(TagQuery().noop(), tags={"a": 1})
 
     with pytest.raises(
         ValueError, match="Field set must contain only numeric values."
     ):
-        m1.update(fields={"a": "a"})
+        m1.update(TagQuery().noop(), fields={"a": "a"})
 
     # Valid index, no index results.
     assert not m3.update(TagQuery().tk1 == "tv1", tags={"tk1": "tv1"})
@@ -644,6 +644,7 @@ def test_update():
         fields=lambda x: {"fk2": x["fk1"] * 2} if "fk1" in x else {},
     )
     assert rst == 1
+
     m0 = db.measurement("m0")
     assert m0.count(TimeQuery() == t1 - timedelta(days=730)) == 1
     assert m0.count(MeasurementQuery() == "m0") == 1
@@ -651,11 +652,12 @@ def test_update():
     assert m0.count(FieldQuery().fk2 == 2) == 1
 
     # Update with time.
-    m0.update(time=t1)
+    assert m0.update_all(time=t1) == 1
+
     assert m0.count(TimeQuery() == t1) == 1
 
     # Update with measurement.
-    m0.update(measurement="m1")
+    m0.update_all(measurement="m1")
     assert m0.count(TimeQuery() == t1) == 0
 
 
@@ -669,7 +671,7 @@ def test_auto_index_off(mem_storage_with_counters):
 
     m.insert(p)
     assert m.all() == [p]
-    assert m.update(fields={"fk": 2}) == 1
+    assert m.update_all(fields={"fk": 2}) == 1
     assert m.get(q2) is None
     assert m.get(~q2) == p
     assert m.get(q1) == p

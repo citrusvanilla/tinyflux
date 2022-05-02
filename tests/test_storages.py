@@ -89,7 +89,7 @@ def test_writes_on_read_only_csv(tmpdir):
         db.insert(Point())
 
     with pytest.raises(IOError):
-        db.update(measurement="test")
+        db.update(TagQuery().noop(), measurement="test")
 
     with pytest.raises(IOError):
         db.remove_all()

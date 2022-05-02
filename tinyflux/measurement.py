@@ -8,6 +8,8 @@ Usage:
     >>> db = TinyFlux(storage=MemoryStorage)
     >>> m = db.measurement("my_measurement")
 """
+from __future__ import annotations
+
 import copy
 from datetime import datetime
 from typing import (
@@ -21,10 +23,16 @@ from typing import (
     Union,
 )
 
+
 from .point import Point, validate_tags, validate_fields
 from .queries import CompoundQuery, MeasurementQuery, SimpleQuery
 from .index import Index
 from .storages import Storage
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .database import TinyFlux
 
 
 class Measurement:
@@ -41,8 +49,8 @@ class Measurement:
 
     def __init__(
         self,
+        parent_database: TinyFlux,
         auto_index: bool,
-        index_sorter: Callable,
         storage: Storage,
         index: Index,
         name: str,
@@ -57,10 +65,10 @@ class Measurement:
             name: The name of the measurement.
         """
         self._name = name
+        self._db = parent_database
         self._storage = storage
         self._index = index
         self._auto_index = auto_index
-        self._index_sorter = index_sorter
 
     @property
     def name(self) -> str:
@@ -113,8 +121,8 @@ class Measurement:
     def __repr__(self) -> str:
         """Get a printable representation of this measurement."""
         if self._auto_index and self._index.valid:
-            if self._name in self.index._measurements:
-                count = len(self.index._measurements[self._name])
+            if self._name in self._index._measurements:
+                count = len(self._index._measurements[self._name])
             else:
                 count = 0
 
@@ -144,64 +152,7 @@ class Measurement:
         Returns:
             True if point found, else False.
         """
-        # Return value.
-        contains = False
-
-        # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
-
-            q = MeasurementQuery() == self.name
-            rst = self._index.search(q & query)
-
-            if not rst.items:
-                return False
-
-            if rst._is_complete:
-                return True
-
-            def searcher(r: Iterator, deserializer: Callable, _) -> None:
-                """Search over an iterator until one match is found."""
-                nonlocal contains
-                eval_count = 0
-
-                for i, row in enumerate(r):
-                    if i not in rst.items:
-                        continue
-
-                    if query(deserializer(row)):
-                        contains = True
-                        break
-
-                    eval_count += 1
-                    if eval_count == len(rst.items):
-                        break
-
-                return
-
-        # Otherwise, check all points.
-        else:
-
-            def searcher(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Search over an iterator until one match is found."""
-                nonlocal contains
-
-                for item in r:
-                    if deserialize_measurement(item) != self._name:
-                        continue
-
-                    if query(deserializer(item)):
-                        contains = True
-                        break
-
-                return
-
-        self._search_storage(searcher)
-
-        return contains
+        return self._db.contains(query, self._name)
 
     def count(self, query: SimpleQuery) -> int:
         """Count the documents matching a query in this measurement.
@@ -212,62 +163,7 @@ class Measurement:
         Returns:
             A count of matching points in the measurement.
         """
-        # Return value.
-        count = 0
-
-        # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
-
-            q = MeasurementQuery() == self.name
-            rst = self._index.search(q & query)
-
-            if not rst.items:
-                return 0
-
-            if rst._is_complete:
-                return len(rst.items)
-
-            def counter(r: Iterator, deserializer: Callable, _) -> None:
-                """Count over an iterator."""
-                nonlocal count
-                eval_count = 0
-
-                for i, item in enumerate(r):
-                    if i not in rst.items:
-                        continue
-
-                    if query(deserializer(item)):
-                        count += 1
-
-                    eval_count += 1
-                    if eval_count == len(rst.items):
-                        break
-
-                return
-
-        # Otherwise, check all points.
-        else:
-
-            def counter(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Count over an iterator."""
-                nonlocal count
-
-                for item in r:
-                    if not deserialize_measurement(item) == self._name:
-                        continue
-
-                    if query(deserializer(item)):
-                        count += 1
-
-                return
-
-        self._search_storage(counter)
-
-        return count
+        return self._db.count(query, self._name)
 
     def get(self, query: SimpleQuery) -> Optional[Point]:
         """Get exactly one point specified by a query from this measurement.
@@ -280,77 +176,7 @@ class Measurement:
         Returns:
             First found Point or None.
         """
-        # Return value.
-        found_point = None
-
-        # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
-
-            q = MeasurementQuery() == self.name
-            rst = self._index.search(q & query)
-
-            if not rst.items:
-                return None
-
-            def searcher(r: Iterator, deserializer: Callable, _) -> None:
-                """Search over an iterator until one match is found."""
-                nonlocal found_point
-                eval_count = 0
-
-                # Iterate over the storage layer.
-                for i, row in enumerate(r):
-
-                    # Not a candidate.
-                    if i not in rst.items:
-                        continue
-
-                    # No further evaluation necessary.
-                    if rst.is_complete:
-                        found_point = deserializer(row)
-                        return
-
-                    # Further evaluation necessary.
-                    _point = deserializer(row)
-                    if query(_point):
-                        found_point = _point
-                        return
-
-                    # Increment eval count.
-                    eval_count += 1
-                    if eval_count == len(rst.items):
-                        break
-
-                # No matches found.
-                return
-
-        # Otherwise, search all.
-        else:
-
-            def searcher(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Search over an iterator until one match is found."""
-                nonlocal found_point
-
-                # Evaluate all points until match.
-                for i in r:
-                    _measurement = deserialize_measurement(i)
-                    if _measurement != self._name:
-                        continue
-
-                    _point = deserializer(i)
-                    if query(_point):
-                        found_point = _point
-                        break
-
-                # No matches found.
-                return
-
-        self._search_storage(searcher)
-
-        return found_point
+        return self._db.get(query, self._name)
 
     def insert(self, point: Point) -> int:
         """Insert a Point into a measurement.
@@ -367,26 +193,7 @@ class Measurement:
         Raises:
             TypeError if point is not a Point instance.
         """
-        # Now, we update the table and add the document
-        def inserter(points: List[Point]) -> None:
-            """Update function."""
-            if not isinstance(point, Point):
-                raise TypeError("Data must be a Point instance.")
-
-            if not point.time:
-                point.time = datetime.utcnow()
-
-            # Update the measurement name if it doesn't match.
-            if point.measurement != self._name:
-                point.measurement = self._name
-
-            points.append(point)
-
-            return
-
-        self._insert_point(inserter)
-
-        return 1
+        return self._db.insert(point, self._name)
 
     def insert_multiple(self, points: Iterable[Point]) -> int:
         """Insert Points into this measurement.
@@ -403,35 +210,7 @@ class Measurement:
         Raises:
             TypeError if point is not a Point instance.
         """
-        # Return value.
-        count = 0
-        t = datetime.utcnow()
-
-        # Now, we update the table and add the document
-        def updater(inp_points: List[Point]):
-            """Update function."""
-            nonlocal count
-
-            for point in points:
-                # Make sure the point implements the ``Mapping`` interface
-                if not isinstance(point, Point):
-                    raise TypeError("Data must be a Point instance.")
-
-                # Update the measurement name if it doesn't match.
-                if point.measurement != self._name:
-                    point.measurement = self._name
-
-                if not point.time:
-                    point.time = t
-
-                inp_points.append(point)
-                count += 1
-
-            return
-
-        self._insert_point(updater)
-
-        return count
+        return self._db.insert_multiple(points, self._name)
 
     def remove(self, query: SimpleQuery) -> int:
         """Remove Points from this measurement by query.
@@ -441,129 +220,7 @@ class Measurement:
         Returns:
             The count of removed points.
         """
-        filtered_items = set({})
-        updated_items = {}
-        remaining_items_count = 0
-
-        # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
-
-            # Get indices out of the index.
-            q = MeasurementQuery() == self.name
-            rst = self.index.search(q & query)
-
-            if not rst.items:
-                return 0
-
-            def filter_func(
-                r: Iterator,
-                temp_memory: List[str],
-                serializer: Callable,
-                deserializer: Callable,
-                deserialize_timestamp: Callable,
-                deserialize_measurement: Callable,
-            ) -> bool:
-                """Search over an iterator and filter matches."""
-                nonlocal remaining_items_count
-                new_index = 0
-                items_filtered = False
-
-                for i, row in enumerate(r):
-                    # Not a candidate, keep.
-                    if i not in rst.items:
-                        temp_memory.append(row)
-                        updated_items[i] = new_index
-                        new_index += 1
-                        remaining_items_count += 1
-                        continue
-
-                    # Match needing no further eval, remove.
-                    if rst.is_complete:
-                        filtered_items.add(i)
-                        items_filtered = True
-                        continue
-
-                    # Match needing further eval, remove.
-                    if query(deserializer(row)):
-                        filtered_items.add(i)
-                        items_filtered = True
-                        continue
-
-                    # Not a match.
-                    temp_memory.append(row)
-                    updated_items[i] = new_index
-                    new_index += 1
-                    remaining_items_count += 1
-                    continue
-
-                return items_filtered
-
-        # Otherwise, check all storage.
-        else:
-
-            def filter_func(
-                r: Iterator,
-                memory: List[str],
-                serializer: Callable,
-                deserializer: Callable,
-                deserialize_timestamp: Callable,
-                deserialize_measurement: Callable,
-            ) -> bool:
-                """Search over an iterator and filter matches."""
-                nonlocal remaining_items_count
-                items_filtered = False
-
-                for i, row in enumerate(r):
-                    _measurement = deserialize_measurement(row)
-
-                    # Not this measurement, keep.
-                    if _measurement != self._name:
-                        memory.append(row)
-                        remaining_items_count += 1
-                        continue
-
-                    # Match, filter.
-                    if query(deserializer(row)):
-                        filtered_items.add(i)
-                        items_filtered = True
-                        continue
-
-                    # Not a match.
-                    memory.append(row)
-                    remaining_items_count += 1
-
-                return items_filtered
-
-        # Pass the filter function to the storage layer.
-        self._storage.filter(filter_func, reindex=self._auto_index)
-
-        # We're not auto-indexing, return count of removed items.
-        if not self._auto_index:
-            return len(filtered_items)
-
-        # No more remaining items, reset index and return count.
-        elif not remaining_items_count:
-            self._index._reset()
-            return len(filtered_items)
-
-        # Index was valid and we removed items, update index and return count.
-        elif self._index.valid and filtered_items:
-            self._index.remove(filtered_items)
-            self._index.update(updated_items)
-            return len(filtered_items)
-
-        # Index was valid and no items were removed, return 0.
-        elif self._index.valid and not filtered_items:
-            return 0
-
-        # Index was invalid, storage is now sorted, build index.
-        elif not self._index.valid and filtered_items:
-            self._build_index()
-            return len(filtered_items)
-
-        # Index was invalid, but no items were removed. Storage is unchanged.
-        else:
-            return 0
+        return self._db.remove(query, self._name)
 
     def remove_all(self) -> int:
         """Remove all Points from this measurement.
@@ -573,106 +230,7 @@ class Measurement:
         Returns:
             The count of removed points.
         """
-        filtered_items = set({})
-        updated_items = {}
-        remaining_items_count = 0
-
-        # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
-
-            # Get indices out of the index.
-            q = MeasurementQuery() == self._name
-            rst = self.index.search(q)
-
-            if not rst.items:
-                return 0
-
-            def filter_func(
-                r: Iterator,
-                temp_memory: List[str],
-                serializer: Callable,
-                deserializer: Callable,
-                deserialize_timestamp: Callable,
-                deserialize_measurement: Callable,
-            ) -> bool:
-                """Search over an iterator and filter matches."""
-                nonlocal remaining_items_count
-                new_index = 0
-                items_filtered = False
-
-                for i, row in enumerate(r):
-                    # Match.
-                    if i in rst.items:
-                        filtered_items.add(i)
-                        items_filtered = True
-                        continue
-
-                    # Not a match.
-                    temp_memory.append(row)
-                    updated_items[i] = new_index
-                    new_index += 1
-                    remaining_items_count += 1
-
-                return items_filtered
-
-        # Otherwise, check all storage.
-        else:
-
-            def filter_func(
-                r: Iterator,
-                temp_memory: List[str],
-                serializer: Callable,
-                deserializer: Callable,
-                deserialize_timestamp: Callable,
-                deserialize_measurement: Callable,
-            ) -> bool:
-                """Search over an iterator and filter matches."""
-                nonlocal remaining_items_count
-                items_filtered = False
-
-                for i, row in enumerate(r):
-                    _measurement = deserialize_measurement(row)
-
-                    if _measurement == self._name:
-                        filtered_items.add(i)
-                        items_filtered = True
-                        continue
-
-                    temp_memory.append(row)
-                    remaining_items_count += 1
-
-                return items_filtered
-
-        # Pass the filter function to the storage layer.
-        self._storage.filter(filter_func, reindex=self._auto_index)
-
-        # We're not auto-indexing, return count of removed items.
-        if not self._auto_index:
-            return len(filtered_items)
-
-        # No more remaining items, reset index and return count.
-        elif not remaining_items_count:
-            self._index._reset()
-            return len(filtered_items)
-
-        # Index was valid and we removed items, update index and return count.
-        elif self._index.valid and filtered_items:
-            self._index.remove(filtered_items)
-            self._index.update(updated_items)
-            return len(filtered_items)
-
-        # Index was valid and no items were removed, return 0.
-        elif self._index.valid and not filtered_items:
-            return 0
-
-        # Index was invalid, storage is now sorted, build index.
-        elif not self._index.valid and filtered_items:
-            self._build_index()
-            return len(filtered_items)
-
-        # Index was invalid, but no items were removed. Storage is unchanged.
-        else:
-            return 0
+        return self._db.drop_measurement(self._name)
 
     def search(self, query: SimpleQuery) -> List[Point]:
         """Get all points specified by a query from this measurement.
@@ -685,67 +243,11 @@ class Measurement:
         Returns:
             A list of found Points.
         """
-        # Return value.
-        found_points = []
-
-        # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
-
-            # Get candidates from index.
-            q = MeasurementQuery() == self.name
-            rst = self._index.search(q & query)
-
-            # No candidates -> return None.
-            if not rst.items:
-                return []
-
-            def searcher(r: Iterator, deserializer: Callable, _) -> None:
-                """Search over an iterator until all matches are found."""
-                eval_count = 0
-
-                for i, row in enumerate(r):
-                    if i not in rst.items:
-                        continue
-
-                    _point = deserializer(row)
-
-                    if rst.is_complete or query(_point):
-                        found_points.append(_point)
-
-                    # Check to see if we need to eval any further.
-                    eval_count += 1
-                    if eval_count == len(rst.items):
-                        break
-
-                return
-
-        # Otherwise, check all points.
-        else:
-
-            def searcher(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Search over an iterator until all matches are found."""
-                for item in r:
-                    _measurement = deserialize_measurement(item)
-                    if _measurement != self._name:
-                        continue
-
-                    _point = deserializer(item)
-                    if query(_point):
-                        found_points.append(_point)
-
-                return
-
-        self._search_storage(searcher)
-
-        return found_points
+        return self._db.search(query, self._name)
 
     def update(
         self,
-        selector: Optional[SimpleQuery] = None,
+        query: Optional[SimpleQuery],
         time: Optional[Union[datetime, Callable[[datetime], datetime]]] = None,
         measurement: Optional[Union[str, Callable[[str], str]]] = None,
         tags: Optional[Union[Mapping, Callable[[Mapping], Mapping]]] = None,
@@ -754,7 +256,7 @@ class Measurement:
         """Update all matching Points in this measurement with new attributes.
 
         Args:
-            selector: A SimpleQuery as a condition, or None to update all.
+            query: A query.
             time: A datetime object or Callable returning one.
             measurement: A string or Callable returning one.
             tags: A mapping or Callable returning one.
@@ -763,183 +265,32 @@ class Measurement:
         Returns:
             A count of updated points.
         """
-        # Assert correct arguments.
-        if not (time or measurement or tags or fields):
-            raise ValueError(
-                "Must include time, measurement, tags, and/or fields."
-            )
+        return self._db.update(
+            query, time, measurement, tags, fields, self._name
+        )
 
-        # Validation.
-        if time and not callable(time) and not isinstance(time, datetime):
-            raise ValueError("Time must be datetime object.")
+    def update_all(
+        self,
+        time: Optional[Union[datetime, Callable[[datetime], datetime]]] = None,
+        measurement: Optional[Union[str, Callable[[str], str]]] = None,
+        tags: Optional[Union[Mapping, Callable[[Mapping], Mapping]]] = None,
+        fields: Optional[Union[Mapping, Callable[[Mapping], Mapping]]] = None,
+    ) -> int:
+        """Update all matching Points in this measurement with new attributes.
 
-        if (
-            measurement
-            and not callable(measurement)
-            and not isinstance(measurement, str)
-        ):
-            raise ValueError("Measurement must be str.")
+        Args:
+            query: A query.
+            time: A datetime object or Callable returning one.
+            measurement: A string or Callable returning one.
+            tags: A mapping or Callable returning one.
+            fields: A mapping or Callable returning one.
 
-        if tags and not callable(tags):
-            validate_tags(tags)
+        Returns:
+            A count of updated points.
+        """
+        q = MeasurementQuery().noop()
 
-        if fields and not callable(fields):
-            validate_fields(fields)
-
-        # Return value.
-        count = 0
-
-        # Define the function that will perform the update.
-        def perform_update(point: Point) -> None:
-            """Update points."""
-            nonlocal count
-            old_point = copy.deepcopy(point)
-
-            if time:
-                if callable(time):
-                    point.time = time(point.time)
-                else:
-                    point.time = time
-
-            if measurement:
-                if callable(measurement):
-                    point.measurement = measurement(point.measurement)
-                else:
-                    point.measurement = measurement
-
-            if tags:
-                if callable(tags):
-                    point.tags.update(tags(point.tags))
-                else:
-                    point.tags.update(tags)
-
-            if fields:
-                if callable(fields):
-                    point.fields.update(fields(point.fields))
-                else:
-                    point.fields.update(fields)
-
-            if point != old_point:
-                count += 1
-
-            return
-
-        # Update all.
-        if not selector:
-
-            def updater(
-                r: Iterator,
-                temp_memory: List[str],
-                serializer: Callable,
-                deserializer: Callable,
-                _,
-                deserialize_measurement: Callable,
-            ):
-                """Update points."""
-                for row in r:
-
-                    _measurement = deserialize_measurement(row)
-
-                    if _measurement != self._name:
-                        temp_memory.append(row)
-                        continue
-
-                    _point = deserializer(row)
-                    perform_update(_point)
-                    temp_memory.append(serializer(_point))
-
-                return
-
-        # Update by query.
-        elif isinstance(selector, (CompoundQuery, SimpleQuery)):
-            # Perform the update operation for documents specified by a query
-            _query = selector
-
-            # Use the index.
-            if self._auto_index and self._index.valid:
-
-                q = MeasurementQuery() == self.name
-                rst = self.index.search(q & _query)
-
-                if not rst.items:
-                    return 0
-
-                def updater(
-                    r: Iterator,
-                    temp_memory: List[str],
-                    serializer: Callable,
-                    deserializer: Callable,
-                    _,
-                    deserialize_measurement: Callable,
-                ):
-                    """Update points."""
-                    for i, row in enumerate(r):
-                        # Not a query match.
-                        if i not in rst.items:
-                            temp_memory.append(row)
-                            continue
-
-                        _point = deserializer(row)
-
-                        # Query match.
-                        if rst.is_complete:
-                            perform_update(_point)
-                            temp_memory.append(serializer(_point))
-                            continue
-
-                        # Incomplete query match.
-                        if _query(_point):
-                            perform_update(_point)
-                            temp_memory.append(serializer(_point))
-                            continue
-
-                        # Not a match.
-                        temp_memory.append(row)
-
-                    return
-
-            # Otherwise, check all items in storage.
-            else:
-
-                def updater(
-                    r: Iterator,
-                    temp_memory: List[str],
-                    serializer: Callable,
-                    deserializer: Callable,
-                    _,
-                    deserialize_measurement: Callable,
-                ):
-                    """Update points."""
-                    for row in r:
-
-                        # Not this measurement.
-                        if deserialize_measurement(row) != self._name:
-                            temp_memory.append(row)
-                            continue
-
-                        _point = deserializer(row)
-
-                        # Query match.
-                        if _query(_point):
-                            perform_update(_point)
-                            temp_memory.append(serializer(_point))
-                            continue
-
-                        # Not a query match.
-                        temp_memory.append(row)
-
-                    return
-
-        else:
-            raise ValueError("Selector must be a query or None.")
-
-        self._storage.update(updater, reindex=self._auto_index)
-
-        # If any item was updated, rebuild the index.
-        if self._auto_index and count:
-            self._build_index()
-
-        return count
+        return self._db.update(q, time, measurement, tags, fields, self._name)
 
     def _build_index(self):
         """ """
