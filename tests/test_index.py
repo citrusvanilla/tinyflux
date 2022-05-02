@@ -8,12 +8,13 @@ from tinyflux.index import Index
 
 def test_repr():
     """Test __repr__ of Index."""
+    t = datetime.utcnow()
     index = Index()
 
     assert repr(index) == "<Index _tags=0, _measurements=0, _timestamps=0>"
 
     index = Index()
-    index.build([Point(tags={"tk": "tv"}), Point(), Point()])
+    index.build([Point(tags={"tk": "tv"}), Point(time=t), Point(time=t)])
 
     assert repr(index) == "<Index _tags=1, _measurements=1, _timestamps=3>"
 
@@ -61,10 +62,10 @@ def test_build():
     index.build()
     assert index.empty
 
-    index.build([Point(), Point()])
+    index.build([Point(time=t1), Point(time=t1)])
     assert index._num_items == 2
 
-    index.build([Point()])
+    index.build([Point(time=t1)])
     assert index._num_items == 1
 
     index = Index()
@@ -85,91 +86,93 @@ def test_build():
         "states": {2},
     }
 
-    assert index._timestamps == [t1, t2, t3]
+    assert index._timestamps == [i.timestamp() for i in [t1, t2, t3]]
 
 
 def test_empty_property():
     """Test is_empty property of Index."""
     index = Index()
+    t = datetime.utcnow()
     assert index.empty
 
-    index.build([Point() for _ in range(10)])
+    index.build([Point(time=t) for _ in range(10)])
     assert not index.empty
 
     index._reset()
     assert index.empty
 
-    index.insert([Point() for _ in range(10)])
+    index.insert([Point(time=t) for _ in range(10)])
     assert not index.empty
 
 
 def test_update():
     """Test update method of Index."""
     index = Index()
+    t = datetime.utcnow()
 
-    index.insert([Point(), Point()])
+    index.insert([Point(time=t), Point(time=t)])
     assert index._num_items == 2
 
-    index.insert([Point()])
+    index.insert([Point(time=t)])
     assert index._num_items == 3
 
 
-def test_index_time_method():
-    """Test _index_time helper of Index."""
+def test_insert_time_method():
+    """Test _insert_time helper of Index."""
     index = Index()
 
     t1 = datetime.utcnow()
-    index._index_time(t1)
-    assert index._timestamps == [t1]
+    index._insert_time(t1)
+    assert index._timestamps == [t1.timestamp()]
 
     t2 = datetime.utcnow()
-    index._index_time(t2)
-    assert index._timestamps == [t1, t2]
+    index._insert_time(t2)
+    assert index._timestamps == [t1.timestamp(), t2.timestamp()]
 
 
 def test_index_measuments_method():
-    """Test _index_measurements helper of Index."""
+    """Test _insert_measurements helper of Index."""
     index = Index()
 
-    index._index_measurements(0, "_default")
+    index._insert_measurements(0, "_default")
     assert index._measurements == {"_default": {0}}
 
-    index._index_measurements(1, "cities")
+    index._insert_measurements(1, "cities")
     assert index._measurements == {"_default": {0}, "cities": {1}}
 
 
-def test_index_tags_method():
-    """Test _index_tags helper of Index."""
+def test_insert_tags_method():
+    """Test _insert_tags helper of Index."""
     index = Index()
 
-    index._index_tags(0, {"city": "la"})
+    index._insert_tags(0, {"city": "la"})
     assert index._tags == {"city": {"la": {0}}}
 
-    index._index_tags(1, {"state": "ca"})
+    index._insert_tags(1, {"state": "ca"})
     assert index._tags == {"city": {"la": {0}}, "state": {"ca": {1}}}
 
-    index._index_tags(2, {"city": "la"})
+    index._insert_tags(2, {"city": "la"})
     assert index._tags == {"city": {"la": {0, 2}}, "state": {"ca": {1}}}
 
 
-def test_index_fields_method():
-    """Test _index_fields helper of Index."""
+def test_insert_fields_method():
+    """Test _insert_fields helper of Index."""
     index = Index()
 
-    index._index_fields(0, {"temp": 70.0})
+    index._insert_fields(0, {"temp": 70.0})
     assert index._fields == {"temp": {0}}
 
-    index._index_fields(1, {"temp": 71.0})
+    index._insert_fields(1, {"temp": 71.0})
     assert index._fields == {"temp": {0, 1}}
 
-    index._index_fields(2, {"pop": 5000})
+    index._insert_fields(2, {"pop": 5000})
     assert index._fields == {"temp": {0, 1}, "pop": {2}}
 
 
 def test_reset_method():
     """Test reset of Index."""
     index = Index()
-    index.insert([Point()])
+    index.insert([Point(time=datetime.utcnow())])
     assert not index.empty
 
     index._reset()
@@ -201,9 +204,9 @@ def test_search_measurement_query():
     index = Index()
     q = MeasurementQuery() == "_default"
 
-    index._index_measurements(0, "_default")
-    index._index_measurements(1, "cities")
-    index._index_measurements(2, "_default")
+    index._insert_measurements(0, "_default")
+    index._insert_measurements(1, "cities")
+    index._insert_measurements(2, "_default")
     assert index._measurements == {"_default": {0, 2}, "cities": {1}}
 
     index_rst = index.search(q)
@@ -224,12 +227,12 @@ def test_search_time_query():
     t5 = t_now + timedelta(days=1)
     t6 = t_now + timedelta(days=2)
 
-    index._index_time(t1)
-    index._index_time(t2)
-    index._index_time(t3)
-    index._index_time(t4)
-    index._index_time(t5)
-    assert index._timestamps == [t1, t2, t3, t4, t5]
+    index._insert_time(t1)
+    index._insert_time(t2)
+    index._insert_time(t3)
+    index._insert_time(t4)
+    index._insert_time(t5)
+    assert index._timestamps == [i.timestamp() for i in [t1, t2, t3, t4, t5]]
 
     # Less than or equal.
     q = TimeQuery() <= t0
@@ -277,6 +280,10 @@ def test_search_time_query():
     assert index.search(q).items == {0, 1, 2, 3, 4}
 
     # Other type of test.
+    q = TimeQuery().test(lambda x: x != t2)
+    assert index.search(q).items == {0, 2, 3, 4}
+    q = TimeQuery().test(lambda x: x != t3)
+    assert index.search(q).items == {0, 1, 4}
     q = TimeQuery().test(lambda x: x != t6)
     assert index.search(q).items == {0, 1, 2, 3, 4}
 
@@ -285,10 +292,10 @@ def test_search_tags_query():
     """Test search_query of Index on TagQuery."""
     index = Index()
 
-    index._index_tags(0, {"city": "la", "state": "ca"})
-    index._index_tags(1, {"city": "sf", "state": "ca"})
-    index._index_tags(2, {"city": "sf"})
-    index._index_tags(3, {"neighborhood": "dtla"})
+    index._insert_tags(0, {"city": "la", "state": "ca"})
+    index._insert_tags(1, {"city": "sf", "state": "ca"})
+    index._insert_tags(2, {"city": "sf"})
+    index._insert_tags(3, {"neighborhood": "dtla"})
     assert index._tags == {
         "city": {"la": {0}, "sf": {1, 2}},
         "state": {"ca": {0, 1}},
@@ -333,9 +340,9 @@ def test_search_field_query():
     # An index.
     index = Index()
 
-    index._index_fields(0, {"temp": 78.3})
-    index._index_fields(1, {"temp": 59.1})
-    index._index_fields(2, {"pop": 30000000})
+    index._insert_fields(0, {"temp": 78.3})
+    index._insert_fields(1, {"temp": 59.1})
+    index._insert_fields(2, {"pop": 30000000})
     assert index._fields == {"temp": {0, 1}, "pop": {2}}
 
     # Queries.

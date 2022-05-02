@@ -531,7 +531,7 @@ def test_reindex(tmpdir, capsys):
     assert db.index.valid
     assert not db.index.empty
     assert len(db.index) == 3
-    assert db.index._timestamps == [p1.time, p2.time, p3.time]
+    assert db.index._timestamps == [i.time.timestamp() for  i in [p1, p2, p3]]
     assert db.index._measurements == {"_default": {0, 1, 2}}
     assert not db.index._tags
     assert not db.index._fields

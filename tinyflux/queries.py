@@ -14,6 +14,7 @@ Each SimpleQuery instance contains attributes that constitute the
 right-hand side) so that the other consumers of queries, includng an Index, may
 use them for their own purposes.
 """
+from datetime import datetime
 import operator
 import re
 from typing import (
@@ -482,6 +483,11 @@ class BaseQuery:
                 "Query has no defined Point attribute. "
                 "You may be attempting to initialize a BaseQuery."
             )
+
+        # Validation.
+        if self._point_attr == "_time" and rhs and not isinstance(rhs, datetime):
+            raise TypeError("TimeQuery comparison value must be datetime object.")
+
 
         def test(x):
             """The test function from an operator and righthand side."""

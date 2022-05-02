@@ -183,10 +183,10 @@ class Index:
 
         for idx, point in enumerate(points):
             self._num_items += 1
-            self._index_time(point.time)
-            self._index_tags(idx, point.tags)
-            self._index_fields(idx, point.fields)
-            self._index_measurements(idx, point.measurement)
+            self._insert_time(point.time)
+            self._insert_tags(idx, point.tags)
+            self._insert_fields(idx, point.fields)
+            self._insert_measurements(idx, point.measurement)
 
         return
 
@@ -219,10 +219,10 @@ class Index:
             new_idx = start_idx + idx
 
             self._num_items += 1
-            self._index_time(point.time)
-            self._index_tags(new_idx, point.tags)
-            self._index_fields(new_idx, point.fields)
-            self._index_measurements(new_idx, point.measurement)
+            self._insert_time(point.time)
+            self._insert_tags(new_idx, point.tags)
+            self._insert_fields(new_idx, point.fields)
+            self._insert_measurements(new_idx, point.measurement)
 
         return
 
@@ -280,7 +280,7 @@ class Index:
 
         return
 
-    def _index_fields(self, idx: int, fields: dict[str, str]) -> None:
+    def _insert_fields(self, idx: int, fields: dict[str, str]) -> None:
         """Index a field value.
 
         Args:
@@ -296,7 +296,7 @@ class Index:
 
         return
 
-    def _index_measurements(self, idx: int, measurement: str) -> None:
+    def _insert_measurements(self, idx: int, measurement: str) -> None:
         """Index a measurement value.
 
         Args:
@@ -310,7 +310,7 @@ class Index:
 
         return
 
-    def _index_tags(self, idx: int, tags: dict[str, str]) -> None:
+    def _insert_tags(self, idx: int, tags: dict[str, str]) -> None:
         """Index a tag value.
 
         Args:
@@ -329,13 +329,13 @@ class Index:
 
         return
 
-    def _index_time(self, time: datetime) -> None:
+    def _insert_time(self, time: datetime) -> None:
         """Index a time value.
 
         Args:
             time: Time to index.
         """
-        self._timestamps.append(time)
+        self._timestamps.append(time.timestamp())
 
         return
 
@@ -507,7 +507,7 @@ class Index:
         # Exact timestamp match.
         if op == operator.eq:
 
-            match = find_eq(self._timestamps, rhs)
+            match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
                 return set({})
 
@@ -516,7 +516,7 @@ class Index:
             match += 1
 
             while match < len(self._timestamps):
-                if self._timestamps[match] != rhs:
+                if self._timestamps[match] != rhs.timestamp():
                     break
 
                 results.add(match)
@@ -529,7 +529,7 @@ class Index:
 
             all_indices = set(range(len(self._timestamps)))
 
-            match = find_eq(self._timestamps, rhs)
+            match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
                 return all_indices
 
@@ -538,7 +538,7 @@ class Index:
             match += 1
 
             while match < len(self._timestamps):
-                if self._timestamps[match] != rhs:
+                if self._timestamps[match] != rhs.timestamp():
                     break
 
                 results.add(match)
@@ -549,7 +549,7 @@ class Index:
         # Everything less than rhs.
         elif op == operator.lt:
 
-            match = find_lt(self._timestamps, rhs)
+            match = find_lt(self._timestamps, rhs.timestamp())
 
             if match is None:
                 return set({})
@@ -558,7 +558,7 @@ class Index:
 
         # Every less than or equal to rhs.
         elif op == operator.le:
-            match = find_le(self._timestamps, rhs)
+            match = find_le(self._timestamps, rhs.timestamp())
 
             if match is None:
                 return set({})
@@ -567,7 +567,7 @@ class Index:
 
         # Everything greater than rhs.
         elif op == operator.gt:
-            match = find_gt(self._timestamps, rhs)
+            match = find_gt(self._timestamps, rhs.timestamp())
 
             if match is None:
                 return set({})
@@ -576,7 +576,7 @@ class Index:
 
         # Everything greater than or equal to rhs.
         elif op == operator.ge:
-            match = find_ge(self._timestamps, rhs)
+            match = find_ge(self._timestamps, rhs.timestamp())
 
             if match is None:
                 return set({})
@@ -587,7 +587,9 @@ class Index:
         else:
             items = set({})
             for idx, timestamp in enumerate(self._timestamps):
-                if query._test(query._path_resolver(timestamp)):
+                if query._test(
+                    query._path_resolver(datetime.fromtimestamp(timestamp))
+                ):
                     items.add(idx)
 
             return items
