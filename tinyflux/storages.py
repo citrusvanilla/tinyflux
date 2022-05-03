@@ -78,6 +78,11 @@ class Storage(ABC):  # pragma: no cover
         """Get index intact attribute."""
         return self._index_intact
 
+    @property
+    def can_write(self) -> bool:
+        """Get index intact attribute."""
+        return True
+
     @abstractmethod
     def __iter__(self) -> Iterator:
         """Return a generator for items in storage."""
@@ -94,11 +99,6 @@ class Storage(ABC):  # pragma: no cover
 
     def close(self) -> None:
         """Perform clean up ops."""
-        ...
-
-    @abstractmethod
-    def filter(self, func: Callable, reindex=False) -> None:
-        """Filter items from storage."""
         ...
 
     @abstractmethod
@@ -131,23 +131,6 @@ class Storage(ABC):  # pragma: no cover
         self._write([])
 
         return
-
-    @abstractmethod
-    def search(self, func: Callable) -> None:
-        """Search and evaluate storage layer item-by-item."""
-        # Invoke searcher.
-        func(
-            iter(self),
-            self._deserialize_storage_item,
-            self._deserialize_measurement,
-        )
-
-        return
-
-    @abstractmethod
-    def update(self, func: Callable, reindex=False) -> None:
-        """Update items int the data store."""
-        ...
 
     @abstractmethod
     def _deserialize_measurement(self, item: Any) -> str:
@@ -268,11 +251,27 @@ class CSVStorage(Storage):
         # Check if there is already data in the file.
         self._check_for_existing_data()
 
+    @property
+    def can_write(self) -> bool:
+        """ """
+        if not any(i in self._mode for i in ("+", "w", "a")):
+            raise IOError(
+                f'Cannot update the database. Access mode is "{self._mode}"'
+            )
+
+        return True
+
     def __iter__(self) -> Iterator:
         """Return a CSV reader object that can be iterated over."""
         self._handle.seek(0)
 
         return csv.reader(self._handle, **self.kwargs)
+
+    def __len__(self) -> int:
+        """ """
+        self._handle.seek(0)
+
+        return sum(1 for _ in self._handle)
 
     def append(self, points: List[Point]) -> None:
         """Append points to the CSV store.
@@ -316,69 +315,6 @@ class CSVStorage(Storage):
 
         return
 
-    def filter(self, func: Callable, reindex=False) -> None:
-        """Remove items from the data store.
-
-        A filter function is defined by TinyFlux db ops and invoked here.
-
-        Args:
-            func: A function that acts on a CSV Reader object. This function
-                  evaluates items line-by-line and either keeps them by
-                  appending them to temporary memory, or discards them by
-                  skipping.
-            reindex: Whether or not the data should be sorted before being
-                     written to the store.
-        """
-        if not any(i in self._mode for i in ("+", "w", "a")):
-            raise IOError(
-                f'Cannot update the database. Access mode is "{self._mode}"'
-            )
-
-        tmp_memory: List[CSVStorageItem] = []
-
-        # Iterate and execute function.
-        items_filtered = func(
-            iter(self),
-            tmp_memory,
-            self._serialize_point,
-            self._deserialize_storage_item,
-            self._deserialize_timestamp,
-            self._deserialize_measurement,
-        )
-
-        # No items marked for removal. Delete temp memory and do not write.
-        if not items_filtered:
-            del tmp_memory
-            gc.collect()
-
-            return
-
-        # Items marked for removal. Delete all contents from the file.
-        self._handle.seek(0)
-        self._handle.truncate()
-
-        # No more items left, no need to write data.
-        if not tmp_memory:
-            self._index_intact = True
-            self._latest_time = None
-            return
-
-        # Reindex only if necessary. If the index was already intact,
-        # then removing items does not affect sorted order.
-        if reindex and not self._index_intact:
-            self._index_sorter(tmp_memory)
-            self._index_intact = True
-            self._latest_time = self._deserialize_timestamp(tmp_memory[-1])
-
-        # Write serialized items to the store.
-        self._write(tmp_memory)
-
-        # Force garbage collection to run on temp memory.
-        del tmp_memory
-        gc.collect()
-
-        return
-
     def read(self) -> List[Point]:
         """Read all items from the storage into memory.
 
@@ -400,86 +336,9 @@ class CSVStorage(Storage):
         self._index_sorter(tmp_memory)
 
         # Write serialized items to the store.
-        self._write(tmp_memory)
-
-        # Update this classes attributes.
-        self._index_intact = True
-        self._latest_time = self._deserialize_timestamp(tmp_memory[-1])
+        self._write(tmp_memory, True)
 
         # Force garbage collection on temporary memory.
-        del tmp_memory
-        gc.collect()
-
-        return
-
-    def search(self, func: Callable) -> None:
-        """Iterate over items in the store performs some logic.
-
-        The function that performs this logic is defined in TinyFlux. Some
-        functions will pull data from the store, deserialize, and return to
-        the invoking context. See TinyFlux methods for specific
-        implementations.
-
-        Args:
-            func: A function that accepts an iterator.
-        """
-        # Invoke default Storage search.
-        super().search(func)
-
-        return
-
-    def update(self, func: Callable, reindex=False) -> None:
-        """Update items int the data store.
-
-        An update function is defined by TinyFlux db ops and invoked here.
-
-        If the reindex flag is set to True, we reindex the store only if
-        any time updates were, or if the index was not previously intact.
-
-        If no updates were performed, reindexing does not occur.
-
-        Args:
-            func: A function that acts on a CSV Reader object. This function
-                  evaluates items line-by-line and updates them by
-                  appending them to temporary memory.
-            reindex: Whether or not the data should be sorted before being
-                     written to the store.
-        """
-        if not any(i in self._mode for i in ("+", "w", "a")):
-            raise IOError(
-                f'Cannot update the database. Access mode is "{self._mode}"'
-            )
-
-        tmp_memory: List[CSVStorageItem] = []
-
-        # Iterate and execute function.
-        updates_performed, time_updates_performed = func(
-            iter(self),
-            tmp_memory,
-            self._serialize_point,
-            self._deserialize_storage_item,
-            self._deserialize_timestamp,
-            self._deserialize_measurement,
-        )
-
-        # No updates performed. Delete temp memory and do not write.
-        if not updates_performed:
-            del tmp_memory
-            gc.collect()
-
-            return
-
-        # Reindex only if necessary. We reindex only if time updates were
-        # performed or if the index was not previously intact.
-        if reindex and (time_updates_performed or not self._index_intact):
-            self._index_sorter(tmp_memory)
-            self._index_intact = True
-            self._latest_time = self._deserialize_timestamp(tmp_memory[-1])
-
-        # Write serialized items to the store.
-        self._write(tmp_memory)
-
-        # Force garbage collection to run on temp memory.
         del tmp_memory
         gc.collect()
 
@@ -518,7 +377,9 @@ class CSVStorage(Storage):
         """Serialize a point to an item for storage."""
         return point._serialize_to_list()
 
-    def _write(self, items: List[CSVStorageItem]) -> None:
+    def _write(
+        self, items: List[CSVStorageItem], is_sorted: bool = False
+    ) -> None:
         """Write Points to the CSV file.
 
         Checks each point to see if the index is intact.
@@ -529,14 +390,14 @@ class CSVStorage(Storage):
         Args:
             points: A list of Point objects to serialize and write.
         """
-        if not any(i in self._mode for i in ("+", "w", "a")):
-            raise IOError(
-                f'Cannot write to the database. Access mode is "{self._mode}"'
-            )
+        assert self.can_write
 
         # Dump the existing contents.
         self._handle.seek(0)
         self._handle.truncate()
+
+        if not items:
+            return
 
         # Write the serialized data to the file
         w = csv.writer(self._handle, **self.kwargs)
@@ -551,6 +412,10 @@ class CSVStorage(Storage):
         # Remove data that is behind the new cursor in case the file has
         # gotten shorter
         self._handle.truncate()
+
+        if is_sorted:
+            self._index_intact = True
+            self._latest_time = self._deserialize_timestamp(items[-1])
 
         return
 
@@ -585,6 +450,10 @@ class MemoryStorage(Storage):
         for point in self._memory:
             yield point
 
+    def __len__(self) -> int:
+        """ """
+        return len(self._memory)
+
     def append(self, points: List[Point]) -> None:
         """Append points to the memory.
 
@@ -602,54 +471,6 @@ class MemoryStorage(Storage):
 
             # Append point to memory.
             self._memory.append(point)
-
-        return
-
-    def filter(self, func: Callable, reindex=False) -> None:
-        """Remove items from the data store.
-
-        A filter function is defined by TinyFlux db ops and invoked here.
-
-        Args:
-            func: A function that acts on a CSV Reader object. This function
-                  evaluates items line-by-line and either keeps them by
-                  appending them to temporary memory, or discards them by
-                  skipping.
-            reindex: Whether or not the data should be sorted before being
-                     written to the store.
-        """
-        tmp_memory: List[MemStorageItem] = []
-
-        # Iterate and filter.
-        items_filtered: bool = func(
-            iter(self),
-            tmp_memory,
-            self._serialize_point,
-            self._deserialize_storage_item,
-            self._deserialize_timestamp,
-            self._deserialize_measurement,
-        )
-
-        # No items were removed. Delete temp memory and do not write.
-        if not items_filtered:
-            return
-
-        # No more items left.
-        if not tmp_memory:
-            self._index_intact = True
-            self._latest_time = None
-            self._memory = []
-            return
-
-        # Reindex only if necessary. If the index was already intact,
-        # then removing items does not affect sorted order.
-        if reindex and not self._index_intact:
-            self._index_sorter(tmp_memory)
-            self._latest_time = self._deserialize_timestamp(tmp_memory[-1])
-            self._index_intact = True
-
-        # Update pointer to memory.
-        self._memory = tmp_memory
 
         return
 
@@ -673,66 +494,6 @@ class MemoryStorage(Storage):
 
         return
 
-    def search(self, func: Callable) -> None:
-        """Iterate over items in the store performs some logic.
-
-        The function that performs this logic is defined in TinyFlux. Some
-        functions will pull data from the store, deserialize, and return to
-        the invoking context. See TinyFlux methods for specific
-        implementations.
-
-        Args:
-            func: A function that accepts an iterator.
-        """
-        super().search(func)
-
-        return
-
-    def update(self, func: Callable, reindex=False) -> None:
-        """Update items int the data store.
-
-        An update function is defined by TinyFlux db ops and invoked here.
-
-        If the reindex flag is set to True, we reindex the store only if
-        any time updates were, or if the index was not previously intact.
-
-        If no updates were performed, reindexing does not occur.
-
-        Args:
-            func: A function that acts on a CSV Reader object. This function
-                  evaluates items line-by-line and updates them by
-                  appending them to temporary memory.
-            reindex: Whether or not the data should be sorted before being
-                     written to the store.
-        """
-        tmp_memory: List[MemStorageItem] = []
-
-        # Iterate and filter.
-        updates_performed, time_updates_performed = func(
-            iter(self),
-            tmp_memory,
-            self._serialize_point,
-            self._deserialize_storage_item,
-            self._deserialize_timestamp,
-            self._deserialize_measurement,
-        )
-
-        # No items updated. Return.
-        if not updates_performed:
-            return
-
-        # Reindex only if necessary. We reindex only if time updates were
-        # performed or if the index was not previously intact.
-        if reindex and (time_updates_performed or not self._index_intact):
-            self._index_sorter(tmp_memory)
-            self._index_intact = True
-            self._latest_time = self._deserialize_timestamp(tmp_memory[-1])
-
-        # Reassign memory reference.
-        self._memory = tmp_memory
-
-        return
-
     def _deserialize_measurement(self, item: MemStorageItem) -> str:
         """Deserialize measurement from a point."""
         return item.measurement
@@ -753,7 +514,7 @@ class MemoryStorage(Storage):
         """Serialize a point to an item for storage."""
         return point
 
-    def _write(self, points: List[MemStorageItem]) -> None:
+    def _write(self, items: List[MemStorageItem], is_sorted=False) -> None:
         """Write Points to memory.
 
         Checks each point to see if the index is intact.
@@ -762,9 +523,13 @@ class MemoryStorage(Storage):
         'append' method.
 
         Args:
-            points: A list of Point objects to serialize and write.
+            items: A list of Point objects to serialize and write.
         """
         del self._memory
-        self._memory = points
+        self._memory = items
+
+        if is_sorted:
+            self._index_intact = True
+            self._latest_time = items[-1].time
 
         return

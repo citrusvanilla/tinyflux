@@ -1,5 +1,6 @@
 """The main module of the TinyFlux package, containing the TinyFlux class."""
 import copy
+import gc
 from datetime import datetime
 from typing import (
     Any,
@@ -83,9 +84,7 @@ class TinyFlux:
         # Init index.
         if not isinstance(self._auto_index, bool):
             raise TypeError("'auto_index' must be True/False.")
-        self._index = Index(
-            valid=self._auto_index and self._storage.index_intact
-        )
+        self._index = Index(valid=self._storage.index_intact)
 
         # Init references to measurements.
         self._measurements = {}
@@ -123,25 +122,13 @@ class TinyFlux:
         if self._auto_index and self._index.valid:
             return len(self._index)
 
-        count = 0
-
-        # Otherwise, iterate over storage and increment a counter.
-        def counter(r: Iterator, *args) -> None:
-            """Count over an iterator."""
-            nonlocal count
-            for _ in r:
-                count += 1
-
-            return
-
-        self._search_storage(counter)
-
-        return count
+        # Otherwise, we get it from storage class..
+        return len(self._storage)
 
     def __iter__(self) -> Iterator[Point]:
         """Return an iterater for all Points in the storage layer."""
-        for row in self._storage:
-            yield self._storage._deserialize_storage_item(row)
+        for item in self._storage:
+            yield self._storage._deserialize_storage_item(item)
 
     def __repr__(self):
         """Get a printable representation of the TinyFlux instance."""
@@ -197,10 +184,10 @@ class TinyFlux:
             True if point found, else False.
         """
         # Return value.
-        contains = False
+        use_index = self._auto_index and self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
+        if use_index:
 
             if measurement:
                 mq = MeasurementQuery() == measurement
@@ -216,80 +203,43 @@ class TinyFlux:
             if index_rst._is_complete:
                 return True
 
-            # Candidates and we only have to check a subset.
-            if len(index_rst._items) < len(self._index):
+            # Candidates needing evaluation, but it's all of them.
+            if len(index_rst._items) == len(self._index):
+                use_index = False
 
-                def subset_searcher(
-                    r: Iterator, deserializer: Callable, _
-                ) -> None:
-                    """Search over an iterator until one match is found."""
-                    nonlocal contains
-                    j = 0
+        if use_index:
+            j = 0
 
-                    for i, row in enumerate(r):
+            for i, item in enumerate(self._storage):
 
-                        # Not a candidate.
-                        if i != index_rst._items[j]:
-                            continue
+                # Not a candidate.
+                if i != index_rst._items[j]:
+                    continue
 
-                        # Candidate, evaluate.
-                        if query(deserializer(row)):
-                            contains = True
-                            break
+                # Candidate, evaluate.
+                if query(self._storage._deserialize_storage_item(item)):
+                    return True
 
-                        j += 1
+                j += 1
 
-                        # If we are out of candidates, break.
-                        if j == len(index_rst._items):
-                            break
-
-                    return
-
-                self._search_storage(subset_searcher)
-
-                return contains
-
-        # Otherwise, check all points.
-        if measurement:
-
-            def searcher(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Search over an iterator until one match is found."""
-                nonlocal contains
-
-                for item in r:
-                    if deserialize_measurement(item) != measurement:
-                        continue
-
-                    if query(deserializer(item)):
-                        contains = True
-                        break
-
-                return
+                # If we are out of candidates, break.
+                if j == len(index_rst._items):
+                    return False
 
         else:
 
-            def searcher(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Search over an iterator until one match is found."""
-                nonlocal contains
+            for item in self._storage:
+                if (
+                    measurement
+                    and self._storage._deserialize_measurement(item)
+                    != measurement
+                ):
+                    continue
 
-                for row in r:
-                    if query(deserializer(row)):
-                        contains = True
-                        break
+                if query(self._storage._deserialize_storage_item(item)):
+                    return True
 
-                return
-
-        self._search_storage(searcher)
-
-        return contains
+            return False
 
     def count(
         self, query: Union[CompoundQuery, SimpleQuery], measurement: str = None
@@ -298,6 +248,7 @@ class TinyFlux:
 
         Args:
             query: a SimpleQuery.
+            measurement: Optional measurement name to query by.
 
         Returns:
             A count of matching points in the measurement.
@@ -305,8 +256,10 @@ class TinyFlux:
         # Return value.
         count = 0
 
+        use_index = self._auto_index and self._index.valid
+
         # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
+        if use_index:
 
             if measurement:
                 mq = MeasurementQuery() == measurement
@@ -322,74 +275,42 @@ class TinyFlux:
             if index_rst._is_complete:
                 return len(index_rst._items)
 
-            # Candidates and we only have to check a subset.
-            if len(index_rst._items) < len(self._index):
+            # Candidates needing evaluation, but it's all of them.
+            if len(index_rst._items) == len(self._index):
+                use_index = False
 
-                def subset_counter(
-                    r: Iterator, deserializer: Callable, _
-                ) -> None:
-                    """Count over an iterator."""
-                    nonlocal count
-                    j = 0
+        # Search with help of index.
+        if use_index:
+            j = 0
 
-                    for i, row in enumerate(r):
-                        # Not a candidate.
-                        if i != index_rst._items[j]:
-                            continue
+            for i, item in enumerate(self._storage):
+                # Not a candidate.
+                if i != index_rst._items[j]:
+                    continue
 
-                        # Candidate, evaluate.
-                        if query(deserializer(row)):
-                            count += 1
+                # Candidate, evaluate.
+                if query(self._storage._deserialize_storage_item(item)):
+                    count += 1
 
-                        j += 1
+                j += 1
 
-                        # If we are out of candidates, break.
-                        if j == len(index_rst._items):
-                            break
+                # If we are out of candidates, break.
+                if j == len(index_rst._items):
+                    break
 
-                    return
-
-                self._search_storage(subset_counter)
-
-                return count
-
-        # Otherwise, check all points.
-        if measurement:
-
-            def counter(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Count over an iterator."""
-                nonlocal count
-
-                for item in r:
-                    if not deserialize_measurement(item) == measurement:
-                        continue
-
-                    if query(deserializer(item)):
-                        count += 1
-
-                return
-
+        # Search without help of index.
         else:
 
-            def counter(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Count over an iterator."""
-                nonlocal count
+            for item in self._storage:
+                if (
+                    measurement
+                    and not self._storage._deserialize_measurement(item)
+                    == measurement
+                ):
+                    continue
 
-                for row in r:
-                    if query(deserializer(row)):
-                        count += 1
-
-                return
-
-        self._search_storage(counter)
+                if query(self._storage._deserialize_storage_item(item)):
+                    count += 1
 
         return count
 
@@ -405,118 +326,12 @@ class TinyFlux:
         Returns:
             The count of removed items.
         """
-        filtered_items = set({})
-        updated_items: Dict[int, int] = {}
-        remaining_items_count = 0
+        assert self._storage.can_write
 
-        # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
+        if name in self._measurements:
+            del self._measurements[name]
 
-            # No candidates from the index.
-            if name not in self._index._measurements:
-                return 0
-
-            # Get indices out of the index.
-            index_items = self._index._measurements[name]
-
-            # If it's the only measurement, reset the DB.
-            if len(self._index._measurements.keys()) == 1:
-                self._reset_database()
-                return len(index_items)
-
-            # Filter over all items in storage, keeping track of new indices.
-            def filter_func(
-                r: Iterator,
-                memory: List[str],
-                serializer: Callable,
-                deserializer: Callable,
-                deserialize_timestamp: Callable,
-                deserialize_measurement: Callable,
-            ) -> bool:
-                """Search over an iterator and filter matches.
-
-                Returns a boolean to the calling context of this function,
-                which is the storage classes. If nothing was removed, then the
-                storage object does not need to overwrite anything.
-
-                Return:
-                    Whether or not items were filtered.
-                """
-                nonlocal remaining_items_count
-                items_filtered = False
-                new_index = 0
-                j = 0
-
-                for i, row in enumerate(r):
-                    # Match. Filter.
-                    if j < len(index_items) and i == index_items[j]:
-                        filtered_items.add(i)
-                        items_filtered = True
-                        j += 1
-                        continue
-
-                    # Not a match. Keep.
-                    memory.append(row)
-                    updated_items[i] = new_index
-                    new_index += 1
-                    remaining_items_count += 1
-                    continue
-
-                return items_filtered
-
-        # Otherwise, check all storage.
-        else:
-
-            def filter_func(
-                r: Iterator,
-                memory: List[str],
-                serializer: Callable,
-                deserializer: Callable,
-                deserialize_timestamp: Callable,
-                deserialize_measurement: Callable,
-            ) -> bool:
-                """Search over an iterator and filter matches.
-
-                Returns a boolean to the calling context of this function,
-                which is the storage classes. If nothing was removed, then the
-                storage object does not need to overwrite anything.
-
-                Return:
-                    Whether or not items were filtered.
-                """
-                nonlocal remaining_items_count
-                items_filtered = False
-
-                for i, row in enumerate(r):
-
-                    _measurement = deserialize_measurement(row)
-
-                    # Match. Filter.
-                    if _measurement == name:
-                        filtered_items.add(i)
-                        items_filtered = True
-                        continue
-
-                    # Not a match. Keep.
-                    memory.append(row)
-                    remaining_items_count += 1
-                    continue
-
-                return items_filtered
-
-        # Pass the filter function to the storage layer.
-        self._storage.filter(filter_func, self._auto_index)
-
-        # If we're not auto-indexing, return count of removed items.
-        if not self._auto_index:
-            return len(filtered_items)
-
-        # Update the index.
-        self._filter_index(
-            remaining_items_count, filtered_items, updated_items
-        )
-
-        return len(filtered_items)
+        return self.remove(MeasurementQuery() == name, name)
 
     def drop_measurements(self) -> None:
         """Drop all measurements from the database.
@@ -525,6 +340,8 @@ class TinyFlux:
 
         This is irreversible.
         """
+        assert self._storage.can_write
+
         self._reset_database()
 
         return
@@ -542,11 +359,10 @@ class TinyFlux:
         Returns:
             First found Point or None.
         """
-        # Result.
-        found_point = None
+        use_index = self._auto_index and self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
+        if use_index:
 
             if measurement:
                 mq = MeasurementQuery() == measurement
@@ -558,94 +374,54 @@ class TinyFlux:
             if not index_rst._items:
                 return None
 
-            # Candidates and we only have to check a subset.
-            if len(index_rst._items) < len(self._index):
+            # Candidates, but it's all of them.
+            if len(index_rst._items) == len(self._index):
+                use_index = False
 
-                def subset_searcher(
-                    r: Iterator, deserializer: Callable, _
-                ) -> None:
-                    """Search over an iterator until one match is found."""
-                    nonlocal found_point
-                    j = 0
+        if use_index:
 
-                    # Iterate over the storage layer.
-                    for i, row in enumerate(r):
+            j = 0
 
-                        # Not a candidate.
-                        if i != index_rst._items[j]:
-                            continue
+            # Iterate over the storage layer.
+            for i, item in enumerate(self._storage):
 
-                        # Candidate, no further evaluation necessary.
-                        if index_rst._is_complete:
-                            found_point = deserializer(row)
-                            return
+                # Not a candidate.
+                if i != index_rst._items[j]:
+                    continue
 
-                        # Candidate, further evaluation necessary.
-                        _point = deserializer(row)
-                        if query(_point):
-                            found_point = _point
-                            return
+                # Candidate, no further evaluation necessary.
+                if index_rst._is_complete:
+                    return self._storage._deserialize_storage_item(item)
 
-                        j += 1
+                # Candidate, further evaluation necessary.
+                _point = self._storage._deserialize_storage_item(item)
+                if query(_point):
+                    return _point
 
-                        # If we are out of candidates, break.
-                        if j == len(index_rst._items):
-                            break
+                j += 1
 
-                    return
-
-                self._search_storage(subset_searcher)
-
-                return found_point
-
-        # Otherwise, search all.
-        if measurement:
-
-            def searcher(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Search over an iterator until one match is found."""
-                nonlocal found_point
-
-                # Evaluate all points until match.
-                for i in r:
-                    _measurement = deserialize_measurement(i)
-                    if _measurement != measurement:
-                        continue
-
-                    _point = deserializer(i)
-                    if query(_point):
-                        found_point = _point
-                        break
-
-                # No matches found.
-                return
+                # If we are out of candidates, break.
+                if j == len(index_rst._items):
+                    return None
 
         else:
 
-            def searcher(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Search over an iterator until one match is found."""
-                nonlocal found_point
+            # Evaluate all points until match.
+            for item in self._storage:
 
-                # Evaluate all points until match.
-                for row in r:
-                    _point = deserializer(row)
-                    if query(_point):
-                        found_point = _point
-                        return
+                if (
+                    measurement
+                    and self._storage._deserialize_measurement(item)
+                    != measurement
+                ):
+                    continue
 
-                # No matches found.
-                return
+                _point = self._storage._deserialize_storage_item(item)
+                if query(_point):
+                    return _point
 
-        self._search_storage(searcher)
-
-        return found_point
+            # No matches found.
+            return None
 
     def insert(self, point: Point, measurement: str = None) -> int:
         """Insert a Point into the database.
@@ -662,6 +438,8 @@ class TinyFlux:
         Todo:
             profile the isinstance call.
         """
+        assert self._storage.can_write
+
         if not isinstance(point, Point):
             raise TypeError("Data must be a Point instance.")
 
@@ -695,6 +473,8 @@ class TinyFlux:
         Raises:
             TypeError if point is not a Point instance.
         """
+        assert self._storage.can_write
+
         # Return value.
         count = 0
         t = datetime.utcnow()
@@ -763,16 +543,8 @@ class TinyFlux:
         names = set({})
 
         # Otherwise, check storage.
-        def measurement_getter(
-            r: Iterator, _: Callable, deserialize_measurement: Callable
-        ) -> None:
-            """Get measurement names from storage iterator."""
-            for item in r:
-                names.add(deserialize_measurement(item))
-
-            return
-
-        self._search_storage(measurement_getter)
+        for item in self._storage:
+            names.add(self._storage._deserialize_measurement(item))
 
         return names
 
@@ -811,12 +583,12 @@ class TinyFlux:
         Returns:
             The count of removed points.
         """
-        filtered_items = set({})
-        updated_items = {}
-        remaining_items_count = 0
+        assert self._storage.can_write
+
+        use_index = self._auto_index and self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
+        if use_index:
 
             if measurement:
                 mq = MeasurementQuery() == measurement
@@ -828,163 +600,96 @@ class TinyFlux:
             if not index_rst._items:
                 return 0
 
-            # Candidates and we only have to check a subset.
-            if len(index_rst.items) < len(self._index):
+            # Candidates, but it's all of them.
+            if len(index_rst.items) == len(self._index):
+                use_index = False
 
-                def subset_filter(
-                    r: Iterator,
-                    temp_memory: List[str],
-                    _,
-                    deserializer: Callable,
-                    *args,
-                ) -> bool:
-                    """Search over an iterator and filter matches.
+        filtered_items = set({})
+        updated_items = {}
+        temp_memory = []
+        new_index = 0
 
-                    Creates a map of old indices to the updated ones, so that
-                    the Index can be update without rebuilding.
-                    """
-                    nonlocal remaining_items_count
-                    items_filtered = False
-                    new_index = 0
-                    j = 0
+        if use_index:
 
-                    for i, row in enumerate(r):
-                        # No more candidates or item is not a candidate.
-                        if (
-                            j == len(index_rst._items)
-                            or i != index_rst._items[j]
-                        ):
-                            temp_memory.append(row)
-                            updated_items[i] = new_index
-                            new_index += 1
-                            remaining_items_count += 1
-                            continue
+            j = 0
 
-                        # Candidate and no further evaluation necessary.
-                        if index_rst._is_complete:
-                            filtered_items.add(i)
-                            items_filtered = True
+            for i, item in enumerate(self._storage):
+                # No more candidates or item is not a candidate.
+                if j == len(index_rst._items) or i != index_rst._items[j]:
+                    temp_memory.append(item)
+                    updated_items[i] = new_index
+                    new_index += 1
+                    continue
 
-                        # Candidate, evaluation is True.
-                        elif query(deserializer(row)):
-                            filtered_items.add(i)
-                            items_filtered = True
+                # Candidate and no further evaluation necessary.
+                if index_rst._is_complete:
+                    filtered_items.add(i)
 
-                        # Candidate, evaluation is False.
-                        else:
-                            temp_memory.append(row)
-                            updated_items[i] = new_index
-                            new_index += 1
-                            remaining_items_count += 1
+                # Candidate, evaluation is True.
+                elif query(self._storage._deserialize_storage_item(item)):
+                    filtered_items.add(i)
 
-                        j += 1
+                # Candidate, evaluation is False.
+                else:
+                    temp_memory.append(item)
+                    updated_items[i] = new_index
+                    new_index += 1
 
-                    return items_filtered
-
-                # Pass the filter function to the storage layer.
-                self._storage.filter(subset_filter, reindex=self._auto_index)
-
-                # Update the index.
-                self._filter_index(
-                    remaining_items_count, filtered_items, updated_items
-                )
-
-                return len(filtered_items)
-
-        # Otherwise, check all storage.
-        if measurement:
-
-            def filter_func(
-                r: Iterator,
-                temp_memory: List[str],
-                _,
-                deserializer: Callable,
-                deserialize_timestamp: Callable,
-                deserialize_measurement: Callable,
-            ) -> bool:
-                """Search over an iterator and filter matches.
-
-                Creates a map of old indices to the updated ones, so that the
-                Index can be updated without rebuilding.
-                """
-                nonlocal remaining_items_count
-                items_filtered = False
-                new_index = 0
-
-                for i, row in enumerate(r):
-                    _measurement = deserialize_measurement(row)
-
-                    # Not this measurement, keep.
-                    if _measurement != measurement:
-                        temp_memory.append(row)
-                        remaining_items_count += 1
-                        continue
-
-                    # Match, filter.
-                    if query(deserializer(row)):
-                        filtered_items.add(i)
-                        items_filtered = True
-
-                    # Not a match, keep.
-                    else:
-                        temp_memory.append(row)
-                        remaining_items_count += 1
-
-                        # Update new inex.
-                        if self._auto_index:
-                            updated_items[i] = new_index
-                            new_index += 1
-
-                return items_filtered
+                j += 1
 
         else:
 
-            def filter_func(
-                r: Iterator,
-                temp_memory: List[str],
-                _,
-                deserializer: Callable,
-                deserialize_timestamp: Callable,
-                deserialize_measurement: Callable,
-            ) -> bool:
-                """Search over an iterator and filter matches.
+            for i, item in enumerate(self._storage):
+                if measurement:
+                    _measurement = self._storage._deserialize_measurement(item)
 
-                Creates a map of old indices to the updated ones, so that the
-                Index can be updated without rebuilding.
-                """
-                nonlocal remaining_items_count
-                items_filtered = False
-                new_index = 0
+                    # Not this measurement, keep.
+                    if _measurement != measurement:
+                        temp_memory.append(item)
+                        continue
 
-                for i, row in enumerate(r):
-                    # Match, filter.
-                    if query(deserializer(row)):
-                        filtered_items.add(i)
-                        items_filtered = True
+                # Match, filter.
+                if query(self._storage._deserialize_storage_item(item)):
+                    filtered_items.add(i)
 
-                    # Not a match, keep.
-                    else:
-                        temp_memory.append(row)
-                        remaining_items_count += 1
+                # Not a match, keep.
+                else:
+                    temp_memory.append(item)
 
-                        # Update new inex.
-                        if self._auto_index:
-                            updated_items[i] = new_index
-                            new_index += 1
+                    # Update new index.
+                    if self._auto_index:
+                        updated_items[i] = new_index
+                        new_index += 1
 
-                return items_filtered
+        # No items removed.
+        if not len(filtered_items):
+            del temp_memory
+            gc.collect()
 
-        # Pass the filter function to the storage layer.
-        self._storage.filter(filter_func, reindex=self._auto_index)
+            return 0
 
-        # We're not auto-indexing, return count of removed items.
-        if not self._auto_index:
+        # No items remaining.
+        if not temp_memory:
+            self._reset_database()
             return len(filtered_items)
 
-        # Update the index.
-        self._filter_index(
-            remaining_items_count, filtered_items, updated_items
-        )
+        # Index was invalid and we need to reindex.
+        if self._auto_index and not self._index.valid:
+            temp_memory.sort(
+                key=lambda x: self._storage._deserialize_timestamp(x)
+            )
+            self._storage._write(temp_memory, True)
+
+        # Write memory to storage.
+        self._storage._write(temp_memory, self.index.valid)
+
+        # Update index.
+        if self._auto_index:
+            self._filter_index(len(temp_memory), filtered_items, updated_items)
+
+        # Clean up temp memory.
+        del temp_memory
+        gc.collect()
 
         return len(filtered_items)
 
@@ -993,6 +698,8 @@ class TinyFlux:
 
         This is irreversible.
         """
+        assert self._storage.can_write
+
         self._reset_database()
 
         return
@@ -1010,8 +717,7 @@ class TinyFlux:
         Returns:
             A list of found Points.
         """
-        # Return value.
-        found_points = []
+        use_index = self._auto_index and self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
         if self._auto_index and self._index.valid:
@@ -1026,76 +732,50 @@ class TinyFlux:
             if not index_rst._items:
                 return []
 
-            # Candidates and we only have to check a subset.
-            if len(index_rst._items) < len(self._index):
+            # Candidates, but it's all of them.
+            if len(index_rst._items) == len(self._index):
+                use_index = False
 
-                def subset_searcher(
-                    r: Iterator, deserializer: Callable, _
-                ) -> None:
-                    """Search over an iterator until all matches are found."""
-                    j = 0
+        # Return value.
+        found_points = []
 
-                    for i, row in enumerate(r):
-                        # Not a candidate, skip.
-                        if i != index_rst._items[j]:
-                            continue
+        # Search using help of index.
+        if use_index:
+            j = 0
 
-                        _point = deserializer(row)
+            for i, item in enumerate(self._storage):
+                # Not a candidate, skip.
+                if i != index_rst._items[j]:
+                    continue
 
-                        # Match or candidate match.
-                        if index_rst._is_complete or query(_point):
-                            found_points.append(_point)
+                _point = self._storage._deserialize_storage_item(item)
 
-                        j += 1
+                # Match or candidate match.
+                if index_rst._is_complete or query(_point):
+                    found_points.append(_point)
 
-                        # If we are out of candidates, break.
-                        if j == len(index_rst._items):
-                            break
+                j += 1
 
-                    return
+                # If we are out of candidates, break.
+                if j == len(index_rst._items):
+                    return found_points
 
-                self._search_storage(subset_searcher)
-
-                return found_points
-
-        # Otherwise, check all points.
-        if measurement:
-
-            def searcher(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Search over an iterator until all matches are found."""
-                for item in r:
-                    _measurement = deserialize_measurement(item)
-                    if _measurement != measurement:
-                        continue
-
-                    _point = deserializer(item)
-                    if query(_point):
-                        found_points.append(_point)
-
-                return
-
+        # Search without index.
         else:
 
-            def searcher(
-                r: Iterator,
-                deserializer: Callable,
-                deserialize_measurement: Callable,
-            ) -> None:
-                """Search over an iterator until all matches are found."""
-                for row in r:
-                    _point = deserializer(row)
-                    if query(_point):
-                        found_points.append(_point)
+            for item in self._storage:
+                if (
+                    measurement
+                    and self._storage._deserialize_measurement(item)
+                    != measurement
+                ):
+                    continue
 
-                return
+                _point = self._storage._deserialize_storage_item(item)
+                if query(_point):
+                    found_points.append(_point)
 
-        self._search_storage(searcher)
-
-        return found_points
+            return found_points
 
     def update(
         self,
@@ -1121,195 +801,9 @@ class TinyFlux:
         Todo:
             Update index in a smart way.
         """
-        # Return value.
-        count = 0
-
-        # Define the function that will perform the update
-        perform_update = self._generate_updater(
-            query=query,
-            time=time,
-            measurement=measurement,
-            tags=tags,
-            fields=fields,
+        return self._update_helper(
+            query, time, measurement, tags, fields, _measurement
         )
-
-        # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
-
-            if _measurement:
-                mq = MeasurementQuery() == _measurement
-                index_rst = self._index.search(mq & query)
-            else:
-                index_rst = self._index.search(query)
-
-            # No candidates from the index.
-            if not index_rst._items:
-                return 0
-
-            # Candidates and we only have to check a subset.
-            if len(index_rst._items) < len(self._index):
-
-                def subset_updater(
-                    r: Iterator,
-                    temp_memory: List[str],
-                    serializer: Callable,
-                    deserializer: Callable,
-                    *_,
-                ) -> Tuple[bool, bool]:
-                    """Update points."""
-                    nonlocal count
-                    updates_performed = False
-                    time_updates_performed = False
-                    j = 0
-
-                    for i, item in enumerate(r):
-                        # Not a query match, pass item through.
-                        if (
-                            j == len(index_rst.items)
-                            or i != index_rst._items[j]
-                        ):
-                            temp_memory.append(item)
-                            continue
-
-                        _point = deserializer(item)
-
-                        # Candidate, no further eval necessary, update.
-                        if index_rst._is_complete:
-                            u, t = perform_update(_point)
-
-                            if u:
-                                count += 1
-                                updates_performed = True
-                                temp_memory.append(serializer(_point))
-                            else:
-                                temp_memory.append(item)
-
-                            if t:
-                                time_updates_performed = True
-
-                            continue
-
-                        # Candidate, eval and update.
-                        if query(_point):
-                            u, t = perform_update(_point)
-
-                            if u:
-                                count += 1
-                                updates_performed = True
-                                temp_memory.append(serializer(_point))
-                            else:
-                                temp_memory.append(item)
-
-                            if t:
-                                time_updates_performed = True
-
-                            continue
-
-                        # Candidate, eval is False.
-                        temp_memory.append(item)
-
-                        j += 1
-
-                    return updates_performed, time_updates_performed
-
-                self._storage.update(subset_updater, self._auto_index)
-
-                # If any item was updated, rebuild the index.
-                if self._auto_index and count:
-                    self._build_index()
-
-                return count
-
-        # Otherwise, check all items in storage.
-        if _measurement:
-
-            def updater(
-                r: Iterator,
-                temp_memory: List[str],
-                serializer: Callable,
-                deserializer: Callable,
-                _,
-                deserialize_measurement: Callable,
-            ) -> Tuple[bool, bool]:
-                """Update points."""
-                nonlocal count
-                updates_performed = False
-                time_updates_performed = False
-
-                for row in r:
-
-                    # Not this measurement.
-                    if deserialize_measurement(row) != _measurement:
-                        temp_memory.append(row)
-                        continue
-
-                    _point = deserializer(row)
-
-                    # Query match.
-                    if query(_point):
-                        u, t = perform_update(_point)
-
-                        if u:
-                            updates_performed = True
-                            count += 1
-
-                        if t:
-                            time_updates_performed = True
-
-                        temp_memory.append(serializer(_point))
-                        continue
-
-                    # Not a query match.
-                    temp_memory.append(row)
-
-                return updates_performed, time_updates_performed
-
-        else:
-
-            def updater(
-                r: Iterator,
-                temp_memory: List[str],
-                serializer: Callable,
-                deserializer: Callable,
-                _,
-                deserialize_measurement: Callable,
-            ) -> Tuple[bool, bool]:
-                """Update points."""
-                nonlocal count
-                updates_performed = False
-                time_updates_performed = False
-
-                for item in r:
-                    # Cast item to a Point.
-                    _point = deserializer(item)
-
-                    # If the query evaluates to true, perform update.
-                    if query(_point):
-                        u, t = perform_update(_point)
-
-                        if u:
-                            count += 1
-                            updates_performed = True
-                            temp_memory.append(serializer(_point))
-                        else:
-                            temp_memory.append(item)
-
-                        if t:
-                            time_updates_performed = True
-
-                    # If the query is not True, add the item and continue.
-                    else:
-                        temp_memory.append(item)
-
-                return updates_performed, time_updates_performed
-
-        self._storage.update(updater, self._auto_index)
-
-        # If any item was updated, rebuild the index.
-        if self._auto_index and count:
-            self._build_index()
-
-        return count
 
     def update_all(
         self,
@@ -1332,59 +826,7 @@ class TinyFlux:
         Todo:
             Update index in a smart way.
         """
-        # Return value.
-        count = 0
-
-        # Define the function that will perform the update
-        perform_update = self._generate_updater(
-            query=TagQuery().noop(),
-            time=time,
-            measurement=measurement,
-            tags=tags,
-            fields=fields,
-        )
-
-        def updater(
-            r: Iterator,
-            temp_memory: List[str],
-            serializer: Callable,
-            deserializer: Callable,
-            *_,
-        ) -> Tuple[bool, bool]:
-            """Update points.
-
-            Returns a bool to the calling context, which is the storage
-            classes, indicating if an update was performed.  If no updates
-            were performed, storage does not need to be rewritten.
-            """
-            nonlocal count
-            updates_performed = False
-            time_updates_performed = False
-
-            for item in r:
-                _point = deserializer(item)
-
-                u, t = perform_update(_point)
-
-                if u:
-                    count += 1
-                    updates_performed = True
-                    temp_memory.append(serializer(_point))
-                else:
-                    temp_memory.append(item)
-
-                if t:
-                    time_updates_performed = True
-
-            return updates_performed, time_updates_performed
-
-        self._storage.update(updater, reindex=self._auto_index)
-
-        # If any item was updated, rebuild the index.
-        if self._auto_index and count:
-            self._build_index()
-
-        return count
+        return self._update_helper(None, time, measurement, tags, fields, None)
 
     def _build_index(self):
         """Build the Index instance.
@@ -1429,7 +871,7 @@ class TinyFlux:
             self._index.update(updated_items)
             return
 
-        # Index was valid and no items were removed, return 0.
+        # Index was valid and no items were removed.
         elif self._index.valid and not filtered_items:
             return
 
@@ -1458,7 +900,7 @@ class TinyFlux:
         Returns:
             A function that updates a Point's attributes.
         """
-        if not isinstance(query, (SimpleQuery, CompoundQuery)):
+        if query and not isinstance(query, (SimpleQuery, CompoundQuery)):
             raise ValueError("Argument 'query' must be a TinyFlux Query.")
 
         # Assert all arguments.
@@ -1545,6 +987,10 @@ class TinyFlux:
             else:
                 self._index.invalidate()
 
+        # Invalidate index.
+        if not self._auto_index and self._index.valid:
+            self._index.invalidate()
+
         return
 
     def _reset_database(self) -> None:
@@ -1561,15 +1007,176 @@ class TinyFlux:
 
         return
 
-    def _search_storage(self, func: Callable) -> None:
-        """Search storage layer helper.
+    def _update_helper(
+        self,
+        query: Union[CompoundQuery, SimpleQuery] = None,
+        time: Union[datetime, Callable, None] = None,
+        measurement: Union[str, Callable, None] = None,
+        tags: Union[Mapping, Callable, None] = None,
+        fields: Union[Mapping, Callable, None] = None,
+        _measurement: str = None,
+    ):
+        """ """
+        """Update all matching Points in the database with new attributes.
 
         Args:
-            func: A callable that accepts an iterator.
+            query: A query as a condition.
+            time: A datetime object or Callable returning one.
+            measurement: A string or Callable returning one.
+            tags: A mapping or Callable returning one.
+            fields: A mapping or Callable returning one.
 
         Returns:
-            A list of Points.
-        """
-        self._storage.search(func)
+            A count of updated points.
 
-        return
+        Todo:
+            Update index in a smart way.
+        """
+        assert self._storage.can_write
+
+        # Return value.
+        update_count = 0
+
+        # Define the function that will perform the update
+        perform_update = self._generate_updater(
+            query=query,
+            time=time,
+            measurement=measurement,
+            tags=tags,
+            fields=fields,
+        )
+
+        use_index = query and self._auto_index and self._index.valid
+
+        # If we are auto-indexing and the index is valid, check it.
+        if use_index:
+
+            if _measurement:
+                mq = MeasurementQuery() == _measurement
+                index_rst = self._index.search(mq & query)
+            else:
+                index_rst = self._index.search(query)
+
+            # No candidates from the index.
+            if not index_rst._items:
+                return 0
+
+            # Candidates and we only have to check a subset.
+            if len(index_rst._items) == len(self._index):
+                use_index = False
+
+        temp_memory = []
+        time_updates_performed = False
+
+        # Update with help of index.
+        if use_index:
+
+            j = 0
+
+            for i, item in enumerate(self._storage):
+                # Not a query match, pass item through.
+                if j == len(index_rst.items) or i != index_rst._items[j]:
+                    temp_memory.append(item)
+                    continue
+
+                _point = self._storage._deserialize_storage_item(item)
+
+                # Candidate, no further eval necessary, update.
+                if index_rst._is_complete:
+                    u, t = perform_update(_point)
+
+                    if u:
+                        update_count += 1
+                        temp_memory.append(
+                            self._storage._serialize_point(_point)
+                        )
+                    else:
+                        temp_memory.append(item)
+
+                    if t:
+                        time_updates_performed = True
+
+                    continue
+
+                # Candidate, eval and update.
+                if query(_point):
+                    u, t = perform_update(_point)
+
+                    if u:
+                        update_count += 1
+                        temp_memory.append(
+                            self._storage._serialize_point(_point)
+                        )
+                    else:
+                        temp_memory.append(item)
+
+                    if t:
+                        time_updates_performed = True
+
+                    continue
+
+                # Candidate, eval is False.
+                temp_memory.append(item)
+
+                j += 1
+
+        else:
+
+            for item in self._storage:
+                # Not this measurement.
+                if (
+                    _measurement
+                    and self._storage._deserialize_measurement(item)
+                    != _measurement
+                ):
+                    temp_memory.append(item)
+                    continue
+
+                _point = self._storage._deserialize_storage_item(item)
+
+                # Query match.
+                if not query or query(_point):
+                    u, t = perform_update(_point)
+                    if u:
+                        update_count += 1
+
+                    if t:
+                        time_updates_performed = True
+
+                    temp_memory.append(
+                        self._storage._deserialize_storage_item(_point)
+                    )
+                    continue
+
+                # Not a query match.
+                temp_memory.append(item)
+
+        # No updates performed. Delete temp memory and do not write.
+        if not update_count:
+            del temp_memory
+            gc.collect()
+
+            return 0
+
+        # Reindex only if necessary. We reindex only if time updates were
+        # performed or if the index was not previously intact.
+        if self._auto_index and (
+            time_updates_performed or not self._index.valid
+        ):
+            temp_memory.sort(
+                key=lambda x: self._storage._deserialize_timestamp(x)
+            )
+            self._storage._write(temp_memory, True)
+
+        # Write memory to storage.
+        self._storage._write(temp_memory, self.index.valid)
+
+        # If any item was updated, rebuild the index.
+        if self._auto_index:
+            self._build_index()
+
+        # Clean up temp memory.
+        del temp_memory
+        gc.collect()
+
+        return update_count

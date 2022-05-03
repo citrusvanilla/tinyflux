@@ -92,7 +92,16 @@ def test_writes_on_read_only_csv(tmpdir):
         db.update(TagQuery().noop(), measurement="test")
 
     with pytest.raises(IOError):
+        db.remove(TagQuery().city == "los angeles")
+
+    with pytest.raises(IOError):
         db.remove_all()
+
+    with pytest.raises(IOError):
+        db.drop_measurement("_default")
+
+    with pytest.raises(IOError):
+        db.drop_measurements()
 
 
 def test_create_dirs():

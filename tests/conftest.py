@@ -24,10 +24,10 @@ class CSVStorageWithCounters(CSVStorage):
         self.reindex_count += 1
         return super().reindex()
 
-    def _write(self, points):
+    def _write(self, points, is_sorted=False):
         """Write with counter."""
         self.write_count += 1
-        return super()._write(points)
+        return super()._write(points, is_sorted)
 
 
 class MemoryStorageWithCounters(MemoryStorage):
@@ -50,10 +50,10 @@ class MemoryStorageWithCounters(MemoryStorage):
         self.reindex_count += 1
         return super().reindex()
 
-    def _write(self, points):
+    def _write(self, points, is_sorted=False):
         """Write with counter."""
         self.write_count += 1
-        return super()._write(points)
+        return super()._write(points, is_sorted)
 
 
 @pytest.fixture

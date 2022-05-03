@@ -96,17 +96,9 @@ class Measurement:
         # Otherwise, iterate over storage and increment a counter.
         count = 0
 
-        def counter(r: Iterator, _, deserialize_measurement: Callable) -> None:
-            """Count over an iterator."""
-            nonlocal count
-
-            for item in r:
-                if deserialize_measurement(item) == self._name:
-                    count += 1
-
-            return
-
-        self._db._search_storage(counter)
+        for item in self._db._storage:
+            if self._db._storage._deserialize_measurement(item) == self._name:
+                count += 1
 
         return count
 
