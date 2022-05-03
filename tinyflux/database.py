@@ -11,6 +11,7 @@ from typing import (
     Mapping,
     Optional,
     Set,
+    Tuple,
     Union,
 )
 
@@ -157,7 +158,7 @@ class TinyFlux:
 
     def all(self) -> List[Point]:
         """Get all data in the storage layer as Points."""
-        return list(iter(self))
+        return self._storage.read()
 
     def close(self) -> None:
         """Close the database.
@@ -166,9 +167,9 @@ class TinyFlux:
         needs to perform cleanup operations like closing file handles.
 
         To ensure this method is called, the tinyflux instance can be used as a
-        context manager::
+        context manager:
 
-            with TinyFlux('data.csv') as db:
+        >>> with TinyFlux('data.csv') as db:
                 db.insert(Point())
 
         Upon leaving this context, the 'close' method will be called.
@@ -1140,6 +1141,7 @@ class TinyFlux:
                     """Update points."""
                     nonlocal count
                     updates_performed = False
+                    time_updates_performed = False
                     j = 0
 
                     for i, item in enumerate(r):
@@ -1155,7 +1157,7 @@ class TinyFlux:
 
                         # Candidate, no further eval necessary, update.
                         if index_rst._is_complete:
-                            u = perform_update(_point)
+                            u, t = perform_update(_point)
 
                             if u:
                                 count += 1
@@ -1163,12 +1165,15 @@ class TinyFlux:
                                 temp_memory.append(serializer(_point))
                             else:
                                 temp_memory.append(item)
+
+                            if t:
+                                time_updates_performed = True
 
                             continue
 
                         # Candidate, eval and update.
                         if query(_point):
-                            u = perform_update(_point)
+                            u, t = perform_update(_point)
 
                             if u:
                                 count += 1
@@ -1176,6 +1181,9 @@ class TinyFlux:
                                 temp_memory.append(serializer(_point))
                             else:
                                 temp_memory.append(item)
+
+                            if t:
+                                time_updates_performed = True
 
                             continue
 
@@ -1184,7 +1192,7 @@ class TinyFlux:
 
                         j += 1
 
-                    return updates_performed
+                    return updates_performed, time_updates_performed
 
                 self._storage.update(subset_updater, self._auto_index)
 
@@ -1208,6 +1216,7 @@ class TinyFlux:
                 """Update points."""
                 nonlocal count
                 updates_performed = False
+                time_updates_performed = False
 
                 for row in r:
 
@@ -1220,17 +1229,22 @@ class TinyFlux:
 
                     # Query match.
                     if query(_point):
-                        u = perform_update(_point)
+                        u, t = perform_update(_point)
+
                         if u:
                             updates_performed = True
                             count += 1
+
+                        if t:
+                            time_updates_performed = True
+
                         temp_memory.append(serializer(_point))
                         continue
 
                     # Not a query match.
                     temp_memory.append(row)
 
-                return updates_performed
+                return updates_performed, time_updates_performed
 
         else:
 
@@ -1244,6 +1258,7 @@ class TinyFlux:
                 """Update points."""
                 nonlocal count
                 updates_performed = False
+                time_updates_performed = False
 
                 for item in r:
                     # Cast item to a Point.
@@ -1251,7 +1266,7 @@ class TinyFlux:
 
                     # If the query evaluates to true, perform update.
                     if query(_point):
-                        u = perform_update(_point)
+                        u, t = perform_update(_point)
 
                         if u:
                             count += 1
@@ -1260,11 +1275,14 @@ class TinyFlux:
                         else:
                             temp_memory.append(item)
 
+                        if t:
+                            time_updates_performed = True
+
                     # If the query is not True, add the item and continue.
                     else:
                         temp_memory.append(item)
 
-                return updates_performed
+                return updates_performed, time_updates_performed
 
         self._storage.update(updater, self._auto_index)
 
@@ -1323,11 +1341,12 @@ class TinyFlux:
             """
             nonlocal count
             updates_performed = False
+            time_updates_performed = False
 
             for item in r:
                 _point = deserializer(item)
 
-                u = perform_update(_point)
+                u, t = perform_update(_point)
 
                 if u:
                     count += 1
@@ -1336,7 +1355,10 @@ class TinyFlux:
                 else:
                     temp_memory.append(item)
 
-            return updates_performed
+                if t:
+                    time_updates_performed = True
+
+            return updates_performed, time_updates_performed
 
         self._storage.update(updater, reindex=self._auto_index)
 
@@ -1421,7 +1443,7 @@ class TinyFlux:
             validate_fields(fields)
 
         # Define the update function.
-        def perform_update(point: Point) -> None:
+        def perform_update(point: Point) -> Tuple[bool, bool]:
             """Update points."""
             old_point = copy.deepcopy(point)
 
@@ -1459,7 +1481,7 @@ class TinyFlux:
                 else:
                     point.fields.update(fields)
 
-            return point != old_point
+            return point != old_point, point.time != old_point.time
 
         return perform_update
 
@@ -1486,7 +1508,7 @@ class TinyFlux:
     def _reset_database(self) -> None:
         """Reset TinyFlux and storage."""
         # Write empty list to storage.
-        self._storage.write([])
+        self._storage.reset()
 
         # Drop measurements.
         self._measurements.clear()

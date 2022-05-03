@@ -2,9 +2,7 @@
 
 Tests are generally organized by Measurement class method.
 """
-import csv
 from datetime import datetime, timedelta
-import os
 import re
 from typing import Generator
 
@@ -13,7 +11,7 @@ import pytest
 from tinyflux import Point
 from tinyflux.database import TinyFlux
 from tinyflux.queries import FieldQuery, MeasurementQuery, TagQuery, TimeQuery
-from tinyflux.storages import CSVStorage, MemoryStorage
+from tinyflux.storages import MemoryStorage
 
 
 def test_init():

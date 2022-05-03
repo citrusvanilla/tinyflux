@@ -22,7 +22,7 @@ Usage:
 """
 
 from datetime import datetime
-from typing import Mapping, List, Tuple
+from typing import Mapping, List, Sequence, Tuple
 
 
 def validate_tags(tags):
@@ -74,10 +74,6 @@ class Point:
                 fields={"my field": 123.45},
                 tags={"my tag key": "my tag value"}
             )
-
-    Todo:
-        profile and refactor this.
-        >>> cProfile.run('Point()')
     """
 
     _none_str = "_none"
@@ -186,7 +182,9 @@ class Point:
         repr_str = "Point("
 
         # Add time.
-        repr_str += f"time={self._time.isoformat()}, "
+        repr_str += (
+            f"time={self._time.isoformat() if self._time else 'None'}, "
+        )
 
         # Add measurement.
         repr_str += f"measurement={self._measurement}"
@@ -210,7 +208,7 @@ class Point:
 
         return repr_str
 
-    def _deserialize(self, row: List[str]) -> "Point":
+    def _deserialize(self, row: Sequence[str]) -> "Point":
         """Deserialize a python list of utf-8 strings to a Point.
 
         Args:

@@ -132,9 +132,6 @@ class Index:
     Arritributes:
         empty: Index contains no items (used in testing).
         valid: Index represents current state of TinyFlux.
-
-    Todo:
-        switch from sets to lists.
     """
 
     def __init__(self, valid: bool = True) -> None:
