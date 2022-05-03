@@ -117,7 +117,16 @@ def test_iter():
     """Test __iter__ method."""
     db = TinyFlux(storage=MemoryStorage)
 
-    assert [i for i in db] == db.all()
+    assert [i for i in db] == db.all() == []
+
+    p = Point()
+    db.insert(p)
+
+    assert [i for i in db] == db.all() == [p]
+
+    db.remove_all()
+
+    assert [i for i in db] == db.all() == []
 
 
 def test_repr(tmpdir: Path):
@@ -307,6 +316,16 @@ def test_drop_measurements():
     assert len(db.measurements()) == 0
     assert db.index.valid
     assert db.index.empty
+
+    # No auto-indexing. Populate and drop measurements.
+    db = TinyFlux(auto_index=False, storage=MemoryStorage)
+    db.insert(Point())
+    db.insert(Point(measurement="m"))
+    assert not db.index.valid
+    assert len(db.measurements()) == 2
+    assert db.drop_measurement("m") == 1
+    assert db.drop_measurement("_default") == 1
+    assert not len(db)
 
 
 def test_get():

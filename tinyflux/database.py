@@ -83,7 +83,9 @@ class TinyFlux:
         # Init index.
         if not isinstance(self._auto_index, bool):
             raise TypeError("'auto_index' must be True/False.")
-        self._index = Index(valid=self._storage.index_intact)
+        self._index = Index(
+            valid=self._auto_index and self._storage.index_intact
+        )
 
         # Init references to measurements.
         self._measurements = {}
