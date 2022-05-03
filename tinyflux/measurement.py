@@ -30,7 +30,7 @@ from .storages import Storage
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .database import TinyFlux
+    from .database import TinyFlux  # pragma: no cover
 
 
 class Measurement:

@@ -176,7 +176,7 @@ def test_subclassing_storage():
     with pytest.raises(TypeError):
         MyStorage()
 
-    class MyStorage2(Storage):
+    class MyStorage2(Storage):  # pragma: no cover
         """Dummy storage subclass."""
 
         def __iter__(self):

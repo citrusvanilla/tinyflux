@@ -484,7 +484,7 @@ class BaseQuery:
                 "You may be attempting to initialize a BaseQuery."
             )
 
-        # Validation.
+        # Validation for time.
         if (
             self._point_attr == "_time"
             and rhs
@@ -494,13 +494,32 @@ class BaseQuery:
                 "TimeQuery comparison value must be datetime object."
             )
 
+        # Validation for measurement.
+        if (
+            self._point_attr == "_measurement"
+            and rhs
+            and not isinstance(rhs, str)
+        ):
+            raise TypeError(
+                "MeasurementQuery comparison value must be string."
+            )
+
+        # Validation for tags.
+        if self._point_attr == "_tags" and rhs and not isinstance(rhs, str):
+            raise TypeError("TagQuery comparison value must be string.")
+
+        # Validation for fields.
+        if (
+            self._point_attr == "_fields"
+            and rhs
+            and not isinstance(rhs, (int, float))
+        ):
+            raise TypeError("FieldQuery comparison value must be numeric.")
+
         def test(x):
             """The test function from an operator and righthand side."""
             if not test_against_rhs:
-                return operator(x)
-
-            if args:
-                return operator(x, *args)
+                return operator(x, *args) if args else operator(x)
 
             # Wrap this in a try/except block.
             # Some operators do not work against None types.

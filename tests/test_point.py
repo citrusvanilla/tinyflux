@@ -1,7 +1,7 @@
 """Tests for the tinyflux.point module."""
 from datetime import datetime, timedelta
 import pytest
-from tinyflux.point import Point
+from tinyflux.point import Point, validate_tags, validate_fields
 
 
 def test_repr():
@@ -63,6 +63,34 @@ def test_args_and_kwargs():
     # Point with bad measurement type.
     with pytest.raises(ValueError):
         Point(measurement=1)
+
+
+def test_validate_tags():
+    """Test validate_tags function."""
+    with pytest.raises(ValueError):
+        validate_tags(3)
+
+    with pytest.raises(ValueError):
+        validate_tags({1: "A"})
+
+    with pytest.raises(ValueError):
+        validate_tags({"a": 1})
+
+    validate_tags({"a": "b"})
+
+
+def test_validate_fields():
+    """Test validate_fields function."""
+    with pytest.raises(ValueError):
+        validate_fields(3)
+
+    with pytest.raises(ValueError):
+        validate_fields({1: "A"})
+
+    with pytest.raises(ValueError):
+        validate_fields({"a": "A"})
+
+    validate_fields({"a": 1})
 
 
 def test_time():
