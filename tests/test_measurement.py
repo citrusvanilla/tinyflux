@@ -489,7 +489,6 @@ def test_search():
 
 def test_update():
     """Test the update method of the Measurement class."""
-
     # Open up the DB with TinyFlux.
     db = TinyFlux(auto_index=True, storage=MemoryStorage)
 

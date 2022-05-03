@@ -11,7 +11,6 @@ handling, usually as an input to a storage retrieval.
 from datetime import datetime
 import operator
 from typing import List, Optional, Set, Union
-from xxlimited import new
 
 from tinyflux.queries import SimpleQuery, CompoundQuery
 from .point import Point
@@ -41,7 +40,11 @@ class IndexResult:
         >>> IndexResult(items=list(), is_complete=True, index_count=0)
     """
 
-    def __init__(self, items: Set[int], is_complete: bool, index_count: int):
+    _items: List[int]
+    _is_complete: bool
+    _index_count: int
+
+    def __init__(self, items: List[int], is_complete: bool, index_count: int):
         """Init IndexResult.
 
         Args:
@@ -72,12 +75,6 @@ class IndexResult:
         Usage:
             >>> ~IndexResult()
         """
-        # Invert items.
-        # new_items = set({})
-        # for i in range(self._index_count):
-        #     if i not in self._items:
-        #         new_items.add(i)
-
         return IndexResult(
             difference_generator_and_sorted_lists(
                 range(self._index_count), self._items
@@ -134,6 +131,13 @@ class Index:
         valid: Index represents current state of TinyFlux.
     """
 
+    _num_items: int
+    _tags: dict[str, dict[str, list]]
+    _fields: dict[str, list]
+    _measurements: dict[str, list]
+    _timestamps: List[float]
+    _valid: bool
+
     def __init__(self, valid: bool = True) -> None:
         """Initialize an Index.
 
@@ -142,12 +146,12 @@ class Index:
         Args:
             valid: Index represents current state of TinyFlux.
         """
-        self._num_items: int = 0
-        self._tags: dict[str, dict[str, list]] = {}
-        self._fields: dict[str, list] = {}
-        self._measurements: dict[str, list] = {}
-        self._timestamps: List[datetime] = []
-        self._valid: bool = valid
+        self._num_items = 0
+        self._tags = {}
+        self._fields = {}
+        self._measurements = {}
+        self._timestamps = []
+        self._valid = valid
 
     @property
     def empty(self) -> bool:
@@ -282,7 +286,11 @@ class Index:
         return self._search_helper(query)
 
     def update(self, u_items: dict[int, int]) -> None:
-        """ """
+        """Update the index.
+
+        Args:
+            u_items: A mapping of old indices to update indices.
+        """
         self._update_measurements(u_items)
         self._update_tags(u_items)
         self._update_fields(u_items)
@@ -363,7 +371,7 @@ class Index:
 
         return
 
-    def _search_fields(self, query: SimpleQuery) -> Set[int]:
+    def _search_fields(self, query: SimpleQuery) -> List[int]:
         """Search the index for field matches.
 
         A field value is never indexed, so this search returns a list of
@@ -376,13 +384,13 @@ class Index:
         Returns:
             A list of candidates by index value.
         """
-        rst_items = []
+        rst_items: List[int] = []
 
         for field_key, items in self._fields.items():
             # Transform the key.
             try:
-                query._path_resolver({field_key: ""})
-            except:
+                query._path_resolver({field_key: 0.0})
+            except Exception:
                 continue
 
             rst_items = union_two_sorted_lists(rst_items, items)
@@ -452,7 +460,7 @@ class Index:
 
         raise TypeError("Query must be SimpleQuery or CompoundQuery.")
 
-    def _search_measurement(self, query: SimpleQuery) -> list:
+    def _search_measurement(self, query: SimpleQuery) -> list[int]:
         """Search the index for measurement matches.
 
         Args:
@@ -461,7 +469,7 @@ class Index:
         Returns:
             A list of matches by index value.
         """
-        rst_items = []
+        rst_items: List[int] = []
 
         for key, items in self._measurements.items():
             # Transform the key.
@@ -473,7 +481,7 @@ class Index:
 
         return rst_items
 
-    def _search_tags(self, query: SimpleQuery) -> list:
+    def _search_tags(self, query: SimpleQuery) -> list[int]:
         """Search the index for tag matches.
 
         Args:
@@ -482,14 +490,14 @@ class Index:
         Returns:
             A list of matches as index values.
         """
-        rst_items = []
+        rst_items: List[int] = []
 
         for tag_key, tag_values in self._tags.items():
             for value, items in tag_values.items():
                 # Transform the key.
                 try:
                     test_value = query._path_resolver({tag_key: value})
-                except:
+                except Exception:
                     continue
 
                 # If it matches, update the list.
@@ -498,7 +506,7 @@ class Index:
 
         return rst_items
 
-    def _search_timestamps(self, query) -> list:
+    def _search_timestamps(self, query: SimpleQuery) -> list[int]:
         """Search for a timestamp.
 
         Search function for searching the timestamp index.
@@ -603,8 +611,12 @@ class Index:
 
             return items
 
-    def _remove_fields(self, r_items):
-        """"""
+    def _remove_fields(self, r_items: Set[int]) -> None:
+        """Remove indices from fields index.
+
+        Args:
+            r_items: A set of indices to remove.
+        """
         new_fields = {}
 
         for field_key, old_items in self._fields.items():
@@ -616,8 +628,12 @@ class Index:
 
         return
 
-    def _remove_measurements(self, r_items):
-        """ """
+    def _remove_measurements(self, r_items: Set[int]) -> None:
+        """Remove indices from measurement index.
+
+        Args:
+            r_items: A set of indices to remove.
+        """
         new_measurements = {}
 
         for m in self._measurements.keys():
@@ -629,8 +645,12 @@ class Index:
 
         return
 
-    def _remove_tags(self, r_items):
-        """"""
+    def _remove_tags(self, r_items: Set[int]) -> None:
+        """Remove indices from tags index.
+
+        Args:
+            r_items: A set of indices to remove.
+        """
         new_tags = {}
 
         for tag_key, tag_values in self._tags.items():
@@ -649,8 +669,12 @@ class Index:
 
         return
 
-    def _remove_timestamps(self, r_items):
-        """ """
+    def _remove_timestamps(self, r_items: Set[int]) -> None:
+        """Remove indices from timestamps index.
+
+        Args:
+            r_items: A set of indices to remove.
+        """
         new_timestamps = []
 
         for i, ts in enumerate(self._timestamps):
@@ -661,8 +685,12 @@ class Index:
 
         return
 
-    def _update_fields(self, u_items):
-        """"""
+    def _update_fields(self, u_items: dict[int, int]) -> None:
+        """Update fields index.
+
+        Args:
+            u_items: A mapping of old indices to new indices.
+        """
         for field_key, old_items in self._fields.items():
             updated_items = []
             for i in old_items:
@@ -671,8 +699,12 @@ class Index:
 
         return
 
-    def _update_measurements(self, u_items):
-        """ """
+    def _update_measurements(self, u_items: dict[int, int]) -> None:
+        """Update measurements index.
+
+        Args:
+            u_items: A mapping of old indices to new indices.
+        """
         new_measurements = {}
 
         for m in self._measurements.keys():
@@ -688,8 +720,12 @@ class Index:
 
         return
 
-    def _update_tags(self, u_items):
-        """"""
+    def _update_tags(self, u_items: dict[int, int]) -> None:
+        """Update tags index.
+
+        Args:
+            u_items: A mapping of old indices to new indices.
+        """
         for tag_key, tag_values in self._tags.items():
             for value, old_items in tag_values.items():
                 updated_items = []

@@ -1,6 +1,6 @@
 """Defintion of TinyFlux utils."""
 import bisect
-from typing import Generator, List, Optional
+from typing import Iterable, List, Optional
 
 
 class FrozenDict(dict):
@@ -147,13 +147,21 @@ def find_ge(sorted_list: List, x: int) -> Optional[int]:
 
 
 def difference_generator_and_sorted_lists(
-    generator: Generator, inp_list: List
-):
-    """ """
+    iterable: Iterable, inp_list: List[int]
+) -> List[int]:
+    """Get the difference from a range of numbers and another list of integers.
+
+    Args:
+        iterable: A range of integers.
+        inp_list: A list of sorted integers.
+
+    Returns:
+        Integers in the iterable that are not in the input list.
+    """
     rst = []
     j = 0
 
-    for i in generator:
+    for i in iterable:
         # Run out rest of generator.
         if j == len(inp_list):
             rst.append(i)
@@ -170,8 +178,18 @@ def difference_generator_and_sorted_lists(
     return rst
 
 
-def intersection_two_sorted_lists(list1, list2):
-    """ """
+def intersection_two_sorted_lists(
+    list1: List[int], list2: List[int]
+) -> List[int]:
+    """Get the intersection from two lists of sorted integers.
+
+    Args:
+        list1: A sorted list of integers.
+        list2: A sorted list of integers.
+
+    Returns:
+        A list of integers contained in both lists..
+    """
     rst = []
     i, j = 0, 0
 
@@ -191,8 +209,16 @@ def intersection_two_sorted_lists(list1, list2):
     return rst
 
 
-def union_two_sorted_lists(list1, list2):
-    """ """
+def union_two_sorted_lists(list1: List[int], list2: List[int]) -> List[int]:
+    """Get the union from two lists of sorted integers.
+
+    Args:
+        list1: A sorted list of integers.
+        list2: A sorted list of integers.
+
+    Returns:
+        The union of integers from both lists, without duplicates.
+    """
     rst = []
     i, j = 0, 0
 

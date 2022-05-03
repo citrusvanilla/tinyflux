@@ -496,8 +496,8 @@ def test_reindex(tmpdir, capsys):
     path = os.path.join(tmpdir, "test.csv")
     f = open(path, "w")
     w = csv.writer(f)
-    w.writerow(p2._serialize())
-    w.writerow(p1._serialize())
+    w.writerow(p2._serialize_to_list())
+    w.writerow(p1._serialize_to_list())
     f.close()
 
     # Open up the DB with TinyFlux.
@@ -520,8 +520,8 @@ def test_reindex(tmpdir, capsys):
     f = open(path, "r+")
     r = csv.reader(f)
     for row, point in zip(r, [p1, p2, p3]):
-        assert tuple(row) == point._serialize()
-        assert Point()._deserialize(row) == point
+        assert tuple(row) == point._serialize_to_list()
+        assert Point()._deserialize_from_list(row) == point
     f.close()
 
     assert db._storage._is_sorted()
@@ -843,8 +843,8 @@ def test_storage_index_initialization_with_autoindex_ON(tmpdir):
     path = os.path.join(tmpdir, "test.csv")
     with open(path, "w") as f:
         w = csv.writer(f)
-        w.writerow(p2._serialize())
-        w.writerow(p1._serialize())
+        w.writerow(p2._serialize_to_list())
+        w.writerow(p1._serialize_to_list())
 
     # Open up the DB with TinyFlux.
     db = TinyFlux(path, auto_index=True, storage=CSVStorage)
@@ -883,8 +883,8 @@ def test_open_unindexed_storage_with_autoindex_OFF(tmpdir):
     path = os.path.join(tmpdir, "test.csv")
     with open(path, "w") as f:
         w = csv.writer(f)
-        w.writerow(p2._serialize())
-        w.writerow(p1._serialize())
+        w.writerow(p2._serialize_to_list())
+        w.writerow(p1._serialize_to_list())
 
     # Open up the DB with TinyFlux.
     db = TinyFlux(path, auto_index=False, storage=CSVStorage)

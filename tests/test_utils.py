@@ -199,7 +199,7 @@ def test_find_ge():
 
 
 def test_intersection_two_sorted_lists():
-    """ """
+    """Test the intersection of two sorted lists."""
     # Test same lists.
     l1, l2 = [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]
     rst = intersection_two_sorted_lists(l1, l2)
@@ -252,7 +252,7 @@ def test_intersection_two_sorted_lists():
 
 
 def test_union_two_sorted_lists():
-    """ """
+    """Test the union of two sorted lists."""
     # Test same lists.
     l1, l2 = [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]
     rst = union_two_sorted_lists(l1, l2)
@@ -305,37 +305,37 @@ def test_union_two_sorted_lists():
 
 
 def test_difference_generator_and_sorted_lists():
-    """ """
+    """Test the difference of two sorted lists."""
     # Test empty l.
     g = range(5)
-    l = []
-    rst = difference_generator_and_sorted_lists(g, l)
+    my_list = []
+    rst = difference_generator_and_sorted_lists(g, my_list)
     assert rst == [0, 1, 2, 3, 4]
 
     # Test empty gen.
     g = range(0)
-    l = [1, 2]
-    rst = difference_generator_and_sorted_lists(g, l)
+    my_list = [1, 2]
+    rst = difference_generator_and_sorted_lists(g, my_list)
     assert rst == []
 
     # Test equal inputs.
     g = range(2)
-    l = [0, 1]
-    rst = difference_generator_and_sorted_lists(g, l)
+    my_list = [0, 1]
+    rst = difference_generator_and_sorted_lists(g, my_list)
     assert rst == []
 
     # Test normal cases.
     g = range(5)
-    l = [0, 1]
-    rst = difference_generator_and_sorted_lists(g, l)
+    my_list = [0, 1]
+    rst = difference_generator_and_sorted_lists(g, my_list)
     assert rst == [2, 3, 4]
 
     g = range(5)
-    l = [2, 3, 4]
-    rst = difference_generator_and_sorted_lists(g, l)
+    my_list = [2, 3, 4]
+    rst = difference_generator_and_sorted_lists(g, my_list)
     assert rst == [0, 1]
 
     g = range(5)
-    l = [2, 3]
-    rst = difference_generator_and_sorted_lists(g, l)
+    my_list = [2, 3]
+    rst = difference_generator_and_sorted_lists(g, my_list)
     assert rst == [0, 1, 4]

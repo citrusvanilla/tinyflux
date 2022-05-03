@@ -294,7 +294,7 @@ class CSVStorage(Storage):
 
             # Write the row.
             try:
-                csv_writer.writerow(point._serialize())
+                csv_writer.writerow(point._serialize_to_list())
             except Exception as e:
                 raise IOError(f"Cannot write to the database: {e}")
 
@@ -502,7 +502,7 @@ class CSVStorage(Storage):
 
     def _deserialize_storage_item(self, row: CSVStorageItem) -> Point:
         """Deserialize a row from storage to a Point."""
-        return Point()._deserialize(row)
+        return Point()._deserialize_from_list(row)
 
     def _deserialize_timestamp(self, row: CSVStorageItem) -> datetime:
         """Deserialize timestamp from a row."""
@@ -512,9 +512,11 @@ class CSVStorage(Storage):
         """Check if the storage layer is sorted."""
         return super()._is_sorted()
 
-    def _serialize_point(self, point: Point) -> CSVStorageItem:
+    def _serialize_point(
+        self, point: Point
+    ) -> Sequence[Union[str, float, int]]:
         """Serialize a point to an item for storage."""
-        return point._serialize()
+        return point._serialize_to_list()
 
     def _write(self, items: List[CSVStorageItem]) -> None:
         """Write Points to the CSV file.

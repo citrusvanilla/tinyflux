@@ -201,15 +201,15 @@ def test_subclassing_storage():
             """Update method."""
 
         def _deserialize_measurement(self, item):
-            """"""
+            """Deserialize measurement."""
             ...
 
         def _deserialize_timestamp(self, item):
-            """ """
+            """Deserialize timestamp."""
             ...
 
         def _deserialize_storage_item(self, item):
-            """"""
+            """Deserialize storage."""
             ...
 
         def _is_sorted(self) -> bool:
@@ -217,7 +217,7 @@ def test_subclassing_storage():
             ...
 
         def _serialize_point(self, Point) -> None:
-            """ """
+            """Serialize Point."""
             ...
 
         def _write(self, _):
@@ -310,9 +310,9 @@ def test_insert_out_of_time_order(tmpdir):
         r = csv.reader(f)
         csv_data = [i for i in r]
 
-    assert Point()._deserialize(csv_data[-1]).time == t_past
-    assert Point()._deserialize(csv_data[-2]).time == t_present
-    assert Point()._deserialize(csv_data[-3]).time == t_future
+    assert Point()._deserialize_from_list(csv_data[-1]).time == t_past
+    assert Point()._deserialize_from_list(csv_data[-2]).time == t_present
+    assert Point()._deserialize_from_list(csv_data[-3]).time == t_future
 
 
 def test_index_intact_csv(tmpdir):
@@ -408,8 +408,8 @@ def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     path = os.path.join(tmpdir, "test.csv")
     with open(path, "w") as f:
         w = csv.writer(f)
-        w.writerow(p2._serialize())
-        w.writerow(p1._serialize())
+        w.writerow(p2._serialize_to_list())
+        w.writerow(p1._serialize_to_list())
 
     # Init storage object.  No reads should be performed.
     storage = csv_storage_with_counters(path)
@@ -573,8 +573,8 @@ def test_multiple_appends(
     path = os.path.join(tmpdir, "test.csv")
     with open(path, "w") as f:
         w = csv.writer(f)
-        w.writerow(p2._serialize())
-        w.writerow(p1._serialize())
+        w.writerow(p2._serialize_to_list())
+        w.writerow(p1._serialize_to_list())
 
     # Init storage object.  No reads should be performed.
     storage = csv_storage_with_counters(path)
@@ -612,7 +612,7 @@ def test_multiple_reads(
     with open(path, "w") as f:
         w = csv.writer(f)
         for _ in range(10):
-            w.writerow(Point(time=t)._serialize())
+            w.writerow(Point(time=t)._serialize_to_list())
 
     # Init storage object.  No reads should be performed.
     storage = csv_storage_with_counters(path)
@@ -633,9 +633,11 @@ def test_multiple_reads(
     with open(path, "w") as f:
         w = csv.writer(f)
         for _ in range(10):
-            w.writerow(Point(time=t)._serialize())
+            w.writerow(Point(time=t)._serialize_to_list())
         w.writerow(
-            Point(time=datetime.utcnow() - timedelta(days=365))._serialize()
+            Point(
+                time=datetime.utcnow() - timedelta(days=365)
+            )._serialize_to_list()
         )
 
     # Init storage object.  No reads should be performed.

@@ -272,7 +272,7 @@ class SimpleQuery:
 
         try:
             value = self._path_resolver(obj_attr)
-        except:
+        except Exception:
             return False
 
         return self._test(value)
@@ -485,9 +485,14 @@ class BaseQuery:
             )
 
         # Validation.
-        if self._point_attr == "_time" and rhs and not isinstance(rhs, datetime):
-            raise TypeError("TimeQuery comparison value must be datetime object.")
-
+        if (
+            self._point_attr == "_time"
+            and rhs
+            and not isinstance(rhs, datetime)
+        ):
+            raise TypeError(
+                "TimeQuery comparison value must be datetime object."
+            )
 
         def test(x):
             """The test function from an operator and righthand side."""
@@ -502,7 +507,7 @@ class BaseQuery:
             # They should evaluate to False.
             try:
                 return operator(x, rhs)
-            except:
+            except Exception:
                 return False
 
         def path_resolver(value):

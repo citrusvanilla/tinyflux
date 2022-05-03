@@ -22,9 +22,8 @@ from typing import (
     Union,
 )
 
-
 from .point import Point
-from .queries import MeasurementQuery, SimpleQuery
+from .queries import CompoundQuery, MeasurementQuery, SimpleQuery
 from .index import Index
 from .storages import Storage
 
@@ -240,7 +239,7 @@ class Measurement:
 
     def update(
         self,
-        query: Optional[SimpleQuery],
+        query: Union[SimpleQuery, CompoundQuery],
         time: Optional[Union[datetime, Callable[[datetime], datetime]]] = None,
         measurement: Optional[Union[str, Callable[[str], str]]] = None,
         tags: Optional[Union[Mapping, Callable[[Mapping], Mapping]]] = None,

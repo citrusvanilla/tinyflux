@@ -267,8 +267,8 @@ def test_serialize_point():
         fields={"temp_f": 75.1, "population": 15000000},
     )
 
-    p_tuple1 = p1._serialize()
-    p_tuple2 = p2._serialize()
+    p_tuple1 = p1._serialize_to_list()
+    p_tuple2 = p2._serialize_to_list()
 
     p_tuple_expected1 = (
         time_now_str,
@@ -312,7 +312,7 @@ def test_deserialize_valid_point():
         time=time_now, tags={"city": "nyc"}, fields={"temp_f": 30.1}
     )
 
-    p1 = Point()._deserialize(p_tuple)
+    p1 = Point()._deserialize_from_list(p_tuple)
 
     assert p1 == p1_expected
 
@@ -334,7 +334,7 @@ def test_deserialize_valid_point():
         fields={"temp_f": 75.1, "population": 15000000},
     )
 
-    p2 = Point()._deserialize(p_tuple)
+    p2 = Point()._deserialize_from_list(p_tuple)
 
     assert p2 == p2_expected
 
@@ -346,16 +346,13 @@ def test_deserialize_valid_point():
         fields={"a": None},
     )
 
-    p3 = Point()._deserialize(p_tuple)
+    p3 = Point()._deserialize_from_list(p_tuple)
 
     assert p3 == p3_expected
 
 
 def test_deserialize_invalid_point():
     """Test deserialization of an invalid Point."""
-    time_now = datetime.utcnow()
-    time_now_str = time_now.isoformat()
-
     # Bad time value.
     bad_time = "ASDF"
     p_list = [
@@ -369,4 +366,4 @@ def test_deserialize_invalid_point():
         ValueError,
         match="Invalid isoformat string: 'ASDF'",
     ):
-        Point()._deserialize(p_list)
+        Point()._deserialize_from_list(p_list)

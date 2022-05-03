@@ -61,6 +61,12 @@ class TinyFlux:
     # The class that will be used by default to create storage instances.
     default_storage_class = CSVStorage
 
+    _storage: Storage
+    _auto_index: bool
+    _index: Index
+    _measurements: Dict[str, Measurement]
+    _open: bool
+
     def __init__(self, *args, **kwargs) -> None:
         """Initialize a new instance of TinyFlux.
 
@@ -68,24 +74,19 @@ class TinyFlux:
             auto_index: Reindexing of data will be performed automatically.
             storage: Class of Storage instance.
         """
-        # Auto-index.
         self._auto_index = kwargs.pop("auto_index", True)
-
-        # Index sorter.
-        self._index_sorter = lambda l: l.sort(key=lambda x: x.time)
 
         # Init storage.
         storage = kwargs.pop("storage", self.default_storage_class)
-        self._storage: Storage = storage(*args, **kwargs)
+        self._storage = storage(*args, **kwargs)
 
         # Init index.
         if not isinstance(self._auto_index, bool):
             raise TypeError("'auto_index' must be True/False.")
-        if self._auto_index:
-            self._storage.index_sorter = self._index_sorter
-        self._index: Index = Index(valid=self._storage.index_intact)
+        self._index = Index(valid=self._storage.index_intact)
 
-        self._measurements: Dict[str, Measurement] = {}
+        # Init references to measurements.
+        self._measurements = {}
         self._open = True
 
     @property
@@ -269,7 +270,11 @@ class TinyFlux:
 
         else:
 
-            def searcher(r: Iterator, deserializer: Callable, _) -> None:
+            def searcher(
+                r: Iterator,
+                deserializer: Callable,
+                deserialize_measurement: Callable,
+            ) -> None:
                 """Search over an iterator until one match is found."""
                 nonlocal contains
 
@@ -368,7 +373,11 @@ class TinyFlux:
 
         else:
 
-            def counter(r: Iterator, deserializer: Callable, _) -> None:
+            def counter(
+                r: Iterator,
+                deserializer: Callable,
+                deserialize_measurement: Callable,
+            ) -> None:
                 """Count over an iterator."""
                 nonlocal count
 
@@ -395,7 +404,7 @@ class TinyFlux:
             The count of removed items.
         """
         filtered_items = set({})
-        updated_items = {}
+        updated_items: Dict[int, int] = {}
         remaining_items_count = 0
 
         # If we are auto-indexing and the index is valid, check it.
@@ -614,7 +623,11 @@ class TinyFlux:
 
         else:
 
-            def searcher(r: Iterator, deserializer: Callable, _) -> None:
+            def searcher(
+                r: Iterator,
+                deserializer: Callable,
+                deserialize_measurement: Callable,
+            ) -> None:
                 """Search over an iterator until one match is found."""
                 nonlocal found_point
 
@@ -660,7 +673,6 @@ class TinyFlux:
 
         def inserter(points: List[Point]) -> None:
             """Update function."""
-
             points.append(point)
 
             return
@@ -890,8 +902,8 @@ class TinyFlux:
             ) -> bool:
                 """Search over an iterator and filter matches.
 
-                Creates a map of old indices to the updated ones, so that the Index
-                can be update without rebuilding.
+                Creates a map of old indices to the updated ones, so that the
+                Index can be updated without rebuilding.
                 """
                 nonlocal remaining_items_count
                 items_filtered = False
@@ -935,8 +947,8 @@ class TinyFlux:
             ) -> bool:
                 """Search over an iterator and filter matches.
 
-                Creates a map of old indices to the updated ones, so that the Index
-                can be update without rebuilding.
+                Creates a map of old indices to the updated ones, so that the
+                Index can be updated without rebuilding.
                 """
                 nonlocal remaining_items_count
                 items_filtered = False
@@ -1066,7 +1078,11 @@ class TinyFlux:
 
         else:
 
-            def searcher(r: Iterator, deserializer: Callable, _) -> None:
+            def searcher(
+                r: Iterator,
+                deserializer: Callable,
+                deserialize_measurement: Callable,
+            ) -> None:
                 """Search over an iterator until all matches are found."""
                 for row in r:
                     _point = deserializer(row)
@@ -1137,7 +1153,7 @@ class TinyFlux:
                     serializer: Callable,
                     deserializer: Callable,
                     *_,
-                ):
+                ) -> Tuple[bool, bool]:
                     """Update points."""
                     nonlocal count
                     updates_performed = False
@@ -1212,7 +1228,7 @@ class TinyFlux:
                 deserializer: Callable,
                 _,
                 deserialize_measurement: Callable,
-            ) -> bool:
+            ) -> Tuple[bool, bool]:
                 """Update points."""
                 nonlocal count
                 updates_performed = False
@@ -1253,8 +1269,9 @@ class TinyFlux:
                 temp_memory: List[str],
                 serializer: Callable,
                 deserializer: Callable,
-                *_,
-            ) -> bool:
+                _,
+                deserialize_measurement: Callable,
+            ) -> Tuple[bool, bool]:
                 """Update points."""
                 nonlocal count
                 updates_performed = False
@@ -1298,7 +1315,6 @@ class TinyFlux:
         measurement: Union[str, Callable, None] = None,
         tags: Union[Mapping, Callable, None] = None,
         fields: Union[Mapping, Callable, None] = None,
-        _measurement: Optional[str] = None,
     ) -> int:
         """Update all points in the database with new attributes.
 
@@ -1332,7 +1348,7 @@ class TinyFlux:
             serializer: Callable,
             deserializer: Callable,
             *_,
-        ) -> bool:
+        ) -> Tuple[bool, bool]:
             """Update points.
 
             Returns a bool to the calling context, which is the storage
@@ -1388,10 +1404,18 @@ class TinyFlux:
     def _filter_index(
         self,
         remaining_items_count: int,
-        filtered_items: set,
-        updated_items: set,
+        filtered_items: Set,
+        updated_items: Dict[int, int],
     ) -> None:
-        """ """
+        """Filter the Index.
+
+        A helper the remove items and then update remaining items in the Index.
+
+        Args:
+            remaining_items_count: Count of items remaining the storage layer.
+            filtered_items: Items set for removal from storage.
+            updated_items: A mapping of old indices to update indices.
+        """
         # No more remaining items, reset index and return count.
         if not remaining_items_count:
             self._index._reset()
@@ -1414,8 +1438,24 @@ class TinyFlux:
 
     def _generate_updater(
         self, query=None, time=None, measurement=None, tags=None, fields=None
-    ):
-        """"""
+    ) -> Callable:
+        """Generate a routine that updates a Point with new attributes.
+
+        Performs validation of attribute arguments.
+
+        The update function will also validate after update.  This makes this
+        routine quite slow.
+
+        Args:
+            query: A query to match items on.
+            time: The time update.
+            measurement: The measurement update.
+            tags: The tags update.
+            fields: The fields update.
+
+        Returns:
+            A function that updates a Point's attributes.
+        """
         if not isinstance(query, (SimpleQuery, CompoundQuery)):
             raise ValueError("Argument 'query' must be a TinyFlux Query.")
 
