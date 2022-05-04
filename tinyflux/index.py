@@ -11,20 +11,10 @@ handling, usually as an input to a storage retrieval.
 from datetime import datetime, timezone, timezone
 import operator
 from typing import List, Optional, Set, Union
-import zoneinfo
 
 from tinyflux.queries import SimpleQuery, CompoundQuery
 from .point import Point
-from .utils import (
-    find_eq,
-    find_lt,
-    find_le,
-    find_gt,
-    find_ge,
-    difference_generator_and_sorted_lists,
-    intersection_two_sorted_lists,
-    union_two_sorted_lists,
-)
+from .utils import find_eq, find_lt, find_le, find_gt, find_ge
 
 
 class IndexResult:
@@ -77,9 +67,7 @@ class IndexResult:
             >>> ~IndexResult()
         """
         return IndexResult(
-            difference_generator_and_sorted_lists(
-                range(self._index_count), self._items
-            ),
+            set(range(self._index_count)).difference(self._items),
             self._is_complete,
             self._index_count,
         )
@@ -97,7 +85,7 @@ class IndexResult:
             >>> IndexResult() & IndexResult()
         """
         return IndexResult(
-            intersection_two_sorted_lists(self._items, other._items),
+            self._items.intersection(other._items),
             self._is_complete and other._is_complete,
             self._index_count,
         )
@@ -115,7 +103,7 @@ class IndexResult:
             >>> IndexResult() | IndexResult()
         """
         return IndexResult(
-            union_two_sorted_lists(self._items, other._items),
+            self._items.union(other._items),
             self._is_complete and other._is_complete,
             self._index_count,
         )
@@ -385,7 +373,7 @@ class Index:
         Returns:
             A list of candidates by index value.
         """
-        rst_items: List[int] = []
+        rst_items: Set[int] = set([])
 
         for field_key, items in self._fields.items():
             # Transform the key.
@@ -394,9 +382,7 @@ class Index:
             except Exception:
                 continue
 
-            rst_items = union_two_sorted_lists(rst_items, items)
-
-            continue
+            rst_items = rst_items.union(set(items))
 
         return rst_items
 
@@ -433,7 +419,7 @@ class Index:
                     isinstance(query.query1, SimpleQuery)
                     and query.query1._point_attr == "_fields"
                 ):
-                    rst._items = list(range(self._num_items))
+                    rst._items = set(range(self._num_items))
                     return rst
                 else:
                     return ~rst
@@ -470,7 +456,7 @@ class Index:
         Returns:
             A list of matches by index value.
         """
-        rst_items: List[int] = []
+        rst_items: Set[int] = set([])
 
         for key, items in self._measurements.items():
             # Transform the key.
@@ -478,7 +464,7 @@ class Index:
 
             # If it matches, update the list.
             if query._test(test_value):
-                rst_items = union_two_sorted_lists(rst_items, items)
+                rst_items = rst_items.union(set(items))
 
         return rst_items
 
@@ -491,7 +477,7 @@ class Index:
         Returns:
             A list of matches as index values.
         """
-        rst_items: List[int] = []
+        rst_items: Set[int] = set([])
 
         for tag_key, tag_values in self._tags.items():
             for value, items in tag_values.items():
@@ -503,7 +489,7 @@ class Index:
 
                 # If it matches, update the list.
                 if query._test(test_value):
-                    rst_items = union_two_sorted_lists(rst_items, items)
+                    rst_items = rst_items.union(set(items))
 
         return rst_items
 
@@ -527,9 +513,9 @@ class Index:
 
             match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
-                return []
+                return set([])
 
-            results = [match]
+            results = set([match])
 
             match += 1
 
@@ -537,7 +523,7 @@ class Index:
                 if self._timestamps[match] != rhs.timestamp():
                     break
 
-                results.append(match)
+                results.add(match)
                 match += 1
 
             return results
@@ -547,9 +533,9 @@ class Index:
 
             match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
-                return list(range(len(self._timestamps)))
+                return set(range(len(self._timestamps)))
 
-            results = [match]
+            results = set([match])
 
             match += 1
 
@@ -557,12 +543,10 @@ class Index:
                 if self._timestamps[match] != rhs.timestamp():
                     break
 
-                results.append(match)
+                results.add(match)
                 match += 1
 
-            return difference_generator_and_sorted_lists(
-                range(len(self._timestamps)), results
-            )
+            return set(range(len(self._timestamps))).difference(results)
 
         # Everything less than rhs.
         elif op == operator.lt:
@@ -570,40 +554,40 @@ class Index:
             match = find_lt(self._timestamps, rhs.timestamp())
 
             if match is None:
-                return []
+                return set([])
 
-            return list(range(match + 1))
+            return set(range(match + 1))
 
         # Every less than or equal to rhs.
         elif op == operator.le:
             match = find_le(self._timestamps, rhs.timestamp())
 
             if match is None:
-                return []
+                return set([])
 
-            return list(range(match + 1))
+            return set(range(match + 1))
 
         # Everything greater than rhs.
         elif op == operator.gt:
             match = find_gt(self._timestamps, rhs.timestamp())
 
             if match is None:
-                return []
+                return set([])
 
-            return list(range(match, len(self._timestamps)))
+            return set(range(match, len(self._timestamps)))
 
         # Everything greater than or equal to rhs.
         elif op == operator.ge:
             match = find_ge(self._timestamps, rhs.timestamp())
 
             if match is None:
-                return []
+                return set([])
 
-            return list(range(match, len(self._timestamps)))
+            return set(range(match, len(self._timestamps)))
 
         # All other operators.
         else:
-            items = []
+            items = set([])
             for idx, timestamp in enumerate(self._timestamps):
                 if query._test(
                     query._path_resolver(
@@ -612,7 +596,7 @@ class Index:
                         )
                     )
                 ):
-                    items.append(idx)
+                    items.add(idx)
 
             return items
 

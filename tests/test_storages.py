@@ -118,7 +118,7 @@ def test_csv_kwargs(tmpdir):
     data = open(dbfile).read()
 
     assert re.fullmatch(
-        r"[0-9-]{5,}T[0-9.:]{7,}"
+        r"[0-9-]{10}T[0-9.:]{8,}[-+]{1}[0-9:]{5}"
         r"\|_default"
         r"\|_tag_city\|los angeles"
         r"\|_field_temp_f\|71.2",

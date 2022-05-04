@@ -217,7 +217,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # Not a candidate.
-                if i != index_rst._items[j]:
+                if i not in index_rst._items:
                     continue
 
                 # Candidate, evaluate.
@@ -296,7 +296,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # Not a candidate.
-                if i != index_rst._items[j]:
+                if i not in index_rst._items:
                     continue
 
                 # Candidate, evaluate.
@@ -403,7 +403,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # Not a candidate.
-                if i != index_rst._items[j]:
+                if i not in index_rst._items:
                     continue
 
                 # Candidate, no further evaluation necessary.
@@ -671,7 +671,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # No more candidates or item is not a candidate.
-                if j == len(index_rst._items) or i != index_rst._items[j]:
+                if j == len(index_rst._items) or i not in index_rst._items:
                     temp_memory.append(item)
 
                     # Add to updated_items if the item has a new position.
@@ -825,7 +825,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # Not a candidate, skip.
-                if i != index_rst._items[j]:
+                if i not in index_rst._items:
                     continue
 
                 _point = self._storage._deserialize_storage_item(item)
@@ -1116,7 +1116,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # Not a query match, pass item through.
-                if j == len(index_rst.items) or i != index_rst._items[j]:
+                if j == len(index_rst.items) or i not in index_rst._items:
                     temp_memory.append(item)
                     continue
 
