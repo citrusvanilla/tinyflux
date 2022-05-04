@@ -2,9 +2,7 @@
 
 Tests are generally organized by Measurement class method.
 """
-import csv
 from datetime import datetime, timedelta
-import os
 import re
 from typing import Generator
 
@@ -13,7 +11,7 @@ import pytest
 from tinyflux import Point
 from tinyflux.database import TinyFlux
 from tinyflux.queries import FieldQuery, MeasurementQuery, TagQuery, TimeQuery
-from tinyflux.storages import CSVStorage, MemoryStorage
+from tinyflux.storages import MemoryStorage
 
 
 def test_init():
@@ -26,7 +24,6 @@ def test_init():
     assert m2._name == "b"
     assert db.storage == m.storage == m2.storage
     assert db.index == m.index == m2.index
-    assert db._auto_index == m._auto_index == m2._auto_index
 
 
 def test_iter():
@@ -109,7 +106,7 @@ def test_storage():
     db = TinyFlux(storage=MemoryStorage)
     m1 = db.measurement("a")
     m2 = db.measurement("b")
-    assert m1.storage == m1._storage == m2.storage == m2._storage == db.storage
+    assert m1.storage == m2.storage == db.storage
 
 
 def test_all():
@@ -312,66 +309,6 @@ def test_insert_multiple():
     assert len(m2) == 4
 
 
-def test_build_index(capsys, tmpdir):
-    """Test storage initialization when auto_index is False."""
-    # Some mock points.
-    p1 = Point(measurement="m1", time=datetime.utcnow() - timedelta(days=10))
-    p2 = Point(measurement="m2", time=datetime.utcnow())
-    p3 = Point(measurement="m2", time=datetime.utcnow() + timedelta(days=10))
-
-    # Mock CSV store.  Insert points out of order.
-    path = os.path.join(tmpdir, "test.csv")
-    f = open(path, "w")
-    w = csv.writer(f)
-    w.writerow(p2._serialize())
-    w.writerow(p1._serialize())
-    f.close()
-
-    # Open up the DB with TinyFlux.
-    db = TinyFlux(path, auto_index=True, storage=CSVStorage)
-    m1 = db.measurement("m1")
-    m2 = db.measurement("m2")
-    assert not db.storage._index_intact
-    assert not db.index.valid
-    assert db.index.empty
-    assert len(m1) == 1
-    assert len(m2) == 1
-
-    # Append a point.
-    db.insert(p3)
-    assert not db.index.valid
-    assert db.index.empty
-    assert not db._storage._is_sorted()
-    assert not db._storage._index_intact
-    assert len(m2) == 2
-
-    # Reindex the storage layer.
-    db.storage.reindex()
-
-    # Check storage layer is sorted.
-    f = open(path, "r+")
-    r = csv.reader(f)
-    for row, point in zip(r, [p1, p2, p3]):
-        assert tuple(row) == point._serialize()
-        assert Point()._deserialize(row) == point
-    f.close()
-
-    assert db._storage._is_sorted()
-    assert db._storage._index_intact
-
-    # Reindex.
-    m1._build_index()
-
-    # Check new index.
-    assert db.index.valid
-    assert not db.index.empty
-    assert len(db.index) == 3
-    assert db.index._timestamps == [p1.time, p2.time, p3.time]
-    assert db.index._measurements == {"m1": {0}, "m2": {1, 2}}
-    assert not db.index._tags
-    assert not db.index._fields
-
-
 def test_remove():
     """Test the remove method of the Measurement class."""
     db = TinyFlux(storage=MemoryStorage)
@@ -552,7 +489,6 @@ def test_search():
 
 def test_update():
     """Test the update method of the Measurement class."""
-
     # Open up the DB with TinyFlux.
     db = TinyFlux(auto_index=True, storage=MemoryStorage)
 
@@ -586,19 +522,19 @@ def test_update():
 
     with pytest.raises(
         ValueError,
-        match="Selector must be a query or None.",
+        match="Argument 'query' must be a TinyFlux Query.",
     ):
         m1.update(3, tags={"a": "b"})
 
     with pytest.raises(
         ValueError, match="Tag set must contain only string values."
     ):
-        m1.update(tags={"a": 1})
+        m1.update(TagQuery().noop(), tags={"a": 1})
 
     with pytest.raises(
         ValueError, match="Field set must contain only numeric values."
     ):
-        m1.update(fields={"a": "a"})
+        m1.update(TagQuery().noop(), fields={"a": "a"})
 
     # Valid index, no index results.
     assert not m3.update(TagQuery().tk1 == "tv1", tags={"tk1": "tv1"})
@@ -644,6 +580,7 @@ def test_update():
         fields=lambda x: {"fk2": x["fk1"] * 2} if "fk1" in x else {},
     )
     assert rst == 1
+
     m0 = db.measurement("m0")
     assert m0.count(TimeQuery() == t1 - timedelta(days=730)) == 1
     assert m0.count(MeasurementQuery() == "m0") == 1
@@ -651,11 +588,12 @@ def test_update():
     assert m0.count(FieldQuery().fk2 == 2) == 1
 
     # Update with time.
-    m0.update(time=t1)
+    assert m0.update_all(time=t1) == 1
+
     assert m0.count(TimeQuery() == t1) == 1
 
     # Update with measurement.
-    m0.update(measurement="m1")
+    m0.update_all(measurement="m1")
     assert m0.count(TimeQuery() == t1) == 0
 
 
@@ -669,7 +607,7 @@ def test_auto_index_off(mem_storage_with_counters):
 
     m.insert(p)
     assert m.all() == [p]
-    assert m.update(fields={"fk": 2}) == 1
+    assert m.update_all(fields={"fk": 2}) == 1
     assert m.get(q2) is None
     assert m.get(~q2) == p
     assert m.get(q1) == p

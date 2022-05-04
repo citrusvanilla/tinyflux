@@ -14,6 +14,7 @@ Each SimpleQuery instance contains attributes that constitute the
 right-hand side) so that the other consumers of queries, includng an Index, may
 use them for their own purposes.
 """
+from datetime import datetime
 import operator
 import re
 from typing import (
@@ -271,7 +272,7 @@ class SimpleQuery:
 
         try:
             value = self._path_resolver(obj_attr)
-        except:
+        except Exception:
             return False
 
         return self._test(value)
@@ -483,20 +484,49 @@ class BaseQuery:
                 "You may be attempting to initialize a BaseQuery."
             )
 
+        # Validation for time.
+        if (
+            self._point_attr == "_time"
+            and rhs
+            and not isinstance(rhs, datetime)
+        ):
+            raise TypeError(
+                "TimeQuery comparison value must be datetime object."
+            )
+
+        # Validation for measurement.
+        if (
+            self._point_attr == "_measurement"
+            and rhs
+            and not isinstance(rhs, str)
+        ):
+            raise TypeError(
+                "MeasurementQuery comparison value must be string."
+            )
+
+        # Validation for tags.
+        if self._point_attr == "_tags" and rhs and not isinstance(rhs, str):
+            raise TypeError("TagQuery comparison value must be string.")
+
+        # Validation for fields.
+        if (
+            self._point_attr == "_fields"
+            and rhs
+            and not isinstance(rhs, (int, float))
+        ):
+            raise TypeError("FieldQuery comparison value must be numeric.")
+
         def test(x):
             """The test function from an operator and righthand side."""
             if not test_against_rhs:
-                return operator(x)
-
-            if args:
-                return operator(x, *args)
+                return operator(x, *args) if args else operator(x)
 
             # Wrap this in a try/except block.
             # Some operators do not work against None types.
             # They should evaluate to False.
             try:
                 return operator(x, rhs)
-            except:
+            except Exception:
                 return False
 
         def path_resolver(value):

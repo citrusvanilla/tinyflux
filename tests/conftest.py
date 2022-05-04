@@ -10,7 +10,7 @@ class CSVStorageWithCounters(CSVStorage):
     def __init__(self, *args, **kwargs):
         """Init this class."""
         super().__init__(*args, **kwargs)
-        self.read_count = 0
+        self.reindex_count = 0
         self.write_count = 0
         self.append_count = 0
 
@@ -19,15 +19,15 @@ class CSVStorageWithCounters(CSVStorage):
         self.append_count += 1
         return super().append(points)
 
-    def read(self, reindex_on_read):
-        """Read with counter."""
-        self.read_count += 1
-        return super().read(reindex_on_read)
+    def sort_by_time(self):
+        """Reindex with counter."""
+        self.reindex_count += 1
+        return super().sort_by_time()
 
-    def write(self, points):
+    def _write(self, points, is_sorted=False):
         """Write with counter."""
         self.write_count += 1
-        return super().write(points)
+        return super()._write(points, is_sorted)
 
 
 class MemoryStorageWithCounters(MemoryStorage):
@@ -37,7 +37,7 @@ class MemoryStorageWithCounters(MemoryStorage):
         """Init a MemoryStorage instance."""
         super().__init__()
         self.append_count = 0
-        self.read_count = 0
+        self.reindex_count = 0
         self.write_count = 0
 
     def append(self, points):
@@ -45,15 +45,15 @@ class MemoryStorageWithCounters(MemoryStorage):
         self.append_count += 1
         return super().append(points)
 
-    def read(self, reindex_on_read):
-        """Read with counter."""
-        self.read_count += 1
-        return super().read(reindex_on_read)
+    def sort_by_time(self):
+        """Reindex with counter."""
+        self.reindex_count += 1
+        return super().sort_by_time()
 
-    def write(self, points):
+    def _write(self, points, is_sorted=False):
         """Write with counter."""
         self.write_count += 1
-        return super().write(points)
+        return super()._write(points, is_sorted)
 
 
 @pytest.fixture

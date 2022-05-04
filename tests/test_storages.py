@@ -16,6 +16,66 @@ from tinyflux.storages import CSVStorage, MemoryStorage, Storage
 random.seed()
 
 
+def test_csv_modes(tmpdir):
+    """Test exceptions for read/write/append ops for CSV modes."""
+    # Dummy db.
+    path = os.path.join(tmpdir, "test.csv")
+    db = TinyFlux(path)
+    db.insert(Point())
+    db.close()
+
+    q = TagQuery().noop()
+    p = Point()
+
+    read_ops = [
+        ("all", ()),
+        ("contains", (q,)),
+        ("count", (q,)),
+        ("get", (q,)),
+        ("search", (q,)),
+    ]
+
+    write_ops = [
+        ("drop_measurement", ("_default",)),
+        ("drop_measurements", ()),
+        ("reindex", ()),
+        ("remove", (q,)),
+        ("remove_all", ()),
+        ("update", (q, None, "a")),
+        ("update", (None, "a")),
+    ]
+
+    append_ops = [("insert", (p,)), ("insert_multiple", ([p],))]
+
+    # Test read only.
+    read_only_db = TinyFlux(path, access_mode="r")
+
+    for i, args in read_ops:
+        read_only_db.__getattribute__(i)(*args)
+
+    for i, args in write_ops:
+        with pytest.raises(IOError):
+            read_only_db.__getattribute__(i)(*args)
+
+    for i, args in append_ops:
+        with pytest.raises(IOError):
+            read_only_db.__getattribute__(i)(*args)
+
+    # Test append only.
+    read_only_db = TinyFlux(path, access_mode="a")
+
+    for i, args in read_ops:
+        with pytest.raises(IOError):
+            read_only_db.__getattribute__(i)(*args)
+
+    for i, args in write_ops:
+        with pytest.raises(IOError):
+            read_only_db.__getattribute__(i)(*args)
+
+    for i, args in append_ops:
+        read_only_db.__getattribute__(i)(*args)
+
+
 def test_csv_write_read(tmpdir):
     """Test basic read/write to CSV."""
     # Write contents
@@ -32,10 +92,10 @@ def test_csv_write_read(tmpdir):
             fields={"temp_f": 71.2},
         )
     ]
-    storage.write(data)
+    storage.append(data)
 
     # Verify contents
-    assert data == storage.read(reindex_on_read=False)
+    assert data == storage.read()
     storage.close()
 
 
@@ -89,10 +149,19 @@ def test_writes_on_read_only_csv(tmpdir):
         db.insert(Point())
 
     with pytest.raises(IOError):
-        db.update(measurement="test")
+        db.update(TagQuery().noop(), measurement="test")
+
+    with pytest.raises(IOError):
+        db.remove(TagQuery().city == "los angeles")
 
     with pytest.raises(IOError):
         db.remove_all()
+
+    with pytest.raises(IOError):
+        db.drop_measurement("_default")
+
+    with pytest.raises(IOError):
+        db.drop_measurements()
 
 
 def test_create_dirs():
@@ -139,16 +208,14 @@ def test_in_memory_writes():
         fields={"temp_f": 71.2},
     )
 
-    storage.write([p1])
+    storage._write([p1])
 
     # Verify contents
-    assert storage.read(reindex_on_read=False) == [p1]
+    assert storage.read() == [p1]
 
     other = MemoryStorage()
-    other.write([])
-    assert other.read(reindex_on_read=False) != storage.read(
-        reindex_on_read=False
-    )
+    other._write([])
+    assert other.read() != storage.read()
 
 
 def test_in_memory_close():
@@ -175,39 +242,68 @@ def test_subclassing_storage():
     class MyStorage(Storage):
         pass
 
-    with pytest.raises(
-        TypeError,
-        match=(
-            "Can't instantiate abstract class MyStorage with abstract "
-            "methods append, read, write"
-        ),
-    ):
+    with pytest.raises(TypeError):
         MyStorage()
 
-    class MyStorage2(Storage):
+    class MyStorage2(Storage):  # pragma: no cover
         """Dummy storage subclass."""
+
+        def __iter__(self):
+            """Iterate."""
 
         def append(self, _):
             """Append method."""
 
+        def filter(self, _):
+            """Filter method."""
+
         def read(self, _):
             """Read method."""
 
-        def write(self, _):
+        def search(self):
+            """Seach method."""
+
+        def sort_by_time(self):
+            """Reindex method."""
+
+        def update(self, func, reindex):
+            """Update method."""
+
+        def _deserialize_measurement(self, item):
+            """Deserialize measurement."""
+            ...
+
+        def _deserialize_timestamp(self, item):
+            """Deserialize timestamp."""
+            ...
+
+        def _deserialize_storage_item(self, item):
+            """Deserialize storage."""
+            ...
+
+        def _is_sorted(self) -> bool:
+            """Check if the storage layer is sorted."""
+            ...
+
+        def _serialize_point(self, Point) -> None:
+            """Serialize Point."""
+            ...
+
+        def _write(self, _):
             """Write method."""
 
     s = MyStorage2()
 
     # Class properties that are not overridden.
     assert not s.index_intact
-    assert isinstance(s.index_sorter, Callable)
+    assert isinstance(s._index_sorter, Callable)
 
 
 def test_read_and_insert_count(mem_storage_with_counters):
     """Test read/write counts after a sequence of read/write ops."""
     with TinyFlux(auto_index=True, storage=mem_storage_with_counters) as db:
         assert (
-            db.storage.read_count == 0
+            db.storage.reindex_count == 0
             and db.storage.append_count == 0
             and db.storage.write_count == 0
         )
@@ -215,7 +311,7 @@ def test_read_and_insert_count(mem_storage_with_counters):
         # Reference to individual measurement.  No reads should be performed.
         _ = db.measurement(db.default_measurement_name)
         assert (
-            db.storage.read_count
+            db.storage.reindex_count
             == db.storage.append_count
             == db.storage.write_count
             == 0
@@ -224,7 +320,7 @@ def test_read_and_insert_count(mem_storage_with_counters):
         # Get all points.
         db.all()
         assert (
-            db.storage.read_count == 0
+            db.storage.reindex_count == 0
             and db.storage.append_count == 0
             and db.storage.write_count == 0
         )
@@ -232,7 +328,7 @@ def test_read_and_insert_count(mem_storage_with_counters):
         # Insert a point in-order
         db.insert(Point())
         assert (
-            db.storage.read_count == 0
+            db.storage.reindex_count == 0
             and db.storage.append_count == 1
             and db.storage.write_count == 0
         )
@@ -240,7 +336,7 @@ def test_read_and_insert_count(mem_storage_with_counters):
         # Get all points.
         db.all()
         assert (
-            db.storage.read_count == 0
+            db.storage.reindex_count == 0
             and db.storage.append_count == 1
             and db.storage.write_count == 0
         )
@@ -248,7 +344,7 @@ def test_read_and_insert_count(mem_storage_with_counters):
         # Insert a point in-order
         db.insert(Point())
         assert (
-            db.storage.read_count == 0
+            db.storage.reindex_count == 0
             and db.storage.append_count == 2
             and db.storage.write_count == 0
         )
@@ -256,7 +352,7 @@ def test_read_and_insert_count(mem_storage_with_counters):
         # Get all points.
         db.all()
         assert (
-            db.storage.read_count == 0
+            db.storage.reindex_count == 0
             and db.storage.append_count == 2
             and db.storage.write_count == 0
         )
@@ -283,9 +379,9 @@ def test_insert_out_of_time_order(tmpdir):
         r = csv.reader(f)
         csv_data = [i for i in r]
 
-    assert Point()._deserialize(csv_data[-1]).time == t_past
-    assert Point()._deserialize(csv_data[-2]).time == t_present
-    assert Point()._deserialize(csv_data[-3]).time == t_future
+    assert Point()._deserialize_from_list(csv_data[-1]).time == t_past
+    assert Point()._deserialize_from_list(csv_data[-2]).time == t_present
+    assert Point()._deserialize_from_list(csv_data[-3]).time == t_future
 
 
 def test_index_intact_csv(tmpdir):
@@ -318,17 +414,14 @@ def test_index_intact_csv(tmpdir):
     assert not storage._index_intact
 
     # Verify contents.
-    assert (
-        sorted(storage.read(reindex_on_read=True), key=lambda x: x.time)
-        == points_in_order
-    )
+    assert sorted(storage.read(), key=lambda x: x.time) == points_in_order
 
     # Delete contents.
-    storage.write([])
+    storage.reset()
     assert storage._index_intact
-    storage.write(points_in_order)
+    storage.append(points_in_order)
     assert storage._index_intact
-    storage.write(points_in_order[::-1])
+    storage.append(points_in_order[::-1])
     assert not storage._index_intact
 
 
@@ -362,17 +455,14 @@ def test_index_intact_memory():
     assert not storage._index_intact
 
     # Verify contents.
-    assert (
-        sorted(storage.read(reindex_on_read=False), key=lambda x: x.time)
-        == points_in_order
-    )
+    assert sorted(storage.read(), key=lambda x: x.time) == points_in_order
 
     # Delete contents.
-    storage.write([])
+    storage.reset()
     assert storage._index_intact
-    storage.write(points_in_order)
+    storage.append(points_in_order)
     assert storage._index_intact
-    storage.write(points_in_order[::-1])
+    storage.append(points_in_order[::-1])
     assert not storage._index_intact
 
 
@@ -387,30 +477,30 @@ def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     path = os.path.join(tmpdir, "test.csv")
     with open(path, "w") as f:
         w = csv.writer(f)
-        w.writerow(p2._serialize())
-        w.writerow(p1._serialize())
+        w.writerow(p2._serialize_to_list())
+        w.writerow(p1._serialize_to_list())
 
     # Init storage object.  No reads should be performed.
     storage = csv_storage_with_counters(path)
     assert not storage.index_intact
-    assert storage.read_count == 0
+    assert storage.reindex_count == 0
 
     # Append a point.  No reads should be performed.
     storage.append([p3])
     assert not storage.index_intact
-    assert storage.read_count == 0
+    assert storage.reindex_count == 0
 
     # Read without reindexing.
-    assert storage.read(False) == [p2, p1, p3]
-    assert storage.read_count == 1
+    assert storage.read() == [p2, p1, p3]
+    assert storage.reindex_count == 0
     assert storage.write_count == 0
     assert not storage.index_intact
 
     # Read with reindexing.
     pts = [p1, p2, p3]
-    storage.index_sorter(pts)
-    assert storage.read(True) == pts
-    assert storage.read_count == 2
+    storage.sort_by_time()
+    assert storage.read() == pts
+    assert storage.reindex_count == 1
     assert storage.write_count == 1
     assert storage.index_intact
 
@@ -420,7 +510,7 @@ def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     path = os.path.join(tmpdir, "empty_test.csv")
     empty_storage = csv_storage_with_counters(path)
     assert empty_storage.index_intact
-    assert empty_storage.read_count == 0
+    assert empty_storage.reindex_count == 0
 
 
 def test_reindex_on_read_csv(tmpdir, csv_storage_with_counters):
@@ -440,35 +530,35 @@ def test_reindex_on_read_csv(tmpdir, csv_storage_with_counters):
     storage.append([p2])
     assert storage.index_intact
     assert storage.append_count == 1
-    assert storage.read_count == 0
+    assert storage.reindex_count == 0
     assert storage.write_count == 0
 
     # Insert a point from a previous time.
     storage.append([p1])
     assert not storage.index_intact
     assert storage.append_count == 2
-    assert storage.read_count == 0
+    assert storage.reindex_count == 0
     assert storage.write_count == 0
 
     # Insert a point from a previous time.
     storage.append([p3])
     assert not storage.index_intact
     assert storage.append_count == 3
-    assert storage.read_count == 0
+    assert storage.reindex_count == 0
     assert storage.write_count == 0
 
     # Read contents with reindexing.
-    storage.read(True)
+    storage.sort_by_time()
     assert storage.index_intact
     assert storage.append_count == 3
-    assert storage.read_count == 1
+    assert storage.reindex_count == 1
     assert storage.write_count == 1
 
     # Read contents again.  Nothing should be written.
-    storage.read(True)
+    storage.read()
     assert storage.index_intact
     assert storage.append_count == 3
-    assert storage.read_count == 2
+    assert storage.reindex_count == 1
     assert storage.write_count == 1
 
 
@@ -488,35 +578,35 @@ def test_reindex_on_read_memory(mem_storage_with_counters):
     storage.append([p2])
     assert storage.index_intact
     assert storage.append_count == 1
-    assert storage.read_count == 0
+    assert storage.reindex_count == 0
     assert storage.write_count == 0
 
     # Insert a point from a previous time.
     storage.append([p1])
     assert not storage.index_intact
     assert storage.append_count == 2
-    assert storage.read_count == 0
+    assert storage.reindex_count == 0
     assert storage.write_count == 0
 
     # Insert a point from a previous time.
     storage.append([p3])
     assert not storage.index_intact
     assert storage.append_count == 3
-    assert storage.read_count == 0
+    assert storage.reindex_count == 0
     assert storage.write_count == 0
 
     # Read contents with reindexing.
-    storage.read(True)
-    assert storage.index_intact
+    storage.read()
+    assert not storage.index_intact
     assert storage.append_count == 3
-    assert storage.read_count == 1
+    assert storage.reindex_count == 0
     assert storage.write_count == 0
 
-    # Read contents again.  Nothing should be written.
-    storage.read(True)
+    # Reindex. One write should be performed.
+    storage.sort_by_time()
     assert storage.index_intact
     assert storage.append_count == 3
-    assert storage.read_count == 2
+    assert storage.reindex_count == 1
     assert storage.write_count == 0
 
 
@@ -530,7 +620,7 @@ def test_multiple_appends(
     # Init storage object.  No reads should be performed.
     storage = csv_storage_with_counters(path)
     assert storage.index_intact
-    assert storage.read_count == 0
+    assert storage.reindex_count == 0
 
     # Append a bunch of points in-order. No reads should be performed.
     t = datetime.utcnow()
@@ -538,7 +628,7 @@ def test_multiple_appends(
     for i in range(10):
         storage.append([Point(time=t)])
         assert storage.append_count == i + 1
-        assert storage.read_count == 0
+        assert storage.reindex_count == 0
         assert storage.write_count == 0
         assert storage.index_intact
 
@@ -552,8 +642,8 @@ def test_multiple_appends(
     path = os.path.join(tmpdir, "test.csv")
     with open(path, "w") as f:
         w = csv.writer(f)
-        w.writerow(p2._serialize())
-        w.writerow(p1._serialize())
+        w.writerow(p2._serialize_to_list())
+        w.writerow(p1._serialize_to_list())
 
     # Init storage object.  No reads should be performed.
     storage = csv_storage_with_counters(path)
@@ -562,7 +652,7 @@ def test_multiple_appends(
     for i in range(10):
         storage.append([Point(time=t)])
         assert storage.append_count == i + 1
-        assert storage.read_count == 0
+        assert storage.reindex_count == 0
         assert storage.write_count == 0
         assert not storage.index_intact
 
@@ -575,7 +665,7 @@ def test_multiple_appends(
     for i in range(10):
         storage.append([Point(time=t)])
         assert storage.append_count == i + 1
-        assert storage.read_count == 0
+        assert storage.reindex_count == 0
         assert storage.write_count == 0
         assert storage.index_intact
 
@@ -591,7 +681,7 @@ def test_multiple_reads(
     with open(path, "w") as f:
         w = csv.writer(f)
         for _ in range(10):
-            w.writerow(Point(time=t)._serialize())
+            w.writerow(Point(time=t)._serialize_to_list())
 
     # Init storage object.  No reads should be performed.
     storage = csv_storage_with_counters(path)
@@ -599,11 +689,11 @@ def test_multiple_reads(
 
     # Append a bunch of points in-order. No reads should be performed.
     for i in range(5):
-        storage.read(True)
-        assert storage.read_count == i + 1
+        storage.read()
+        assert storage.reindex_count == 0
         assert storage.append_count == 0
         assert storage.write_count == 0
-        assert storage.index_intact
+        assert not storage.index_intact
 
     storage.close()
 
@@ -612,9 +702,11 @@ def test_multiple_reads(
     with open(path, "w") as f:
         w = csv.writer(f)
         for _ in range(10):
-            w.writerow(Point(time=t)._serialize())
+            w.writerow(Point(time=t)._serialize_to_list())
         w.writerow(
-            Point(time=datetime.utcnow() - timedelta(days=365))._serialize()
+            Point(
+                time=datetime.utcnow() - timedelta(days=365)
+            )._serialize_to_list()
         )
 
     # Init storage object.  No reads should be performed.
@@ -623,11 +715,11 @@ def test_multiple_reads(
 
     # Append a bunch of points in-order. No reads should be performed.
     for i in range(5):
-        storage.read(True)
-        assert storage.read_count == i + 1
+        storage.read()
+        assert storage.reindex_count == 0
         assert storage.append_count == 0
-        assert storage.write_count == 1
-        assert storage.index_intact
+        assert storage.write_count == 0
+        assert not storage.index_intact
 
     storage.close()
 
@@ -639,9 +731,9 @@ def test_multiple_reads(
         storage.append([Point(time=t)])
 
     for i in range(5):
-        storage.read(True)
+        storage.read()
         assert storage.append_count == 10
-        assert storage.read_count == i + 1
+        assert storage.reindex_count == 0
         assert storage.write_count == 0
         assert storage.index_intact
 
@@ -654,5 +746,5 @@ def test_read_on_empty_file(tmpdir, csv_storage_with_counters):
     storage = csv_storage_with_counters(path)
 
     # Read and assert empty list.
-    assert storage.read(reindex_on_read=False) == []
-    assert storage.read(reindex_on_read=True) == []
+    assert storage.read() == []
+    assert storage.read() == []

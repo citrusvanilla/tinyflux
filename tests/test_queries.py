@@ -157,7 +157,7 @@ def test_callable_in_path_with_chain():
 
 def test_eq():
     """Test simple equality."""
-    taq_q = TagQuery().city == ["a", "b"]
+    taq_q = TagQuery().city == "a"
     assert not taq_q(Point(tags={"city": "los angeles"}))
 
     # Test for tag key "city".
@@ -529,7 +529,7 @@ def test_regex():
 
 def test_custom_function():
     """Test custom function in the test method."""
-
+    # Test an arbitrary function with no additional args.
     def is_los_angeles(value):
         """Return value is los angeles."""
         return value == "los angeles"
@@ -540,6 +540,18 @@ def test_custom_function():
     assert not q(Point(tags={"state": "alaska"}))
     assert hash(q)
 
+    # Test an arbitrary function thats takes additional args.
+    def is_city(city, matching_city):
+        """Return value is some arbitrary city."""
+        return city == matching_city
+
+    q = TagQuery().city.test(is_city, "los angeles")
+    assert q(Point(tags={"city": "los angeles"}))
+    assert not q(Point(tags={"city": "san francisco"}))
+    assert not q(Point(tags={"state": "alaska"}))
+    assert hash(q)
+
+    # Test an arbitrary function on field.
     def is_freezing(value):
         """Return value is less than or equal to value."""
         return value <= 32.0
@@ -654,8 +666,8 @@ def test_path_not_required():
 
 def test_getitem():
     """Test __getattr__ against __getitem__."""
-    assert TagQuery().a == TagQuery()["a"]
-    assert FieldQuery().a == FieldQuery()["a"]
+    assert (TagQuery().a == "a") == (TagQuery()["a"] == "a")
+    assert (FieldQuery().a == 1) == (FieldQuery()["a"] == 1)
 
 
 def test_none():
@@ -845,3 +857,22 @@ def test_basequery():
         RuntimeError, match="Cannot logical-NOT an empty query."
     ):
         ~q
+
+
+def test_bad_queries():
+    """Test that only valid RHS types can form a valid query."""
+    # Test a non-datetime right hand side.
+    with pytest.raises(TypeError):
+        TimeQuery() == 3
+
+    # Test a non-string right hand side.
+    with pytest.raises(TypeError):
+        MeasurementQuery() == 3
+
+    # Test a non-string right hand side.
+    with pytest.raises(TypeError):
+        TagQuery().city == ["a", "b"]
+
+    # Test a non-numeric right hand side.
+    with pytest.raises(TypeError):
+        FieldQuery().a == "a"

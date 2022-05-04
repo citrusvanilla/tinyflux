@@ -117,7 +117,16 @@ def test_iter():
     """Test __iter__ method."""
     db = TinyFlux(storage=MemoryStorage)
 
-    assert [i for i in db] == db.all()
+    assert [i for i in db] == db.all() == []
+
+    p = Point()
+    db.insert(p)
+
+    assert [i for i in db] == db.all() == [p]
+
+    db.remove_all()
+
+    assert [i for i in db] == db.all() == []
 
 
 def test_repr(tmpdir: Path):
@@ -308,6 +317,16 @@ def test_drop_measurements():
     assert db.index.valid
     assert db.index.empty
 
+    # No auto-indexing. Populate and drop measurements.
+    db = TinyFlux(auto_index=False, storage=MemoryStorage)
+    db.insert(Point())
+    db.insert(Point(measurement="m"))
+    assert not db.index.valid
+    assert len(db.measurements()) == 2
+    assert db.drop_measurement("m") == 1
+    assert db.drop_measurement("_default") == 1
+    assert not len(db)
+
 
 def test_get():
     """Test get method."""
@@ -496,8 +515,8 @@ def test_reindex(tmpdir, capsys):
     path = os.path.join(tmpdir, "test.csv")
     f = open(path, "w")
     w = csv.writer(f)
-    w.writerow(p2._serialize())
-    w.writerow(p1._serialize())
+    w.writerow(p2._serialize_to_list())
+    w.writerow(p1._serialize_to_list())
     f.close()
 
     # Open up the DB with TinyFlux.
@@ -520,8 +539,8 @@ def test_reindex(tmpdir, capsys):
     f = open(path, "r+")
     r = csv.reader(f)
     for row, point in zip(r, [p1, p2, p3]):
-        assert tuple(row) == point._serialize()
-        assert Point()._deserialize(row) == point
+        assert tuple(row) == point._serialize_to_list()
+        assert Point()._deserialize_from_list(row) == point
     f.close()
 
     assert db._storage._is_sorted()
@@ -531,8 +550,8 @@ def test_reindex(tmpdir, capsys):
     assert db.index.valid
     assert not db.index.empty
     assert len(db.index) == 3
-    assert db.index._timestamps == [p1.time, p2.time, p3.time]
-    assert db.index._measurements == {"_default": {0, 1, 2}}
+    assert db.index._timestamps == [i.time.timestamp() for i in [p1, p2, p3]]
+    assert db.index._measurements == {"_default": [0, 1, 2]}
     assert not db.index._tags
     assert not db.index._fields
 
@@ -687,19 +706,19 @@ def test_update():
 
     with pytest.raises(
         ValueError,
-        match="Selector must be a query or None.",
+        match="Argument 'query' must be a TinyFlux Query.",
     ):
         db.update(3, tags={"a": "b"})
 
     with pytest.raises(
         ValueError, match="Tag set must contain only string values."
     ):
-        db.update(tags={"a": 1})
+        db.update(TagQuery().noop(), tags={"a": 1})
 
     with pytest.raises(
         ValueError, match="Field set must contain only numeric values."
     ):
-        db.update(fields={"a": "a"})
+        db.update(TagQuery().noop(), fields={"a": "a"})
 
     # Missing updates.
     with pytest.raises(
@@ -709,14 +728,20 @@ def test_update():
         db.update(TagQuery().city == "la")
 
     # Bad selector.
-    with pytest.raises(ValueError, match="Selector must be a query or None."):
-        db.update(selector="some invalid type", tags={"k": "v"})
+    with pytest.raises(
+        ValueError, match="Argument 'query' must be a TinyFlux Query."
+    ):
+        db.update(query="some invalid type", tags={"k": "v"})
 
-    with pytest.raises(ValueError, match="Selector must be a query or None."):
-        db.update(selector=lambda x: x, tags={"k": "v"})
+    with pytest.raises(
+        ValueError, match="Argument 'query' must be a TinyFlux Query."
+    ):
+        db.update(query=lambda x: x, tags={"k": "v"})
 
-    with pytest.raises(ValueError, match="Selector must be a query or None."):
-        db.update(selector=True, tags={"k": "v"})
+    with pytest.raises(
+        ValueError, match="Argument 'query' must be a TinyFlux Query."
+    ):
+        db.update(query=True, tags={"k": "v"})
 
     # Valid index, no index results.
     assert not db.update(MeasurementQuery() == "m3", measurement="m4")
@@ -765,7 +790,7 @@ def test_update():
 
 
 def test_update_all():
-    """Test updating all using update method."""
+    """Test updating all using update_all method."""
     db = TinyFlux(storage=MemoryStorage)
     t = datetime.utcnow()
 
@@ -780,19 +805,19 @@ def test_update_all():
         )
 
     # Update tags.
-    assert db.update(tags={"country": "USA"}) == 3
+    assert db.update_all(tags={"country": "USA"}) == 3
     assert db.count(TagQuery().country == "USA") == 3
 
     # Update fields.
-    assert db.update(fields={"temp_f": 60.0}) == 3
+    assert db.update_all(fields={"temp_f": 60.0}) == 3
     assert db.count(FieldQuery().temp_f == 60.0) == 3
 
     # Update measurement.
-    assert db.update(measurement="neighborhood temps") == 3
+    assert db.update_all(measurement="neighborhood temps") == 3
     assert db.count(MeasurementQuery() == "neighborhood temps") == 3
 
     # Update time.
-    assert db.update(time=t - timedelta(days=1)) == 3
+    assert db.update_all(time=t - timedelta(days=1)) == 3
     assert db.count(TimeQuery() == t - timedelta(days=1)) == 3
 
 
@@ -837,8 +862,8 @@ def test_storage_index_initialization_with_autoindex_ON(tmpdir):
     path = os.path.join(tmpdir, "test.csv")
     with open(path, "w") as f:
         w = csv.writer(f)
-        w.writerow(p2._serialize())
-        w.writerow(p1._serialize())
+        w.writerow(p2._serialize_to_list())
+        w.writerow(p1._serialize_to_list())
 
     # Open up the DB with TinyFlux.
     db = TinyFlux(path, auto_index=True, storage=CSVStorage)
@@ -877,8 +902,8 @@ def test_open_unindexed_storage_with_autoindex_OFF(tmpdir):
     path = os.path.join(tmpdir, "test.csv")
     with open(path, "w") as f:
         w = csv.writer(f)
-        w.writerow(p2._serialize())
-        w.writerow(p1._serialize())
+        w.writerow(p2._serialize_to_list())
+        w.writerow(p1._serialize_to_list())
 
     # Open up the DB with TinyFlux.
     db = TinyFlux(path, auto_index=False, storage=CSVStorage)

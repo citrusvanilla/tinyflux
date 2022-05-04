@@ -22,11 +22,22 @@ Usage:
 """
 
 from datetime import datetime
-from typing import Mapping, List, Tuple
+from typing import Dict, Mapping, Optional, Sequence, Union
+from typing_extensions import TypeAlias
+
+TagSet: TypeAlias = Dict[str, Optional[str]]
+FieldSet: TypeAlias = Dict[str, Optional[Union[int, float]]]
 
 
-def validate_tags(tags):
-    """"""
+def validate_tags(tags: TagSet) -> None:
+    """Validate tags.
+
+    Args:
+        tags: The object to validate.
+
+    Raises:
+        ValueError: Exception if tags cannot be validated.
+    """
     if not isinstance(tags, Mapping):
         raise ValueError("Tag set must be a mapping.")
 
@@ -41,8 +52,15 @@ def validate_tags(tags):
     return
 
 
-def validate_fields(fields):
-    """"""
+def validate_fields(fields: FieldSet) -> None:
+    """Validate fields.
+
+    Args:
+        fields: The object to validate.
+
+    Raises:
+        ValueError: Exception if fields cannot be validated.
+    """
     if not isinstance(fields, Mapping):
         raise ValueError("Field set must be a mapping.")
 
@@ -74,16 +92,17 @@ class Point:
                 fields={"my field": 123.45},
                 tags={"my tag key": "my tag value"}
             )
-
-    Todo:
-        profile and refactor this.
-        >>> cProfile.run('Point()')
     """
 
     _none_str = "_none"
     default_measurement_name = "_default"
     _valid_kwargs = set(["time", "measurement", "tags", "fields"])
     __slots__ = ("_time", "_measurement", "_tags", "_fields")
+
+    _time: Optional[datetime]
+    _measurement: Optional[str]
+    _tags: TagSet
+    _fields: FieldSet
 
     def __init__(
         self,
@@ -108,12 +127,12 @@ class Point:
         if kwargs:
             self._validate_kwargs(kwargs)
 
-            self._time: datetime = kwargs.get("time", datetime.utcnow())
-            self._measurement: str = kwargs.get(
+            self._time = kwargs.get("time", datetime.utcnow())
+            self._measurement = kwargs.get(
                 "measurement", self.default_measurement_name
             )
-            self._tags: Mapping = kwargs.get("tags", {})
-            self._fields: Mapping = kwargs.get("fields", {})
+            self._tags = kwargs.get("tags", {})
+            self._fields = kwargs.get("fields", {})
         else:
             self._time = None
             self._measurement = self.default_measurement_name
@@ -186,7 +205,9 @@ class Point:
         repr_str = "Point("
 
         # Add time.
-        repr_str += f"time={self._time.isoformat()}, "
+        repr_str += (
+            f"time={self._time.isoformat() if self._time else 'None'}, "
+        )
 
         # Add measurement.
         repr_str += f"measurement={self._measurement}"
@@ -210,7 +231,7 @@ class Point:
 
         return repr_str
 
-    def _deserialize(self, row: List[str]) -> "Point":
+    def _deserialize_from_list(self, row: Sequence[str]) -> "Point":
         """Deserialize a python list of utf-8 strings to a Point.
 
         Args:
@@ -223,11 +244,12 @@ class Point:
             ValueError: Deserializing encounters a bad type.
             RuntimeError: Deserializing encounters an unexpected column.
         """
-
         p_time = datetime.fromisoformat(row[0])
         p_measurement = None if row[1] == self._none_str else row[1]
 
-        p_tags, p_fields = {}, {}
+        p_tags: TagSet = {}
+        p_fields: FieldSet = {}
+
         row_len = len(row)
         i = 2
 
@@ -245,14 +267,14 @@ class Point:
                 p_fields[f_key] = int(f_value)
                 i += 2
                 continue
-            except:
+            except Exception:
                 pass
 
             try:
                 p_fields[f_key] = float(f_value)
                 i += 2
                 continue
-            except:
+            except Exception:
                 pass
 
             p_fields[f_key] = None
@@ -267,17 +289,16 @@ class Point:
 
         return self
 
-    def _serialize(self) -> Tuple[str]:
+    def _serialize_to_list(self) -> Sequence[Union[str, float, int]]:
         """Serialize a Point to a tuple of strings.
 
         Returns:
             A well-formed tuple of strings, representing a Point.
 
         Usage:
-            >>> sp = Point()._serialize()
+            >>> sp = Point()._serialize_to_list()
         """
-
-        t = self._time.isoformat()
+        t = self._time.isoformat() if self._time else self._none_str
         m = str(self._measurement or self._none_str)
         tags = (
             (f"_tag_{k}", str(v) or self._none_str)
@@ -311,7 +332,6 @@ class Point:
             TypeError: Bad argument keyword.
             ValueError: Unexpected type encountered.
         """
-
         # Test for bad kwargs.
         unexpected_kwargs = set(kwargs.keys()) - self._valid_kwargs
 
