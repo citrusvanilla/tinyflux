@@ -263,9 +263,6 @@ def test_subclassing_storage():
         def search(self):
             """Seach method."""
 
-        def sort_by_time(self):
-            """Reindex method."""
-
         def update(self, func, reindex):
             """Update method."""
 
@@ -496,14 +493,6 @@ def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     assert storage.write_count == 0
     assert not storage.index_intact
 
-    # Read with reindexing.
-    pts = [p1, p2, p3]
-    storage.sort_by_time()
-    assert storage.read() == pts
-    assert storage.reindex_count == 1
-    assert storage.write_count == 1
-    assert storage.index_intact
-
     storage.close()
 
     # Connect to empty CSV.
@@ -547,19 +536,12 @@ def test_reindex_on_read_csv(tmpdir, csv_storage_with_counters):
     assert storage.reindex_count == 0
     assert storage.write_count == 0
 
-    # Read contents with reindexing.
-    storage.sort_by_time()
-    assert storage.index_intact
-    assert storage.append_count == 3
-    assert storage.reindex_count == 1
-    assert storage.write_count == 1
-
     # Read contents again.  Nothing should be written.
     storage.read()
-    assert storage.index_intact
+    assert not storage.index_intact
     assert storage.append_count == 3
-    assert storage.reindex_count == 1
-    assert storage.write_count == 1
+    assert storage.reindex_count == 0
+    assert storage.write_count == 0
 
 
 def test_reindex_on_read_memory(mem_storage_with_counters):
@@ -600,13 +582,6 @@ def test_reindex_on_read_memory(mem_storage_with_counters):
     assert not storage.index_intact
     assert storage.append_count == 3
     assert storage.reindex_count == 0
-    assert storage.write_count == 0
-
-    # Reindex. One write should be performed.
-    storage.sort_by_time()
-    assert storage.index_intact
-    assert storage.append_count == 3
-    assert storage.reindex_count == 1
     assert storage.write_count == 0
 
 

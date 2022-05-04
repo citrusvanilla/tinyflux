@@ -13,6 +13,8 @@ Usage:
     >>> my_mem_db = TinyFlux(storage=MemoryStorage)
     >>> my_csv_db = TinyFlux('path/to/my.csv', storage=CSVStorage)
 """
+import time
+
 from abc import ABC, abstractmethod
 import csv
 from datetime import datetime
@@ -130,11 +132,6 @@ class Storage(ABC):  # pragma: no cover
         self._write([], True)
 
         return
-
-    @abstractmethod
-    def sort_by_time(self):
-        """Reorganize storage so that an index can be built."""
-        ...
 
     @abstractmethod
     def _deserialize_measurement(self, item: Any) -> str:
@@ -335,27 +332,6 @@ class CSVStorage(Storage):
         """
         return super().read()
 
-    def sort_by_time(self) -> None:
-        """Sort the data store manually.
-
-        Reads in all of the data in the store, sorts by timestamp, and writes
-        back to the file.
-        """
-        # Init a container for temp memory.
-        tmp_memory = list(iter(self))
-
-        # Sort.
-        self._index_sorter(tmp_memory)
-
-        # Write serialized items to the store.
-        self._write(tmp_memory, True)
-
-        # Force garbage collection on temporary memory.
-        del tmp_memory
-        gc.collect()
-
-        return
-
     def _check_for_existing_data(self) -> None:
         """Check the file for existing data, w/o reading data into memory."""
         self._handle.seek(0, os.SEEK_END)
@@ -410,9 +386,7 @@ class CSVStorage(Storage):
 
             # Write the serialized data to the file
             w = csv.writer(self._handle, **self.kwargs)
-
-            for item in items:
-                w.writerow(item)
+            w.writerows(items)
 
             # Ensure the file has been written.
             self._handle.flush()
@@ -492,18 +466,6 @@ class MemoryStorage(Storage):
             A list of Point objects.
         """
         return super().read()
-
-    def sort_by_time(self) -> None:
-        """Sort the data store manually.
-
-        Sorts by timestamp.
-        """
-        self._index_sorter(self._memory)
-
-        self._latest_time = self._deserialize_timestamp(self._memory[-1])
-        self._index_intact = True
-
-        return
 
     def _deserialize_measurement(self, item: MemStorageItem) -> str:
         """Deserialize measurement from a point."""

@@ -582,12 +582,30 @@ class TinyFlux:
             print("Index already valid.")
             return
 
-        # Check that storage is sorted. If not, sort.
-        if not self._storage._is_sorted():
-            self._storage.sort_by_time()
+        temp_memory = []
+        last_timestamp = None
+        storage_is_sorted = True
+
+        for item in self._storage:
+
+            _point = self._storage._deserialize_storage_item(item)
+
+            if last_timestamp and _point.time < last_timestamp:
+                storage_is_sorted = False
+
+            temp_memory.append(_point)
+
+            last_timestamp = _point.time
+
+        # Storage wasn't sorted, so overwrite it.
+        if not storage_is_sorted:
+            temp_memory.sort(key=lambda x: x.time)
+            self._storage._write(
+                [self._storage._serialize_point(i) for i in temp_memory], True
+            )
 
         # Build the index.
-        self._build_index()
+        self._index.build(temp_memory)
 
         return
 
@@ -722,7 +740,9 @@ class TinyFlux:
                 key=lambda x: self._storage._deserialize_timestamp(x)
             )
             self._storage._write(temp_memory, True)
-            self._build_index()
+            self._index.build(
+                self._storage._deserialize_storage_item(i) for i in temp_memory
+            )
 
         # We are auto_indexing but storage was already sorted, update index.
         elif self._auto_index and self._index.valid:
@@ -885,23 +905,6 @@ class TinyFlux:
         return self._update_helper(
             True, TagQuery().noop(), time, measurement, tags, fields, None
         )
-
-    def _build_index(self):
-        """Build the Index instance.
-
-        This assumes the storage layer is sorted, so it should not be accessed
-        through public interface.  To check that the storage layer is indeed
-        sorted before building the index, use the 'reindex' method.
-        """
-        # Dump index.
-        self._index._reset()
-
-        # Build the index.
-        for item in self._storage:
-            _point = self._storage._deserialize_storage_item(item)
-            self._index.insert([_point])
-
-        return
 
     def _generate_updater(
         self, query=None, time=None, measurement=None, tags=None, fields=None
@@ -1192,7 +1195,9 @@ class TinyFlux:
 
         # If any item was updated, rebuild the in-memory index.
         if self._auto_index:
-            self._build_index()
+            self._index.build(
+                self._storage._deserialize_storage_item(i) for i in temp_memory
+            )
 
         # Clean up temp memory.
         del temp_memory
