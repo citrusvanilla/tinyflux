@@ -2,7 +2,7 @@
 
 Tests are generally organized by Measurement class method.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import re
 from typing import Generator
 
@@ -54,7 +54,7 @@ def test_len():
     assert len(m.index.get_measurement_names()) == 1
 
     # Insert point out of order.
-    m.insert(Point(time=datetime.utcnow() - timedelta(days=365)))
+    m.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=365)))
     assert not m.index.valid
 
     # Get len again
@@ -155,7 +155,7 @@ def test_contains():
     # Test with invalid index.
     m1.insert(
         Point(
-            time=datetime.utcnow() - timedelta(days=365),
+            time=datetime.now(timezone.utc) - timedelta(days=365),
             tags={"a": "c"},
             fields={"a": 3},
         )
@@ -191,7 +191,7 @@ def test_count():
     # Invalid index.
     m1.insert(
         Point(
-            time=datetime.utcnow() - timedelta(days=365),
+            time=datetime.now(timezone.utc) - timedelta(days=365),
             tags={"a": "b", "c": "d"},
             fields={"e": 1, "f": 3},
         )
@@ -230,7 +230,7 @@ def test_get():
 
     # Invalid index.
     p5 = Point(
-        time=datetime.utcnow() - timedelta(days=365),
+        time=datetime.now(timezone.utc) - timedelta(days=365),
         tags={"a": "b", "c": "d"},
         fields={"e": 1, "f": 3},
     )
@@ -268,7 +268,10 @@ def test_insert():
     assert len(m2) == 1
 
     # Insert out-of-order.  Index should be invalid.
-    assert m1.insert(Point(time=datetime.utcnow() - timedelta(days=1))) == 1
+    assert (
+        m1.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=1)))
+        == 1
+    )
     assert not db.index.valid
     assert len(db.index) == 0
     assert len(m1) == 2
@@ -348,14 +351,14 @@ def test_remove():
     # Insert points out-of-order.
     m1.insert(
         Point(
-            time=datetime.utcnow() - timedelta(days=1),
+            time=datetime.now(timezone.utc) - timedelta(days=1),
             tags={"a": "AA"},
             fields={"a": 3},
         )
     )
     m2.insert(
         Point(
-            time=datetime.utcnow(),
+            time=datetime.now(timezone.utc),
             tags={"a": "AA"},
             fields={"a": 3},
         )
@@ -403,7 +406,10 @@ def test_remove_all():
 
     # Invalidate the index.
     m2.insert(
-        Point(time=datetime.utcnow() - timedelta(days=365), measurement="m1")
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=365),
+            measurement="m1",
+        )
     )
     assert not db.index.valid
     assert len(m2) == 1
@@ -426,7 +432,7 @@ def test_search():
     m1 = db.measurement("m1")
     m2 = db.measurement("m2")
 
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
 
     p1 = Point(time=t, tags={"a": "A"}, fields={"a": 1})
     p2 = Point(time=t, tags={"a": "A"}, fields={"b": 2})
@@ -493,9 +499,9 @@ def test_update():
     db = TinyFlux(auto_index=True, storage=MemoryStorage)
 
     # Some mock points.
-    t1 = datetime.utcnow() - timedelta(days=10)
-    t2 = datetime.utcnow()
-    t3 = datetime.utcnow() + timedelta(days=10)
+    t1 = datetime.now(timezone.utc) - timedelta(days=10)
+    t2 = datetime.now(timezone.utc)
+    t3 = datetime.now(timezone.utc) + timedelta(days=10)
 
     p1 = Point(time=t1, tags={"tk1": "tv1"}, fields={"fk1": 1})
     p2 = Point(time=t2, tags={"tk2": "tv2"}, fields={"fk2": 2})

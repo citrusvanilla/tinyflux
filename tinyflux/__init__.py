@@ -14,7 +14,7 @@ Usage:
     >>> from tinyflux import TinyFlux, Point, FieldQuery
     >>> db = TinyFlux("my_new_tinyflux_db.csv")
     >>> p = Point(
-    ...     time=datetime.utcnow(),
+    ...     time=datetime.now(timezone.utc),
     ...     measurement="cities",
     ...     tags={"city": "Los Angeles"},
     ...     fields={"temp_f": 70.0}

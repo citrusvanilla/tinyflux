@@ -17,7 +17,7 @@ import time
 
 from abc import ABC, abstractmethod
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 import gc
 import os
 from pathlib import Path

@@ -1,7 +1,7 @@
 """The main module of the TinyFlux package, containing the TinyFlux class."""
 import copy
 import gc
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import (
     Any,
     Callable,
@@ -466,7 +466,7 @@ class TinyFlux:
 
         # Add time if not exists.
         if not point.time:
-            point.time = datetime.utcnow()
+            point.time = datetime.now(timezone.utc)
 
         # Update the measurement name if it doesn't match.
         if measurement and point.measurement != measurement:
@@ -498,7 +498,7 @@ class TinyFlux:
 
         # Return value.
         count = 0
-        t = datetime.utcnow()
+        t = datetime.now(timezone.utc)
 
         # Now, we update the table and add the document
         def updater(inp_points: List[Point]) -> None:

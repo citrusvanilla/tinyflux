@@ -10,7 +10,7 @@ Usage:
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import (
     Callable,
     Iterable,

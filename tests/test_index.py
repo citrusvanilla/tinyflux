@@ -1,5 +1,5 @@
 """Tests for tinyflux.index module."""
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import pytest
 
 from tinyflux import Point, FieldQuery, TagQuery, MeasurementQuery, TimeQuery
@@ -8,7 +8,7 @@ from tinyflux.index import Index
 
 def test_repr():
     """Test __repr__ of Index."""
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
     index = Index()
 
     assert repr(index) == "<Index _tags=0, _measurements=0, _timestamps=0>"
@@ -41,9 +41,9 @@ def test_initialize_empty_index():
 
 def test_build():
     """Test building an Index."""
-    t1 = datetime.utcnow()
-    t2 = datetime.utcnow() + timedelta(seconds=1)
-    t3 = datetime.utcnow() + timedelta(seconds=2)
+    t1 = datetime.now(timezone.utc)
+    t2 = datetime.now(timezone.utc) + timedelta(seconds=1)
+    t3 = datetime.now(timezone.utc) + timedelta(seconds=2)
 
     p1 = Point(time=t1, tags={"city": "la"})
     p2 = Point(
@@ -92,7 +92,7 @@ def test_build():
 def test_empty_property():
     """Test is_empty property of Index."""
     index = Index()
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
     assert index.empty
 
     index.build([Point(time=t) for _ in range(10)])
@@ -108,7 +108,7 @@ def test_empty_property():
 def test_update():
     """Test update method of Index."""
     index = Index()
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
 
     index.insert([Point(time=t), Point(time=t)])
     assert index._num_items == 2
@@ -121,11 +121,11 @@ def test_insert_time_method():
     """Test _insert_time helper of Index."""
     index = Index()
 
-    t1 = datetime.utcnow()
+    t1 = datetime.now(timezone.utc)
     index._insert_time(t1)
     assert index._timestamps == [t1.timestamp()]
 
-    t2 = datetime.utcnow()
+    t2 = datetime.now(timezone.utc)
     index._insert_time(t2)
     assert index._timestamps == [t1.timestamp(), t2.timestamp()]
 
@@ -172,7 +172,7 @@ def test_insert_fields_method():
 def test_reset_method():
     """Test reset of Index."""
     index = Index()
-    index.insert([Point(time=datetime.utcnow())])
+    index.insert([Point(time=datetime.now(timezone.utc))])
     assert not index.empty
 
     index._reset()
@@ -217,7 +217,7 @@ def test_search_measurement_query():
 def test_search_time_query():
     """Test search_query of Index on TimeQuery."""
     index = Index()
-    t_now = datetime.utcnow()
+    t_now = datetime.now(timezone.utc)
 
     t0 = t_now - timedelta(days=3)
     t1 = t_now - timedelta(days=2)
@@ -374,7 +374,7 @@ def test_search_field_query():
 def test_search_compound_query_not():
     """Test search_query of Index on compound 'not' queries."""
     # Some timestamps.
-    t_now = datetime.utcnow()
+    t_now = datetime.now(timezone.utc)
 
     # Some points.
     p1 = Point(
@@ -424,7 +424,7 @@ def test_search_compound_query_not():
 def test_search_compound_query_and():
     """Test search_query of Index on compound 'and' queries."""
     # Some timestamps.
-    t_now = datetime.utcnow()
+    t_now = datetime.now(timezone.utc)
 
     # Some points.
     p1 = Point(
@@ -490,7 +490,7 @@ def test_search_compound_query_and():
 def test_search_compound_query_or():
     """Test search_query of Index on compound 'or' queries."""
     # Some timestamps.
-    t_now = datetime.utcnow()
+    t_now = datetime.now(timezone.utc)
 
     # Some points.
     p1 = Point(

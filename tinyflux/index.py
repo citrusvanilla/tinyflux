@@ -8,9 +8,10 @@ Index instance is not a part of the TinyFlux interface.
 An IndexResult returns the indicies of revelant TinyFlux queries for further
 handling, usually as an input to a storage retrieval.
 """
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 import operator
 from typing import List, Optional, Set, Union
+import zoneinfo
 
 from tinyflux.queries import SimpleQuery, CompoundQuery
 from .point import Point
@@ -280,7 +281,7 @@ class Index:
 
         Usage:
             >>> i = Index().build([Point()])
-            >>> q = TimeQuery() < datetime.utcnow()
+            >>> q = TimeQuery() < datetime.now(timezone.utc)
             >>> r = i.search(q)
         """
         return self._search_helper(query)
@@ -605,7 +606,11 @@ class Index:
             items = []
             for idx, timestamp in enumerate(self._timestamps):
                 if query._test(
-                    query._path_resolver(datetime.fromtimestamp(timestamp))
+                    query._path_resolver(
+                        datetime.fromtimestamp(timestamp).astimezone(
+                            timezone.utc
+                        )
+                    )
                 ):
                     items.append(idx)
 

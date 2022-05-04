@@ -1,6 +1,6 @@
 """Tests for the tinyflux.storages module."""
 import csv
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import os
 import random
 import re
@@ -84,7 +84,7 @@ def test_csv_write_read(tmpdir):
 
     data = [
         Point(
-            time=datetime.utcnow(),
+            time=datetime.now(timezone.utc),
             tags={
                 "city": "los angeles",
                 "neighborhood": "chinatown",
@@ -108,7 +108,7 @@ def test_csv_kwargs(tmpdir):
 
     # Write contents.
     p1 = Point(
-        time=datetime.utcnow(),
+        time=datetime.now(timezone.utc),
         tags={"city": "los angeles"},
         fields={"temp_f": 71.2},
     )
@@ -133,7 +133,7 @@ def test_writes_on_read_only_csv(tmpdir):
     # Write to a CSV.
     db = TinyFlux(str(dbfile))
     p1 = Point(
-        time=datetime.utcnow(),
+        time=datetime.now(timezone.utc),
         tags={"city": "los angeles"},
         fields={"temp_f": 71.2},
     )
@@ -200,7 +200,7 @@ def test_in_memory_writes():
     # Write contents
     storage = MemoryStorage()
     p1 = Point(
-        time=datetime.utcnow(),
+        time=datetime.now(timezone.utc),
         tags={
             "city": "los angeles",
             "neighborhood": "chinatown",
@@ -223,7 +223,7 @@ def test_in_memory_close():
     with TinyFlux(storage=MemoryStorage) as db:
         db.insert(
             Point(
-                time=datetime.utcnow(),
+                time=datetime.now(timezone.utc),
                 tags={
                     "city": "los angeles",
                     "neighborhood": "chinatown",
@@ -360,9 +360,9 @@ def test_insert_out_of_time_order(tmpdir):
     path = os.path.join(tmpdir, "test.csv")
     db = TinyFlux(path, storage=CSVStorage)
 
-    t_past = datetime.utcnow() - timedelta(days=10)
-    t_present = datetime.utcnow()
-    t_future = datetime.utcnow() + timedelta(days=10)
+    t_past = datetime.now(timezone.utc) - timedelta(days=10)
+    t_present = datetime.now(timezone.utc)
+    t_future = datetime.now(timezone.utc) + timedelta(days=10)
 
     p_past = Point(time=t_past)
     p_present = Point(time=t_present)
@@ -392,9 +392,9 @@ def test_index_intact_csv(tmpdir):
     points_in_order = [
         Point(time=i)
         for i in (
-            datetime.utcnow() - timedelta(days=10),
-            datetime.utcnow(),
-            datetime.utcnow() + timedelta(days=10),
+            datetime.now(timezone.utc) - timedelta(days=10),
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc) + timedelta(days=10),
         )
     ]
 
@@ -433,9 +433,9 @@ def test_index_intact_memory():
     points_in_order = [
         Point(time=i)
         for i in (
-            datetime.utcnow() - timedelta(days=10),
-            datetime.utcnow(),
-            datetime.utcnow() + timedelta(days=10),
+            datetime.now(timezone.utc) - timedelta(days=10),
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc) + timedelta(days=10),
         )
     ]
 
@@ -466,9 +466,9 @@ def test_index_intact_memory():
 def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     """Test read/write counts for connecting to existing db with data."""
     # Some mock points.
-    p1 = Point(time=datetime.utcnow() - timedelta(days=10))
-    p2 = Point(time=datetime.utcnow())
-    p3 = Point(time=datetime.utcnow() + timedelta(days=10))
+    p1 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    p2 = Point(time=datetime.now(timezone.utc))
+    p3 = Point(time=datetime.now(timezone.utc) + timedelta(days=10))
 
     # Mock CSV store.  Insert points out of order.
     path = os.path.join(tmpdir, "test.csv")
@@ -511,9 +511,9 @@ def test_reindex_on_read_csv(tmpdir, csv_storage_with_counters):
     assert storage.index_intact
 
     # Some mock points.
-    p1 = Point(time=datetime.utcnow() - timedelta(days=10))
-    p2 = Point(time=datetime.utcnow())
-    p3 = Point(time=datetime.utcnow() + timedelta(days=10))
+    p1 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    p2 = Point(time=datetime.now(timezone.utc))
+    p3 = Point(time=datetime.now(timezone.utc) + timedelta(days=10))
 
     # First point in, should not change.
     storage.append([p2])
@@ -552,9 +552,9 @@ def test_reindex_on_read_memory(mem_storage_with_counters):
     assert storage.index_intact
 
     # Some mock points.
-    p1 = Point(time=datetime.utcnow() - timedelta(days=10))
-    p2 = Point(time=datetime.utcnow())
-    p3 = Point(time=datetime.utcnow() + timedelta(days=10))
+    p1 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    p2 = Point(time=datetime.now(timezone.utc))
+    p3 = Point(time=datetime.now(timezone.utc) + timedelta(days=10))
 
     # First point in, should not change.
     storage.append([p2])
@@ -598,7 +598,7 @@ def test_multiple_appends(
     assert storage.reindex_count == 0
 
     # Append a bunch of points in-order. No reads should be performed.
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
 
     for i in range(10):
         storage.append([Point(time=t)])
@@ -610,8 +610,8 @@ def test_multiple_appends(
     storage.close()
 
     # Some mock points.
-    p1 = Point(time=datetime.utcnow() - timedelta(days=10))
-    p2 = Point(time=datetime.utcnow())
+    p1 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    p2 = Point(time=datetime.now(timezone.utc))
 
     # Mock CSV store.  Insert points out of order.
     path = os.path.join(tmpdir, "test.csv")
@@ -651,7 +651,7 @@ def test_multiple_reads(
     """Test read/write counts for multiple reads in a row."""
     # Mock CSV store.  Insert points in order.
     path = os.path.join(tmpdir, "test.csv")
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
 
     with open(path, "w") as f:
         w = csv.writer(f)
@@ -680,7 +680,7 @@ def test_multiple_reads(
             w.writerow(Point(time=t)._serialize_to_list())
         w.writerow(
             Point(
-                time=datetime.utcnow() - timedelta(days=365)
+                time=datetime.now(timezone.utc) - timedelta(days=365)
             )._serialize_to_list()
         )
 
