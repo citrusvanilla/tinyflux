@@ -582,30 +582,41 @@ class TinyFlux:
             print("Index already valid.")
             return
 
+        # A container for storage items.
         temp_memory = []
+
         last_timestamp = None
         storage_is_sorted = True
 
         for item in self._storage:
 
-            _point = self._storage._deserialize_storage_item(item)
+            # Check to see if storage is sorted.
+            if storage_is_sorted:
+                _time = self._storage._deserialize_timestamp(item)
 
-            if last_timestamp and _point.time < last_timestamp:
-                storage_is_sorted = False
+                if last_timestamp and _time < last_timestamp:
+                    storage_is_sorted = False
+                else:
+                    last_timestamp = _time
 
-            temp_memory.append(_point)
+            # Add item to temp memory.
+            temp_memory.append(item)
 
-            last_timestamp = _point.time
-
-        # Storage wasn't sorted, so overwrite it.
+        # If storage wasn't sorted, sort and overwrite it.
         if not storage_is_sorted:
-            temp_memory.sort(key=lambda x: x.time)
-            self._storage._write(
-                [self._storage._serialize_point(i) for i in temp_memory], True
+            temp_memory.sort(
+                key=lambda x: self._storage._deserialize_timestamp(x)
             )
+            self._storage._write(temp_memory, True)
 
         # Build the index.
-        self._index.build(temp_memory)
+        self._index.build(
+            self._storage._deserialize_storage_item(i) for i in temp_memory
+        )
+
+        # Clean up temp memory.
+        del temp_memory
+        gc.collect()
 
         return
 
