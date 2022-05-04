@@ -62,8 +62,8 @@ class TinyFlux:
     # The class that will be used by default to create storage instances.
     default_storage_class = CSVStorage
 
-    _storage: Storage
     _auto_index: bool
+    _storage: Storage
     _index: Index
     _measurements: Dict[str, Measurement]
     _open: bool
@@ -122,7 +122,7 @@ class TinyFlux:
         if self._auto_index and self._index.valid:
             return len(self._index)
 
-        # Otherwise, we get it from storage class..
+        # Otherwise, we get it from storage class.
         return len(self._storage)
 
     def __iter__(self) -> Iterator[Point]:
@@ -179,12 +179,12 @@ class TinyFlux:
 
         Args:
             query: A SimpleQuery.
+            measurement: An optional measurement to filter by.
 
         Returns:
             True if point found, else False.
         """
-        # Return value.
-        use_index = self._auto_index and self._index.valid
+        use_index = self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
@@ -207,6 +207,10 @@ class TinyFlux:
             if len(index_rst._items) == len(self._index):
                 use_index = False
 
+        # Return value.
+        contains = False
+
+        # Search with help of the index.
         if use_index:
             j = 0
 
@@ -218,17 +222,21 @@ class TinyFlux:
 
                 # Candidate, evaluate.
                 if query(self._storage._deserialize_storage_item(item)):
-                    return True
+                    contains = True
+                    break
 
                 j += 1
 
                 # If we are out of candidates, break.
                 if j == len(index_rst._items):
-                    return False
+                    break
 
+        # Search without help of the index.
         else:
 
             for item in self._storage:
+
+                # Filter by measurement.
                 if (
                     measurement
                     and self._storage._deserialize_measurement(item)
@@ -236,10 +244,12 @@ class TinyFlux:
                 ):
                     continue
 
+                # Evaluate query against storage item.
                 if query(self._storage._deserialize_storage_item(item)):
-                    return True
+                    contains = True
+                    break
 
-            return False
+        return contains
 
     def count(
         self, query: Union[CompoundQuery, SimpleQuery], measurement: str = None
@@ -248,15 +258,12 @@ class TinyFlux:
 
         Args:
             query: a SimpleQuery.
-            measurement: Optional measurement name to query by.
+            measurement: An optional measurement to filter by.
 
         Returns:
             A count of matching points in the measurement.
         """
-        # Return value.
-        count = 0
-
-        use_index = self._auto_index and self._index.valid
+        use_index = self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
@@ -279,11 +286,15 @@ class TinyFlux:
             if len(index_rst._items) == len(self._index):
                 use_index = False
 
-        # Search with help of index.
+        # Return value.
+        count = 0
+
+        # Search with help of the index.
         if use_index:
             j = 0
 
             for i, item in enumerate(self._storage):
+
                 # Not a candidate.
                 if i != index_rst._items[j]:
                     continue
@@ -298,10 +309,12 @@ class TinyFlux:
                 if j == len(index_rst._items):
                     break
 
-        # Search without help of index.
+        # Search without help of the index.
         else:
 
             for item in self._storage:
+
+                # Filter by measurement.
                 if (
                     measurement
                     and not self._storage._deserialize_measurement(item)
@@ -355,11 +368,12 @@ class TinyFlux:
 
         Args:
             query: A SimpleQuery.
+            measurement: An optional measurement to filter by.
 
         Returns:
             First found Point or None.
         """
-        use_index = self._auto_index and self._index.valid
+        use_index = self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
@@ -378,11 +392,14 @@ class TinyFlux:
             if len(index_rst._items) == len(self._index):
                 use_index = False
 
+        # Return value.
+        got_point = None
+
+        # Search with help of the index.
         if use_index:
 
             j = 0
 
-            # Iterate over the storage layer.
             for i, item in enumerate(self._storage):
 
                 # Not a candidate.
@@ -391,24 +408,27 @@ class TinyFlux:
 
                 # Candidate, no further evaluation necessary.
                 if index_rst._is_complete:
-                    return self._storage._deserialize_storage_item(item)
+                    got_point = self._storage._deserialize_storage_item(item)
+                    break
 
                 # Candidate, further evaluation necessary.
                 _point = self._storage._deserialize_storage_item(item)
                 if query(_point):
-                    return _point
+                    got_point = _point
+                    break
 
                 j += 1
 
                 # If we are out of candidates, break.
                 if j == len(index_rst._items):
-                    return None
+                    break
 
         else:
 
             # Evaluate all points until match.
             for item in self._storage:
 
+                # Filter by measurement.
                 if (
                     measurement
                     and self._storage._deserialize_measurement(item)
@@ -416,18 +436,19 @@ class TinyFlux:
                 ):
                     continue
 
+                # Evaluate query against storage item.
                 _point = self._storage._deserialize_storage_item(item)
                 if query(_point):
-                    return _point
+                    got_point = _point
 
-            # No matches found.
-            return None
+        return got_point
 
     def insert(self, point: Point, measurement: str = None) -> int:
         """Insert a Point into the database.
 
         Args:
             point: A Point object.
+            measurement: An optional measurement to filter by.
 
         Returns:
             1 if success.
@@ -438,7 +459,7 @@ class TinyFlux:
         Todo:
             profile the isinstance call.
         """
-        assert self._storage.can_write
+        assert self._storage.can_append
 
         if not isinstance(point, Point):
             raise TypeError("Data must be a Point instance.")
@@ -473,7 +494,7 @@ class TinyFlux:
         Raises:
             TypeError if point is not a Point instance.
         """
-        assert self._storage.can_write
+        assert self._storage.can_append
 
         # Return value.
         count = 0
@@ -549,27 +570,24 @@ class TinyFlux:
         return names
 
     def reindex(self) -> None:
-        """Reindex the storage layer and build a new in-memory index.
+        """Sort the storage layer and build a new in-memory index.
 
         Reindexing the storage sorts storage items by timestamp. The Index
         instance is then built while iterating over the storage items.
         """
+        assert self._storage.can_write
+
         # Pass if the index is already valid.
         if self._index.valid:
             print("Index already valid.")
             return
 
-        # Dump index.
-        self._index._reset()
-
         # Check that storage is sorted. If not, sort.
         if not self._storage._is_sorted():
-            self._storage.reindex()
+            self._storage.sort_by_time()
 
         # Build the index.
-        for item in self._storage:
-            _point = self._storage._deserialize_storage_item(item)
-            self._index.insert([_point])
+        self._build_index()
 
         return
 
@@ -585,7 +603,7 @@ class TinyFlux:
         """
         assert self._storage.can_write
 
-        use_index = self._auto_index and self._index.valid
+        use_index = self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
@@ -604,20 +622,33 @@ class TinyFlux:
             if len(index_rst.items) == len(self._index):
                 use_index = False
 
+        # A set of items marked for removal.
         filtered_items = set({})
-        updated_items = {}
+
+        # A mapping of items' old positions to new ones after update.
+        updated_items: Dict[int, int] = {}
+
+        # A temporary container for storage items.
         temp_memory = []
+
+        # A counter to keep track of a remaining item's position in storage.
         new_index = 0
 
+        # Update with the help of the index.
         if use_index:
 
             j = 0
 
             for i, item in enumerate(self._storage):
+
                 # No more candidates or item is not a candidate.
                 if j == len(index_rst._items) or i != index_rst._items[j]:
                     temp_memory.append(item)
-                    updated_items[i] = new_index
+
+                    # Add to updated_items if the item has a new position.
+                    if i != new_index:
+                        updated_items[i] = new_index
+
                     new_index += 1
                     continue
 
@@ -632,14 +663,21 @@ class TinyFlux:
                 # Candidate, evaluation is False.
                 else:
                     temp_memory.append(item)
-                    updated_items[i] = new_index
+
+                    # Add to updated_items if the item has a new position.
+                    if i != new_index:
+                        updated_items[i] = new_index
+
                     new_index += 1
 
                 j += 1
 
+        # Update without the help of the index.
         else:
 
             for i, item in enumerate(self._storage):
+
+                # Filter by measurement.
                 if measurement:
                     _measurement = self._storage._deserialize_measurement(item)
 
@@ -658,19 +696,24 @@ class TinyFlux:
 
                     # Update new index.
                     if self._auto_index:
-                        updated_items[i] = new_index
+
+                        # Add to updated_items if the item has a new position.
+                        if i != new_index:
+                            updated_items[i] = new_index
+
                         new_index += 1
 
-        # No items removed.
+        # No items removed, delete temporary memory and do not update storage.
         if not len(filtered_items):
             del temp_memory
             gc.collect()
 
             return 0
 
-        # No items remaining.
-        if not temp_memory:
+        # No items remaining. Clear out storage, clear out index.
+        if not len(temp_memory):
             self._reset_database()
+
             return len(filtered_items)
 
         # Index was invalid and we need to reindex.
@@ -679,13 +722,18 @@ class TinyFlux:
                 key=lambda x: self._storage._deserialize_timestamp(x)
             )
             self._storage._write(temp_memory, True)
+            self._build_index()
 
-        # Write memory to storage.
-        self._storage._write(temp_memory, self.index.valid)
+        # We are auto_indexing but storage was already sorted, update index.
+        elif self._auto_index and self._index.valid:
+            self._storage._write(temp_memory, True)
+            self._index.remove(filtered_items)
+            self._index.update(updated_items)
 
-        # Update index.
-        if self._auto_index:
-            self._filter_index(len(temp_memory), filtered_items, updated_items)
+        # We aren't auto-indexing, invalidate the index.
+        else:
+            self._storage._write(temp_memory, self.index.valid)
+            self._index.invalidate()
 
         # Clean up temp memory.
         del temp_memory
@@ -717,10 +765,10 @@ class TinyFlux:
         Returns:
             A list of found Points.
         """
-        use_index = self._auto_index and self._index.valid
+        use_index = self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
-        if self._auto_index and self._index.valid:
+        if use_index:
 
             if measurement:
                 mq = MeasurementQuery() == measurement
@@ -744,6 +792,7 @@ class TinyFlux:
             j = 0
 
             for i, item in enumerate(self._storage):
+
                 # Not a candidate, skip.
                 if i != index_rst._items[j]:
                     continue
@@ -758,12 +807,14 @@ class TinyFlux:
 
                 # If we are out of candidates, break.
                 if j == len(index_rst._items):
-                    return found_points
+                    break
 
         # Search without index.
         else:
 
             for item in self._storage:
+
+                # Filter by measurement.
                 if (
                     measurement
                     and self._storage._deserialize_measurement(item)
@@ -771,11 +822,12 @@ class TinyFlux:
                 ):
                     continue
 
+                # Match, add to results.
                 _point = self._storage._deserialize_storage_item(item)
                 if query(_point):
                     found_points.append(_point)
 
-            return found_points
+        return found_points
 
     def update(
         self,
@@ -801,8 +853,10 @@ class TinyFlux:
         Todo:
             Update index in a smart way.
         """
+        assert self._storage.can_write
+
         return self._update_helper(
-            query, time, measurement, tags, fields, _measurement
+            False, query, time, measurement, tags, fields, _measurement
         )
 
     def update_all(
@@ -826,7 +880,11 @@ class TinyFlux:
         Todo:
             Update index in a smart way.
         """
-        return self._update_helper(None, time, measurement, tags, fields, None)
+        assert self._storage.can_write
+
+        return self._update_helper(
+            True, TagQuery().noop(), time, measurement, tags, fields, None
+        )
 
     def _build_index(self):
         """Build the Index instance.
@@ -844,41 +902,6 @@ class TinyFlux:
             self._index.insert([_point])
 
         return
-
-    def _filter_index(
-        self,
-        remaining_items_count: int,
-        filtered_items: Set,
-        updated_items: Dict[int, int],
-    ) -> None:
-        """Filter the Index.
-
-        A helper the remove items and then update remaining items in the Index.
-
-        Args:
-            remaining_items_count: Count of items remaining the storage layer.
-            filtered_items: Items set for removal from storage.
-            updated_items: A mapping of old indices to update indices.
-        """
-        # No more remaining items, reset index and return count.
-        if not remaining_items_count:
-            self._index._reset()
-            return
-
-        # Index was valid and we removed items, update index and return count.
-        elif self._index.valid and filtered_items:
-            self._index.remove(filtered_items)
-            self._index.update(updated_items)
-            return
-
-        # Index was valid and no items were removed.
-        elif self._index.valid and not filtered_items:
-            return
-
-        # Index was invalid, storage is now sorted, build index.
-        else:
-            self._build_index()
-            return
 
     def _generate_updater(
         self, query=None, time=None, measurement=None, tags=None, fields=None
@@ -1003,20 +1026,22 @@ class TinyFlux:
 
         # Build an index.
         if self._auto_index:
-            self._index.build([])
+            self._index._reset()
+        else:
+            self._index.invalidate()
 
         return
 
     def _update_helper(
         self,
-        query: Union[CompoundQuery, SimpleQuery] = None,
+        update_all: bool,
+        query: Union[CompoundQuery, SimpleQuery],
         time: Union[datetime, Callable, None] = None,
         measurement: Union[str, Callable, None] = None,
         tags: Union[Mapping, Callable, None] = None,
         fields: Union[Mapping, Callable, None] = None,
         _measurement: str = None,
     ):
-        """ """
         """Update all matching Points in the database with new attributes.
 
         Args:
@@ -1032,12 +1057,10 @@ class TinyFlux:
         Todo:
             Update index in a smart way.
         """
-        assert self._storage.can_write
-
         # Return value.
         update_count = 0
 
-        # Define the function that will perform the update
+        # Define the function that will perform the update.
         perform_update = self._generate_updater(
             query=query,
             time=time,
@@ -1046,7 +1069,7 @@ class TinyFlux:
             fields=fields,
         )
 
-        use_index = query and self._auto_index and self._index.valid
+        use_index = not update_all and self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
@@ -1065,15 +1088,19 @@ class TinyFlux:
             if len(index_rst._items) == len(self._index):
                 use_index = False
 
+        # A temporary container for storage items.
         temp_memory = []
+
+        # Whether or not updates to time attributes were made.
         time_updates_performed = False
 
-        # Update with help of index.
+        # Update with the help of the index.
         if use_index:
 
             j = 0
 
             for i, item in enumerate(self._storage):
+
                 # Not a query match, pass item through.
                 if j == len(index_rst.items) or i != index_rst._items[j]:
                     temp_memory.append(item)
@@ -1081,49 +1108,36 @@ class TinyFlux:
 
                 _point = self._storage._deserialize_storage_item(item)
 
-                # Candidate, no further eval necessary, update.
-                if index_rst._is_complete:
+                # Candidate needing no further eval, or a match.
+                if index_rst._is_complete or query(_point):
+
+                    # Attempt update.
                     u, t = perform_update(_point)
 
+                    # Attributes changed. Serialize and add to memory.
                     if u:
                         update_count += 1
                         temp_memory.append(
                             self._storage._serialize_point(_point)
                         )
-                    else:
-                        temp_memory.append(item)
 
-                    if t:
-                        time_updates_performed = True
+                        # Time attribute changed.
+                        if t:
+                            time_updates_performed = True
 
-                    continue
+                        continue
 
-                # Candidate, eval and update.
-                if query(_point):
-                    u, t = perform_update(_point)
-
-                    if u:
-                        update_count += 1
-                        temp_memory.append(
-                            self._storage._serialize_point(_point)
-                        )
-                    else:
-                        temp_memory.append(item)
-
-                    if t:
-                        time_updates_performed = True
-
-                    continue
-
-                # Candidate, eval is False.
+                # Not a candidate, not a query match, or attributes unchanged.
                 temp_memory.append(item)
 
                 j += 1
 
+        # Update without the help of the index.
         else:
 
             for item in self._storage:
-                # Not this measurement.
+
+                # Filter by measurement.
                 if (
                     _measurement
                     and self._storage._deserialize_measurement(item)
@@ -1134,21 +1148,26 @@ class TinyFlux:
 
                 _point = self._storage._deserialize_storage_item(item)
 
-                # Query match.
-                if not query or query(_point):
+                # No query specified, or query match.
+                if update_all or query(_point):
+
+                    # Attempt update.
                     u, t = perform_update(_point)
+
+                    # Attributes changed. Serialize and add to memory.
                     if u:
                         update_count += 1
+                        temp_memory.append(
+                            self._storage._deserialize_storage_item(_point)
+                        )
 
-                    if t:
-                        time_updates_performed = True
+                        # Time attribute changed.
+                        if t:
+                            time_updates_performed = True
 
-                    temp_memory.append(
-                        self._storage._deserialize_storage_item(_point)
-                    )
-                    continue
+                        continue
 
-                # Not a query match.
+                # Not a query match or attributes unchanged.
                 temp_memory.append(item)
 
         # No updates performed. Delete temp memory and do not write.
@@ -1158,8 +1177,8 @@ class TinyFlux:
 
             return 0
 
-        # Reindex only if necessary. We reindex only if time updates were
-        # performed or if the index was not previously intact.
+        # Reindex storage layer only if necessary. We reindex only if time
+        # updates were performed or if the index was not previously intact.
         if self._auto_index and (
             time_updates_performed or not self._index.valid
         ):
@@ -1167,11 +1186,11 @@ class TinyFlux:
                 key=lambda x: self._storage._deserialize_timestamp(x)
             )
             self._storage._write(temp_memory, True)
+        else:
+            # Write memory to storage.
+            self._storage._write(temp_memory, self.index.valid)
 
-        # Write memory to storage.
-        self._storage._write(temp_memory, self.index.valid)
-
-        # If any item was updated, rebuild the index.
+        # If any item was updated, rebuild the in-memory index.
         if self._auto_index:
             self._build_index()
 

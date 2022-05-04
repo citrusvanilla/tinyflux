@@ -21,7 +21,6 @@ import os
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
     Iterator,
     List,
     Optional,
@@ -79,8 +78,13 @@ class Storage(ABC):  # pragma: no cover
         return self._index_intact
 
     @property
+    def can_append(self) -> bool:
+        """Can append to DB."""
+        return True
+
+    @property
     def can_write(self) -> bool:
-        """Get index intact attribute."""
+        """Can write to DB."""
         return True
 
     @abstractmethod
@@ -116,11 +120,6 @@ class Storage(ABC):  # pragma: no cover
         """
         return list(self._deserialize_storage_item(i) for i in iter(self))
 
-    @abstractmethod
-    def reindex(self):
-        """Reorganize storage so that an index can be built."""
-        ...
-
     def reset(self) -> None:
         """Reset the storage instance.
 
@@ -128,9 +127,14 @@ class Storage(ABC):  # pragma: no cover
         """
         self._index_intact = True
         self._latest_time = None
-        self._write([])
+        self._write([], True)
 
         return
+
+    @abstractmethod
+    def sort_by_time(self):
+        """Reorganize storage so that an index can be built."""
+        ...
 
     @abstractmethod
     def _deserialize_measurement(self, item: Any) -> str:
@@ -184,13 +188,14 @@ class Storage(ABC):  # pragma: no cover
         ...
 
     @abstractmethod
-    def _write(self, items: List[Any]) -> None:
+    def _write(self, items: List[Any], is_sorted: bool) -> None:
         """Write to the store.
 
         This function should overwrite the entire file.
 
         Args:
             points: A list of Point objects.
+            is_sorted: Input is sorted already.
         """
         ...
 
@@ -253,8 +258,18 @@ class CSVStorage(Storage):
 
     @property
     def can_write(self) -> bool:
-        """ """
-        if not any(i in self._mode for i in ("+", "w", "a")):
+        """Return whether or not writes can occur."""
+        if self._mode not in ["r+", "w", "w+"]:
+            raise IOError(
+                f'Cannot update the database. Access mode is "{self._mode}"'
+            )
+
+        return True
+
+    @property
+    def can_append(self) -> bool:
+        """Return whether or not appends can occur."""
+        if self._mode not in ["r+", "w", "w+", "a", "a+"]:
             raise IOError(
                 f'Cannot update the database. Access mode is "{self._mode}"'
             )
@@ -268,7 +283,7 @@ class CSVStorage(Storage):
         return csv.reader(self._handle, **self.kwargs)
 
     def __len__(self) -> int:
-        """ """
+        """Return the number of items."""
         self._handle.seek(0)
 
         return sum(1 for _ in self._handle)
@@ -292,10 +307,7 @@ class CSVStorage(Storage):
                     self._latest_time = point.time
 
             # Write the row.
-            try:
-                csv_writer.writerow(point._serialize_to_list())
-            except Exception as e:
-                raise IOError(f"Cannot write to the database: {e}")
+            csv_writer.writerow(point._serialize_to_list())
 
         # Ensure the file has been written.
         self._handle.flush()
@@ -323,7 +335,7 @@ class CSVStorage(Storage):
         """
         return super().read()
 
-    def reindex(self) -> None:
+    def sort_by_time(self) -> None:
         """Sort the data store manually.
 
         Reads in all of the data in the store, sorts by timestamp, and writes
@@ -390,32 +402,31 @@ class CSVStorage(Storage):
         Args:
             points: A list of Point objects to serialize and write.
         """
-        assert self.can_write
-
         # Dump the existing contents.
         self._handle.seek(0)
         self._handle.truncate()
 
-        if not items:
-            return
+        if items:
 
-        # Write the serialized data to the file
-        w = csv.writer(self._handle, **self.kwargs)
+            # Write the serialized data to the file
+            w = csv.writer(self._handle, **self.kwargs)
 
-        for item in items:
-            w.writerow(item)
+            for item in items:
+                w.writerow(item)
 
-        # Ensure the file has been written.
-        self._handle.flush()
-        os.fsync(self._handle.fileno())
+            # Ensure the file has been written.
+            self._handle.flush()
+            os.fsync(self._handle.fileno())
 
-        # Remove data that is behind the new cursor in case the file has
-        # gotten shorter
-        self._handle.truncate()
+            # Remove data that is behind the new cursor in case the file has
+            # gotten shorter
+            self._handle.truncate()
 
         if is_sorted:
             self._index_intact = True
-            self._latest_time = self._deserialize_timestamp(items[-1])
+            self._latest_time = (
+                self._deserialize_timestamp(items[-1]) if items else None
+            )
 
         return
 
@@ -451,7 +462,7 @@ class MemoryStorage(Storage):
             yield point
 
     def __len__(self) -> int:
-        """ """
+        """Return the number of items."""
         return len(self._memory)
 
     def append(self, points: List[Point]) -> None:
@@ -482,7 +493,7 @@ class MemoryStorage(Storage):
         """
         return super().read()
 
-    def reindex(self) -> None:
+    def sort_by_time(self) -> None:
         """Sort the data store manually.
 
         Sorts by timestamp.
@@ -530,6 +541,6 @@ class MemoryStorage(Storage):
 
         if is_sorted:
             self._index_intact = True
-            self._latest_time = items[-1].time
+            self._latest_time = items[-1].time if items else None
 
         return

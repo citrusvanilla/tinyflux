@@ -692,10 +692,9 @@ class Index:
             u_items: A mapping of old indices to new indices.
         """
         for field_key, old_items in self._fields.items():
-            updated_items = []
-            for i in old_items:
-                updated_items.append(u_items[i])
-            self._fields[field_key] = updated_items
+            self._fields[field_key] = [
+                u_items[i] if i in u_items else i for i in old_items
+            ]
 
         return
 
@@ -705,18 +704,10 @@ class Index:
         Args:
             u_items: A mapping of old indices to new indices.
         """
-        new_measurements = {}
-
-        for m in self._measurements.keys():
-            updated_items = []
-
-            for i in self._measurements[m]:
-                updated_items.append(u_items[i])
-
-            if updated_items:
-                new_measurements[m] = updated_items
-
-        self._measurements = new_measurements
+        for measurement, old_items in self._measurements.items():
+            self._measurements[measurement] = [
+                u_items[i] if i in u_items else i for i in old_items
+            ]
 
         return
 
@@ -728,9 +719,7 @@ class Index:
         """
         for tag_key, tag_values in self._tags.items():
             for value, old_items in tag_values.items():
-                updated_items = []
-                for i in old_items:
-                    updated_items.append(u_items[i])
-                self._tags[tag_key][value] = updated_items
-
+                self._tags[tag_key][value] = [
+                    u_items[i] if i in u_items else i for i in old_items
+                ]
         return

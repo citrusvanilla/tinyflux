@@ -19,10 +19,10 @@ class CSVStorageWithCounters(CSVStorage):
         self.append_count += 1
         return super().append(points)
 
-    def reindex(self):
+    def sort_by_time(self):
         """Reindex with counter."""
         self.reindex_count += 1
-        return super().reindex()
+        return super().sort_by_time()
 
     def _write(self, points, is_sorted=False):
         """Write with counter."""
@@ -45,10 +45,10 @@ class MemoryStorageWithCounters(MemoryStorage):
         self.append_count += 1
         return super().append(points)
 
-    def reindex(self):
+    def sort_by_time(self):
         """Reindex with counter."""
         self.reindex_count += 1
-        return super().reindex()
+        return super().sort_by_time()
 
     def _write(self, points, is_sorted=False):
         """Write with counter."""

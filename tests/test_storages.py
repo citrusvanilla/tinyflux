@@ -16,6 +16,66 @@ from tinyflux.storages import CSVStorage, MemoryStorage, Storage
 random.seed()
 
 
+def test_csv_modes(tmpdir):
+    """Test exceptions for read/write/append ops for CSV modes."""
+    # Dummy db.
+    path = os.path.join(tmpdir, "test.csv")
+    db = TinyFlux(path)
+    db.insert(Point())
+    db.close()
+
+    q = TagQuery().noop()
+    p = Point()
+
+    read_ops = [
+        ("all", ()),
+        ("contains", (q,)),
+        ("count", (q,)),
+        ("get", (q,)),
+        ("search", (q,)),
+    ]
+
+    write_ops = [
+        ("drop_measurement", ("_default",)),
+        ("drop_measurements", ()),
+        ("reindex", ()),
+        ("remove", (q,)),
+        ("remove_all", ()),
+        ("update", (q, None, "a")),
+        ("update", (None, "a")),
+    ]
+
+    append_ops = [("insert", (p,)), ("insert_multiple", ([p],))]
+
+    # Test read only.
+    read_only_db = TinyFlux(path, access_mode="r")
+
+    for i, args in read_ops:
+        read_only_db.__getattribute__(i)(*args)
+
+    for i, args in write_ops:
+        with pytest.raises(IOError):
+            read_only_db.__getattribute__(i)(*args)
+
+    for i, args in append_ops:
+        with pytest.raises(IOError):
+            read_only_db.__getattribute__(i)(*args)
+
+    # Test append only.
+    read_only_db = TinyFlux(path, access_mode="a")
+
+    for i, args in read_ops:
+        with pytest.raises(IOError):
+            read_only_db.__getattribute__(i)(*args)
+
+    for i, args in write_ops:
+        with pytest.raises(IOError):
+            read_only_db.__getattribute__(i)(*args)
+
+    for i, args in append_ops:
+        read_only_db.__getattribute__(i)(*args)
+
+
 def test_csv_write_read(tmpdir):
     """Test basic read/write to CSV."""
     # Write contents
@@ -200,11 +260,11 @@ def test_subclassing_storage():
         def read(self, _):
             """Read method."""
 
-        def reindex(self):
-            """Reindex method."""
-
         def search(self):
             """Seach method."""
+
+        def sort_by_time(self):
+            """Reindex method."""
 
         def update(self, func, reindex):
             """Update method."""
@@ -438,7 +498,7 @@ def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
 
     # Read with reindexing.
     pts = [p1, p2, p3]
-    storage.reindex()
+    storage.sort_by_time()
     assert storage.read() == pts
     assert storage.reindex_count == 1
     assert storage.write_count == 1
@@ -488,7 +548,7 @@ def test_reindex_on_read_csv(tmpdir, csv_storage_with_counters):
     assert storage.write_count == 0
 
     # Read contents with reindexing.
-    storage.reindex()
+    storage.sort_by_time()
     assert storage.index_intact
     assert storage.append_count == 3
     assert storage.reindex_count == 1
@@ -543,7 +603,7 @@ def test_reindex_on_read_memory(mem_storage_with_counters):
     assert storage.write_count == 0
 
     # Reindex. One write should be performed.
-    storage.reindex()
+    storage.sort_by_time()
     assert storage.index_intact
     assert storage.append_count == 3
     assert storage.reindex_count == 1

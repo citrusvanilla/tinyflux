@@ -529,7 +529,6 @@ def test_regex():
 
 def test_custom_function():
     """Test custom function in the test method."""
-
     # Test an arbitrary function with no additional args.
     def is_los_angeles(value):
         """Return value is los angeles."""
@@ -861,7 +860,7 @@ def test_basequery():
 
 
 def test_bad_queries():
-    """ """
+    """Test that only valid RHS types can form a valid query."""
     # Test a non-datetime right hand side.
     with pytest.raises(TypeError):
         TimeQuery() == 3
