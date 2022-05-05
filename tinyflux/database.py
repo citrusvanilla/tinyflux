@@ -967,7 +967,7 @@ class TinyFlux:
             and not callable(measurement)
             and not isinstance(measurement, str)
         ):
-            raise ValueError("Measurement must be a string")
+            raise ValueError("Measurement must be a string.")
 
         if tags and not callable(tags):
             validate_tags(tags)

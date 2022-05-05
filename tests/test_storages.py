@@ -10,6 +10,7 @@ from typing import Callable
 import pytest
 
 from tinyflux import TinyFlux, Point
+from tinyflux import storages
 from tinyflux.queries import TagQuery
 from tinyflux.storages import CSVStorage, MemoryStorage, Storage
 
@@ -255,7 +256,6 @@ def test_subclassing_storage():
 
     # Class properties that are not overridden.
     assert not s.index_intact
-    assert isinstance(s._index_sorter, Callable)
 
 
 def test_read_and_insert_count(mem_storage_with_counters):
@@ -462,6 +462,9 @@ def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     empty_storage = csv_storage_with_counters(path)
     assert empty_storage.index_intact
     assert empty_storage.reindex_count == 0
+
+    empty_storage._write([])
+    assert empty_storage.write_count == 1
 
 
 def test_reindex_on_read_csv(tmpdir, csv_storage_with_counters):
@@ -685,3 +688,49 @@ def test_read_on_empty_file(tmpdir, csv_storage_with_counters):
     # Read and assert empty list.
     assert storage.read() == []
     assert storage.read() == []
+
+
+def test_deserialization(tmpdir):
+    """ """
+    path = os.path.join(tmpdir, "test.csv")
+    db = TinyFlux(path)
+
+    t = datetime.now(timezone.utc)
+    p = Point(time=t, measurement="a")
+    db.insert(p)
+
+    serialized_point = db.storage._serialize_point(p)
+
+    assert db.storage._deserialize_measurement(serialized_point) == "a"
+    assert db.storage._deserialize_timestamp(serialized_point) == t
+    assert db.storage._deserialize_storage_item(serialized_point) == p
+
+    db = TinyFlux(storage=MemoryStorage)
+
+    db.insert(p)
+
+    serialized_point = db.storage._serialize_point(p)
+
+    assert db.storage._deserialize_measurement(serialized_point) == "a"
+    assert db.storage._deserialize_timestamp(serialized_point) == t
+    assert db.storage._deserialize_storage_item(serialized_point) == p
+
+
+def test_is_sorted(tmpdir):
+    """ """
+    # CSV DB.
+    path = os.path.join(tmpdir, "test.csv")
+    db = TinyFlux(path)
+    db.insert_multiple([Point(), Point()])
+
+    assert db.storage._is_sorted()
+    db.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=1)))
+    assert not db.storage._is_sorted()
+
+    # Memory DB.
+    db = TinyFlux(storage=MemoryStorage)
+    db.insert_multiple([Point(), Point()])
+
+    assert db.storage._is_sorted()
+    db.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=1)))
+    assert not db.storage._is_sorted()

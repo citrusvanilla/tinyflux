@@ -209,6 +209,7 @@ def test_contains():
     assert not db.contains(TagQuery().x == "z")
 
     # Test with valid index and incomplete index result.
+    assert db.remove(~TagQuery().a.exists())
     assert db.contains(FieldQuery().a > 0)
     assert not db.contains(FieldQuery().a > 10)
 
@@ -615,6 +616,9 @@ def test_remove():
     assert db.index.valid
     assert not db.index.empty
 
+    # Try to remove something that doesn't exist.
+    assert db.remove(FieldQuery().a == 12345678) == 0
+
     # Remove last item.
     assert db.remove(FieldQuery().a == 3) == 1
     assert db.index.valid
@@ -709,6 +713,12 @@ def test_update():
     assert len(db) == 2
 
     # Bad invocation.
+    with pytest.raises(ValueError, match="Time must be datetime object."):
+        db.update(TagQuery().tk1 == "tv1", time="chicken")
+
+    with pytest.raises(ValueError, match="Measurement must be a string."):
+        db.update(TagQuery().tk1 == "tv1", measurement={"blehh"})
+
     with pytest.raises(
         ValueError,
         match="Must include time, measurement, tags, and/or fields.",
@@ -798,6 +808,19 @@ def test_update():
     assert db.count(MeasurementQuery() == "m0") == 3
     assert db.count(TagQuery().tk1 == "tv10") == 3
     assert db.count(FieldQuery().fk2 == 2) == 3
+
+    # Bad updates.
+    with pytest.raises(
+        ValueError, match="Time must update to a datetime object."
+    ):
+        db.update(FieldQuery().fk2 == 2, time=lambda _: True)
+
+    with pytest.raises(
+        ValueError, match="Measurement must update to a string."
+    ):
+        db.update(
+            FieldQuery().fk2 == 2, measurement=lambda _: {"golden bears"}
+        )
 
 
 def test_update_all():

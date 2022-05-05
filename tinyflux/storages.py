@@ -148,16 +148,6 @@ class Storage(ABC):  # pragma: no cover
         """Deserialize an item from storage to a Point."""
         ...
 
-    def _index_sorter(self, items: List[Any]) -> None:
-        """Sort function for an index.
-
-        Args:
-            points: Reference to a list of Points.
-        """
-        items.sort(key=lambda x: self._deserialize_timestamp(x))
-
-        return
-
     @abstractmethod
     def _is_sorted(self) -> bool:
         """Check if the storage layer is sorted."""
