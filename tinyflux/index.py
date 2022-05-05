@@ -8,7 +8,7 @@ Index instance is not a part of the TinyFlux interface.
 An IndexResult returns the indicies of revelant TinyFlux queries for further
 handling, usually as an input to a storage retrieval.
 """
-from datetime import datetime, timezone, timezone
+from datetime import datetime, timezone
 import operator
 from typing import Iterable, List, Optional, Set, Union
 
@@ -157,6 +157,13 @@ class Index:
     def valid(self) -> bool:
         """Return an empty index."""
         return self._valid
+
+    @property
+    def lateset_time(self) -> datetime:
+        """Return the lastest time in the index."""
+        return datetime.fromtimestamp(self._timestamps[-1]).astimezone(
+            timezone.utc
+        )
 
     def __len__(self) -> int:
         """Return number of items in the index."""

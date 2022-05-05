@@ -1,6 +1,6 @@
 """Defintion of TinyFlux utils."""
 import bisect
-from typing import Iterable, List, Optional
+from typing import List, Optional
 
 
 class FrozenDict(dict):

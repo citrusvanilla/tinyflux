@@ -13,19 +13,15 @@ Usage:
     >>> my_mem_db = TinyFlux(storage=MemoryStorage)
     >>> my_csv_db = TinyFlux('path/to/my.csv', storage=CSVStorage)
 """
-import time
-
 from abc import ABC, abstractmethod
 import csv
 from datetime import datetime, timezone
-import gc
 import os
 from pathlib import Path
 from typing import (
     Any,
     Iterator,
     List,
-    Optional,
     Sequence,
     Union,
 )
@@ -71,13 +67,7 @@ class Storage(ABC):  # pragma: no cover
                 ...
     """
 
-    _index_intact: bool = False
-    _latest_time: Optional[datetime] = None
-
-    @property
-    def index_intact(self) -> bool:
-        """Get index intact attribute."""
-        return self._index_intact
+    _initially_empty: bool
 
     @property
     def can_append(self) -> bool:
@@ -127,8 +117,6 @@ class Storage(ABC):  # pragma: no cover
 
         Removes all data.
         """
-        self._index_intact = True
-        self._latest_time = None
         self._write([], True)
 
         return
@@ -152,20 +140,17 @@ class Storage(ABC):  # pragma: no cover
     def _is_sorted(self) -> bool:
         """Check if the storage layer is sorted."""
         # We're reading all data, start w/ an intact index & no latest time.
-        self._index_intact = True
-        self._latest_time = None
+        latest_time = None
 
         # Iterate over all rows.
         for item in self:
             # Deserialize the Point.
             timestamp = self._deserialize_timestamp(item)
 
-            if self._latest_time and timestamp < self._latest_time:
-                self._index_intact = False
-                self._latest_time = None
+            if latest_time and timestamp < latest_time:
                 return False
 
-            self._latest_time = timestamp
+            latest_time = timestamp
 
         return True
 
@@ -204,8 +189,6 @@ class CSVStorage(Storage):
 
     _timestamp_idx = 0
     _measurement_idx = 1
-    _latest_time: Optional[datetime]
-    _index_intact: bool
 
     def __init__(
         self,
@@ -213,13 +196,14 @@ class CSVStorage(Storage):
         create_dirs: bool = False,
         encoding: str = None,
         access_mode: str = "r+",
+        flush_on_insert: bool = True,
         **kwargs,
     ) -> None:
         """Init a CSVStorage instance.
 
         This will init a file object to the specified filepath. No reads are
         performed by default, so we don't know if the data is sorted and
-        therefore, the _index_intact attribute is set to False.
+        therefore, the _initially_empty attribute is set to False.
 
         Args:
             path: Path to file.
@@ -231,7 +215,8 @@ class CSVStorage(Storage):
         self._mode = access_mode
         self.kwargs = kwargs
         self._latest_time = None
-        self._index_intact = False
+        self._initially_empty = False
+        self._flush_on_insert = flush_on_insert
 
         # Create the file if it doesn't exist and creating is allowed.
         if any(i in self._mode for i in ("+", "w", "a")):
@@ -285,23 +270,16 @@ class CSVStorage(Storage):
 
         # Iterate over the points.
         for point in points:
-            # Check for out-of-order data.
-            if self._index_intact:
-                if self._latest_time and point.time < self._latest_time:
-                    self._index_intact = False
-                    self._latest_time = None
-                else:
-                    self._latest_time = point.time
-
             # Write the row.
             csv_writer.writerow(point._serialize_to_list())
 
-        # Ensure the file has been written.
-        self._handle.flush()
-        os.fsync(self._handle.fileno())
+        if self._flush_on_insert:
+            # Ensure the file has been written.
+            self._handle.flush()
+            os.fsync(self._handle.fileno())
 
-        # Remove data that is behind the new cursor.
-        self._handle.truncate()
+            # Remove data that is behind the new cursor.
+            self._handle.truncate()
 
         return
 
@@ -329,7 +307,7 @@ class CSVStorage(Storage):
 
         # If the file is empty, flip index_intact to True.
         if not size:
-            self._index_intact = True
+            self._initially_empty = True
 
         return
 
@@ -343,7 +321,9 @@ class CSVStorage(Storage):
 
     def _deserialize_timestamp(self, row: CSVStorageItem) -> datetime:
         """Deserialize timestamp from a row."""
-        return datetime.fromisoformat(row[self._timestamp_idx])
+        return datetime.fromisoformat(row[self._timestamp_idx]).replace(
+            tzinfo=timezone.utc
+        )
 
     def _is_sorted(self) -> bool:
         """Check if the storage layer is sorted."""
@@ -386,12 +366,6 @@ class CSVStorage(Storage):
             # gotten shorter
             self._handle.truncate()
 
-        if is_sorted:
-            self._index_intact = True
-            self._latest_time = (
-                self._deserialize_timestamp(items[-1]) if items else None
-            )
-
         return
 
 
@@ -409,16 +383,12 @@ class MemoryStorage(Storage):
     """
 
     _memory: List[MemStorageItem]
-    _latest_time: Optional[datetime]
-    _index_intact: bool
 
     def __init__(self) -> None:
         """Init a MemoryStorage instance."""
         super().__init__()
-
+        self._initially_empty = True
         self._memory = []
-        self._latest_time = None
-        self._index_intact: bool = True
 
     def __iter__(self) -> Iterator:
         """Return a generator to memory that can be iterated over."""
@@ -436,14 +406,6 @@ class MemoryStorage(Storage):
             points: A list of Point objects.
         """
         for point in points:
-            # Check for out-of-order data.
-            if self._index_intact:
-                if self._latest_time and point.time < self._latest_time:
-                    self._index_intact = False
-                    self._latest_time = None
-                else:
-                    self._latest_time = point.time
-
             # Append point to memory.
             self._memory.append(point)
 
@@ -490,9 +452,5 @@ class MemoryStorage(Storage):
         """
         del self._memory
         self._memory = items
-
-        if is_sorted:
-            self._index_intact = True
-            self._latest_time = items[-1].time if items else None
 
         return

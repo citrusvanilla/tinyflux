@@ -283,10 +283,6 @@ def test_insert_multiple():
     """Test the insert multiple method of the Measurement class."""
     db = TinyFlux(storage=MemoryStorage)
 
-    # Assert exception with non-point insert.
-    with pytest.raises(TypeError, match="Data must be a Point instance."):
-        db.measurement("a").insert_multiple([Point(), 1])
-
     # Some measurements.
     m1, m2 = db.measurement("a"), db.measurement("b")
     p1, p2 = Point(), Point()
@@ -310,6 +306,10 @@ def test_insert_multiple():
     # Generator.
     assert m2.insert_multiple(Point() for _ in range(2)) == 2
     assert len(m2) == 4
+
+    # Assert exception with non-point insert.
+    with pytest.raises(TypeError, match="Data must be a Point instance."):
+        db.measurement("a").insert_multiple([Point(), 1])
 
 
 def test_remove():

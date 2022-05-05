@@ -244,7 +244,7 @@ class Point:
             ValueError: Deserializing encounters a bad type.
             RuntimeError: Deserializing encounters an unexpected column.
         """
-        p_time = datetime.fromisoformat(row[0])
+        p_time = datetime.fromisoformat(row[0]).replace(tzinfo=timezone.utc)
         p_measurement = None if row[1] == self._none_str else row[1]
 
         p_tags: TagSet = {}
@@ -298,7 +298,11 @@ class Point:
         Usage:
             >>> sp = Point()._serialize_to_list()
         """
-        t = self._time.isoformat() if self._time else self._none_str
+        t = (
+            self._time.replace(tzinfo=None).isoformat()
+            if self._time
+            else self._none_str
+        )
         m = str(self._measurement or self._none_str)
         tags = (
             (f"_tag_{k}", str(v) or self._none_str)

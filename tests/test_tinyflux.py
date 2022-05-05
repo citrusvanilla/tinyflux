@@ -441,10 +441,7 @@ def test_insert_on_existingdb(tmpdir):
 def test_insert_multiple():
     """Test insert_multiple method."""
     db = TinyFlux(storage=MemoryStorage)
-
-    # Invalid insert.
-    with pytest.raises(TypeError, match="Data must be a Point instance."):
-        db.insert_multiple([Point(), 3])
+    assert db.storage._initially_empty
 
     db.insert_multiple([Point() for _ in range(2)])
     assert len(db) == 2
@@ -461,6 +458,18 @@ def test_insert_multiple():
     # Insert multiple from inline generator.
     db.insert_multiple(Point() for _ in range(2))
     assert len(db) == 6
+
+    # Insert multiple out of order.
+    db.insert_multiple(
+        Point(time=datetime.now(timezone.utc) - timedelta(days=i))
+        for i in range(2)
+    )
+    assert len(db) == 8
+    assert not db.index.valid
+
+    # Invalid insert.
+    with pytest.raises(TypeError, match="Data must be a Point instance."):
+        db.insert_multiple([Point(), 3])
 
 
 def test_measurement():
@@ -517,9 +526,11 @@ def test_measurements():
 def test_reindex(tmpdir, capsys):
     """Test storage initialization when auto_index is False."""
     # Some mock points.
-    p1 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
-    p2 = Point(time=datetime.now(timezone.utc))
-    p3 = Point(time=datetime.now(timezone.utc) + timedelta(days=10))
+    t = datetime.strptime("2022-07-04", "%Y-%m-%d").astimezone(timezone.utc)
+
+    p1 = Point(time=t - timedelta(days=10))
+    p2 = Point(time=t)
+    p3 = Point(time=t + timedelta(days=10))
 
     # Mock CSV store.  Insert points out of order.
     path = os.path.join(tmpdir, "test.csv")
@@ -528,10 +539,9 @@ def test_reindex(tmpdir, capsys):
     w.writerow(p2._serialize_to_list())
     w.writerow(p1._serialize_to_list())
     f.close()
-
     # Open up the DB with TinyFlux.
     db = TinyFlux(path, auto_index=False, storage=CSVStorage)
-    assert not db.storage._index_intact
+    assert not db.storage._initially_empty
     assert not db.index.valid
     assert db.index.empty
 
@@ -540,7 +550,6 @@ def test_reindex(tmpdir, capsys):
     assert not db.index.valid
     assert db.index.empty
     assert not db._storage._is_sorted()
-    assert not db._storage._index_intact
 
     # Reindex.
     db.reindex()
@@ -550,11 +559,10 @@ def test_reindex(tmpdir, capsys):
     r = csv.reader(f)
     for row, point in zip(r, [p1, p2, p3]):
         assert tuple(row) == point._serialize_to_list()
-        assert Point()._deserialize_from_list(row) == point
     f.close()
 
     assert db._storage._is_sorted()
-    assert db._storage._index_intact
+    assert not db._storage._initially_empty
 
     # Check new index.
     assert db.index.valid
@@ -629,6 +637,7 @@ def test_remove():
 def test_remove_all():
     """Test remove_all method."""
     db = TinyFlux(storage=MemoryStorage)
+    assert db.storage._initially_empty
     db.insert(Point())
     db.insert(Point(measurement="m"))
     assert len(db) == 2
@@ -638,7 +647,6 @@ def test_remove_all():
     assert len(db) == 0
     assert db.index.valid
     assert db.index.empty
-    assert db.storage._index_intact
 
 
 def test_search():
@@ -901,7 +909,7 @@ def test_storage_index_initialization_with_autoindex_ON(tmpdir, capsys):
 
     # Open up the DB with TinyFlux.
     db = TinyFlux(path, auto_index=True, storage=CSVStorage)
-    assert db.storage._index_intact
+    assert not db.storage._initially_empty
     assert db.index.valid
     assert not db.index.empty
 
