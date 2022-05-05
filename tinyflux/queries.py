@@ -14,7 +14,7 @@ Each SimpleQuery instance contains attributes that constitute the
 right-hand side) so that the other consumers of queries, includng an Index, may
 use them for their own purposes.
 """
-from datetime import datetime, timezone
+from datetime import datetime
 import operator
 import re
 from typing import (
@@ -22,41 +22,15 @@ from typing import (
     Callable,
     Mapping,
     Optional,
-    Protocol,
     Tuple,
     Union,
 )
+from typing_extensions import TypeAlias
 
 from .point import Point
 
 
-class QueryLike(Protocol):  # pragma: no cover
-    """
-    A typing protocol that acts like a query.
-
-    Something that we use as a query must have two properties:
-
-    1. It must be callable, accepting a `Mapping` object and returning a
-       boolean that indicates whether the value matches the query, and
-    2. it must have a stable hash that will be used for query caching.
-
-    In addition, to mark a query as non-cacheable (e.g. if it involves
-    some remote lookup) it needs to have a method called ``is_cacheable``
-    that returns ``False``.
-
-    This query protocol is used to make MyPy correctly support the query
-    pattern that tinyflux uses.
-
-    See https://mypy.readthedocs.io/en/stable/protocols.html
-    """
-
-    def __call__(self, point: Point) -> bool:
-        """Define built-in call."""
-        ...
-
-    def __hash__(self):
-        """Define built-in hash."""
-        ...
+Query: TypeAlias = Union["SimpleQuery", "CompoundQuery"]
 
 
 class CompoundQuery:
@@ -81,16 +55,16 @@ class CompoundQuery:
 
     def __init__(
         self,
-        query1: Union["SimpleQuery", "CompoundQuery"],
-        query2: Optional[Union["SimpleQuery", "CompoundQuery"]],
-        operator: Callable,
+        query1: Query,
+        query2: Optional[Query],
+        operator: Callable[..., Any],
         hashval: Optional[Tuple],
     ) -> None:
         """Initialize an CompoundQuery.
 
         Args:
             query1: A SimpleQuery or CompoundQuery instance.
-            query1: A SimpleQuery or CompoundQuery instance.
+            query2: A SimpleQuery or CompoundQuery instance.
             operator: A callable from the operator module.
             hashval: The hash value for the query.
         """
@@ -131,11 +105,13 @@ class CompoundQuery:
         if self.query1 and self.query2:
             return (
                 f"CompoundQuery({self.operator.__name__}, "
-                f"{repr(self.query1)}, {repr(self.query2)})"
+                f"{repr(self.query1.__class__.__name__)}, "
+                f"{repr(self.query2.__class__.__name__)})"
             )
         else:
             return (
-                f"CompoundQuery({self.operator.__name__}, {repr(self.query1)})"
+                f"CompoundQuery({self.operator.__name__}, "
+                f"{repr(self.query1.__class__.__name__)})"
             )
 
     def __eq__(self, other: object) -> bool:
@@ -149,9 +125,7 @@ class CompoundQuery:
         else:
             return False
 
-    def __and__(
-        self, other: Union["SimpleQuery", "CompoundQuery"]
-    ) -> "CompoundQuery":
+    def __and__(self, other: Query) -> "CompoundQuery":
         """Combine this query with another using logical-AND.
 
         Args:
@@ -160,16 +134,14 @@ class CompoundQuery:
         Returns:
             A CompoundQuery instance.
         """
-        if self.is_cacheable() and other.is_cacheable():
+        if self.is_hashable() and other.is_hashable():
             hashval = ("and_", frozenset([self._hash, other._hash]))
         else:
             hashval = None
 
         return CompoundQuery(self, other, operator.and_, hashval)
 
-    def __or__(
-        self, other: Union["SimpleQuery", "CompoundQuery"]
-    ) -> "CompoundQuery":
+    def __or__(self, other: Query) -> "CompoundQuery":
         """Combine this query with another using logical-OR.
 
         Args:
@@ -178,7 +150,7 @@ class CompoundQuery:
         Returns:
             A CompoundQuery instance.
         """
-        if self.is_cacheable() and other.is_cacheable():
+        if self.is_hashable() and other.is_hashable():
             hashval = ("or_", frozenset([self._hash, other._hash]))
         else:
             hashval = None
@@ -191,14 +163,14 @@ class CompoundQuery:
         Returns:
             A CompoundQuery instance.
         """
-        if self.is_cacheable():
+        if self.is_hashable():
             hashval = ("not_", self._hash)
         else:
             hashval = None
 
         return CompoundQuery(self, None, operator.not_, hashval)
 
-    def is_cacheable(self) -> bool:
+    def is_hashable(self) -> bool:
         """Return the ability to hash this query."""
         return self._hash is not None
 
@@ -230,10 +202,10 @@ class SimpleQuery:
     def __init__(
         self,
         point_attr: str,
-        operator: Callable,
+        operator: Callable[..., Any],
         rhs: Any,
-        test: Callable,
-        path_resolver: Callable,
+        test: Callable[..., bool],
+        path_resolver: Callable[..., Union[int, float, str, None]],
         hashval: Optional[Tuple],
     ) -> None:
         """Initialize an SimpleQuery.
@@ -292,16 +264,14 @@ class SimpleQuery:
         else:
             return "SimpleQuery()"
 
-    def __eq__(self, other: object):
+    def __eq__(self, other: object) -> bool:
         """Test equality of this SimpleQuery and another object."""
         if isinstance(other, SimpleQuery) and self._hash and other._hash:
             return self._hash == other._hash
         else:
             return False
 
-    def __and__(
-        self, other: Union["SimpleQuery", "CompoundQuery"]
-    ) -> "CompoundQuery":
+    def __and__(self, other: Query) -> "CompoundQuery":
         """Combine this query with another using logical-AND.
 
         Args:
@@ -310,16 +280,14 @@ class SimpleQuery:
         Returns:
             A CompoundQuery instance.
         """
-        if self.is_cacheable() and other.is_cacheable():
+        if self.is_hashable() and other.is_hashable():
             hashval = ("and", frozenset([self._hash, other._hash]))
         else:
             hashval = None
 
         return CompoundQuery(self, other, operator.and_, hashval)
 
-    def __or__(
-        self, other: Union["SimpleQuery", "CompoundQuery"]
-    ) -> "CompoundQuery":
+    def __or__(self, other: Query) -> "CompoundQuery":
         """Combine this query with another using logical-OR.
 
         Args:
@@ -328,7 +296,7 @@ class SimpleQuery:
         Returns:
             A CompoundQuery instance.
         """
-        if self.is_cacheable() and other.is_cacheable():
+        if self.is_hashable() and other.is_hashable():
             hashval = ("or", frozenset([self._hash, other._hash]))
         else:
             hashval = None
@@ -341,14 +309,14 @@ class SimpleQuery:
         Returns:
             A CompoundQuery instance.
         """
-        if self.is_cacheable():
+        if self.is_hashable():
             hashval = ("not", self._hash)
         else:
             hashval = None
 
         return CompoundQuery(self, None, operator.not_, hashval)
 
-    def is_cacheable(self) -> bool:
+    def is_hashable(self) -> bool:
         """Return the ability to hash this query."""
         return self._hash is not None
 
@@ -359,8 +327,8 @@ class BaseQuery:
     A query type that explicity unifies the divergent interfaces of TimeQuery,
     MeasurementQuery, TagQuery, and FieldQuery.
 
-    A BaseQuery raises an exception when called. When it is combined with test
-    logic, it generates a SimpleQuery, which is callable without exception.
+    A BaseQuery is not iteslf callable. When it is combined with test logic,
+    it generates a SimpleQuery, which is callable without exception.
 
     Usage:
         >>> from tinyflux import TagQuery, Point
@@ -390,13 +358,6 @@ class BaseQuery:
         self._path: Tuple[Union[str, Callable], ...] = ()
         self._path_required = False
         self._hash: Optional[Tuple] = None
-
-    def __call__(self, value: Any = None) -> None:
-        """Raise a RuntimeError Exception.
-
-        A BaseQuery is not callable.
-        """
-        raise RuntimeError("Empty query was evaluated.")
 
     def __repr__(self):
         """Return printable representation of BaseQuery."""
@@ -429,7 +390,7 @@ class BaseQuery:
         query._point_attr = self._point_attr
         query._path_required = self._path_required
         query._path = self._path + (item,)
-        query._hash = ("path", query._path) if self.is_cacheable() else None
+        query._hash = ("path", query._path) if self.is_hashable() else None
 
         return query
 
@@ -455,7 +416,7 @@ class BaseQuery:
 
     def _generate_simple_query(
         self,
-        operator: Callable,
+        operator: Callable[..., Any],
         test_against_rhs: bool,
         rhs: Any,
         args: Any,
@@ -516,7 +477,7 @@ class BaseQuery:
         ):
             raise TypeError("FieldQuery comparison value must be numeric.")
 
-        def test(x):
+        def test(x: Any) -> bool:
             """The test function from an operator and righthand side."""
             if not test_against_rhs:
                 return operator(x, *args) if args else operator(x)
@@ -529,8 +490,12 @@ class BaseQuery:
             except Exception:
                 return False
 
-        def path_resolver(value):
-            """Get the correct value from an object to execute a test upon."""
+        def path_resolver(value: Any) -> Any:
+            """Get the correct value from an object to execute a test upon.
+
+            Raises:
+                Exception if the path cannot be resolved.
+            """
             try:
                 # Resolve path for mappings.
                 for part in self._path:
@@ -554,7 +519,7 @@ class BaseQuery:
             rhs=rhs,
             test=test,
             path_resolver=path_resolver,
-            hashval=hashval if self.is_cacheable() else None,
+            hashval=hashval if self.is_hashable() else None,
         )
 
     def __eq__(self, rhs: Any) -> SimpleQuery:  # type: ignore
@@ -716,7 +681,7 @@ class BaseQuery:
             hashval=(self._point_attr, "test", self._path, func, args),
         )
 
-    def is_cacheable(self) -> bool:
+    def is_hashable(self) -> bool:
         """Return hash is not empty."""
         return self._hash is not None
 
@@ -730,7 +695,7 @@ class BaseQuery:
             flags: Regex flags to pass to re.match.
         """
 
-        def test(value):
+        def test(value: Any) -> bool:
             """Test function."""
             return re.match(regex, value, flags) is not None
 
@@ -752,7 +717,7 @@ class BaseQuery:
             flags: Regex flags to pass to re.match.
         """
 
-        def test(value):
+        def test(value: Any) -> bool:
             """Test function."""
             return re.search(regex, value, flags) is not None
 
@@ -764,13 +729,13 @@ class BaseQuery:
             hashval=(self._point_attr, "search", self._path, regex),
         )
 
-    def noop(self):
+    def noop(self) -> SimpleQuery:
         """Evaluate to True.
 
         Useful for having a base value when composing queries dynamically.
         """
         return SimpleQuery(
-            point_attr=self._point_attr,
+            point_attr=self._point_attr or "",
             operator=lambda _: True,
             rhs=None,
             test=lambda _: True,
@@ -828,7 +793,7 @@ class TagQuery(BaseQuery):
             test_against_rhs=False,
             rhs=None,
             args=None,
-            hashval=("TagQuery", "exists", self._path),
+            hashval=(self._point_attr, "exists", self._path),
         )
 
 
@@ -860,7 +825,7 @@ class FieldQuery(BaseQuery):
             test_against_rhs=False,
             rhs=None,
             args=None,
-            hashval=("FieldQuery", "exists", self._path),
+            hashval=(self._point_attr, "exists", self._path),
         )
 
     def matches(self, regex: str, flags: int = 0) -> SimpleQuery:

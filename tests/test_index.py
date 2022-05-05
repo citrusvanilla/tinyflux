@@ -59,7 +59,7 @@ def test_build():
     index = Index()
     assert index.empty
 
-    index.build()
+    index.build([])
     assert index.empty
 
     index.build([Point(time=t1), Point(time=t1)])

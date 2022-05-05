@@ -10,7 +10,7 @@ Usage:
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import (
     Callable,
     Iterable,
@@ -22,7 +22,7 @@ from typing import (
 )
 
 from .point import Point
-from .queries import CompoundQuery, MeasurementQuery, SimpleQuery
+from .queries import MeasurementQuery, Query, SimpleQuery
 from .index import Index
 from .storages import Storage
 
@@ -230,11 +230,11 @@ class Measurement:
 
     def update(
         self,
-        query: Union[SimpleQuery, CompoundQuery],
-        time: Optional[Union[datetime, Callable[[datetime], datetime]]] = None,
-        measurement: Optional[Union[str, Callable[[str], str]]] = None,
-        tags: Optional[Union[Mapping, Callable[[Mapping], Mapping]]] = None,
-        fields: Optional[Union[Mapping, Callable[[Mapping], Mapping]]] = None,
+        query: Query,
+        time: Union[datetime, Callable[[datetime], datetime], None] = None,
+        measurement: Union[str, Callable[[str], str], None] = None,
+        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
     ) -> int:
         """Update all matching Points in this measurement with new attributes.
 
@@ -254,10 +254,10 @@ class Measurement:
 
     def update_all(
         self,
-        time: Optional[Union[datetime, Callable[[datetime], datetime]]] = None,
-        measurement: Optional[Union[str, Callable[[str], str]]] = None,
-        tags: Optional[Union[Mapping, Callable[[Mapping], Mapping]]] = None,
-        fields: Optional[Union[Mapping, Callable[[Mapping], Mapping]]] = None,
+        time: Union[datetime, Callable[[datetime], datetime], None] = None,
+        measurement: Union[str, Callable[[str], str], None] = None,
+        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
     ) -> int:
         """Update all matching Points in this measurement with new attributes.
 

@@ -22,14 +22,14 @@ Usage:
 """
 
 from datetime import datetime, timezone
-from typing import Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Sequence, Union
 from typing_extensions import TypeAlias
 
 TagSet: TypeAlias = Dict[str, Optional[str]]
 FieldSet: TypeAlias = Dict[str, Optional[Union[int, float]]]
 
 
-def validate_tags(tags: TagSet) -> None:
+def validate_tags(tags: Any) -> None:
     """Validate tags.
 
     Args:
@@ -52,7 +52,7 @@ def validate_tags(tags: TagSet) -> None:
     return
 
 
-def validate_fields(fields: FieldSet) -> None:
+def validate_fields(fields: Any) -> None:
     """Validate fields.
 
     Args:
@@ -145,8 +145,10 @@ class Point:
         return self._time
 
     @time.setter
-    def time(self, value):
+    def time(self, value: Any):
         """Set time."""
+        if not isinstance(value, datetime):
+            raise ValueError("Time must be datetime object.")
         self._time = value
 
     @property
@@ -155,8 +157,10 @@ class Point:
         return self._measurement
 
     @measurement.setter
-    def measurement(self, value):
+    def measurement(self, value: Any):
         """Set measurement."""
+        if not isinstance(value, str):
+            raise ValueError("Measurement must be a string.")
         self._measurement = value
 
     @property
@@ -165,7 +169,7 @@ class Point:
         return self._tags
 
     @tags.setter
-    def tags(self, value):
+    def tags(self, value: Any):
         """Set tags."""
         validate_tags(value)
         self._tags = value
@@ -176,12 +180,12 @@ class Point:
         return self._fields
 
     @fields.setter
-    def fields(self, value):
+    def fields(self, value: Any):
         """Get fields."""
         validate_fields(value)
         self._fields = value
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any):
         """Define __eq__.
 
         Args:
@@ -244,7 +248,7 @@ class Point:
             ValueError: Deserializing encounters a bad type.
             RuntimeError: Deserializing encounters an unexpected column.
         """
-        p_time = datetime.fromisoformat(row[0])
+        p_time = datetime.fromisoformat(row[0]).replace(tzinfo=timezone.utc)
         p_measurement = None if row[1] == self._none_str else row[1]
 
         p_tags: TagSet = {}
@@ -298,7 +302,11 @@ class Point:
         Usage:
             >>> sp = Point()._serialize_to_list()
         """
-        t = self._time.isoformat() if self._time else self._none_str
+        t = (
+            self._time.replace(tzinfo=None).isoformat()
+            if self._time
+            else self._none_str
+        )
         m = str(self._measurement or self._none_str)
         tags = (
             (f"_tag_{k}", str(v) or self._none_str)
@@ -319,7 +327,7 @@ class Point:
 
         return row
 
-    def _validate_kwargs(self, kwargs):
+    def _validate_kwargs(self, kwargs) -> None:
         """Validate args and kwargs.
 
         Helper function validates types of 'time' and 'measurement' arguments.
@@ -349,7 +357,7 @@ class Point:
         if "measurement" in kwargs and not isinstance(
             kwargs["measurement"], str
         ):
-            raise ValueError("Measurement must be str.")
+            raise ValueError("Measurement must be a string.")
 
         # check
         if "tags" in kwargs:
