@@ -1,5 +1,5 @@
 """Tests for tinyflux.index module."""
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import pytest
 
 from tinyflux import Point, FieldQuery, TagQuery, MeasurementQuery, TimeQuery
@@ -8,7 +8,7 @@ from tinyflux.index import Index
 
 def test_repr():
     """Test __repr__ of Index."""
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
     index = Index()
 
     assert repr(index) == "<Index _tags=0, _measurements=0, _timestamps=0>"
@@ -41,9 +41,9 @@ def test_initialize_empty_index():
 
 def test_build():
     """Test building an Index."""
-    t1 = datetime.utcnow()
-    t2 = datetime.utcnow() + timedelta(seconds=1)
-    t3 = datetime.utcnow() + timedelta(seconds=2)
+    t1 = datetime.now(timezone.utc)
+    t2 = datetime.now(timezone.utc) + timedelta(seconds=1)
+    t3 = datetime.now(timezone.utc) + timedelta(seconds=2)
 
     p1 = Point(time=t1, tags={"city": "la"})
     p2 = Point(
@@ -92,7 +92,7 @@ def test_build():
 def test_empty_property():
     """Test is_empty property of Index."""
     index = Index()
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
     assert index.empty
 
     index.build([Point(time=t) for _ in range(10)])
@@ -108,7 +108,7 @@ def test_empty_property():
 def test_update():
     """Test update method of Index."""
     index = Index()
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
 
     index.insert([Point(time=t), Point(time=t)])
     assert index._num_items == 2
@@ -121,11 +121,11 @@ def test_insert_time_method():
     """Test _insert_time helper of Index."""
     index = Index()
 
-    t1 = datetime.utcnow()
+    t1 = datetime.now(timezone.utc)
     index._insert_time(t1)
     assert index._timestamps == [t1.timestamp()]
 
-    t2 = datetime.utcnow()
+    t2 = datetime.now(timezone.utc)
     index._insert_time(t2)
     assert index._timestamps == [t1.timestamp(), t2.timestamp()]
 
@@ -172,7 +172,7 @@ def test_insert_fields_method():
 def test_reset_method():
     """Test reset of Index."""
     index = Index()
-    index.insert([Point(time=datetime.utcnow())])
+    index.insert([Point(time=datetime.now(timezone.utc))])
     assert not index.empty
 
     index._reset()
@@ -210,14 +210,14 @@ def test_search_measurement_query():
     assert index._measurements == {"_default": [0, 2], "cities": [1]}
 
     index_rst = index.search(q)
-    assert index_rst.items == [0, 2]
+    assert index_rst.items == {0, 2}
     assert index_rst.is_complete
 
 
 def test_search_time_query():
     """Test search_query of Index on TimeQuery."""
     index = Index()
-    t_now = datetime.utcnow()
+    t_now = datetime.now(timezone.utc)
 
     t0 = t_now - timedelta(days=3)
     t1 = t_now - timedelta(days=2)
@@ -236,56 +236,56 @@ def test_search_time_query():
 
     # Less than or equal.
     q = TimeQuery() <= t0
-    assert index.search(q).items == []
+    assert index.search(q).items == set({})
     assert index.search(q).is_complete
     q = TimeQuery() <= t1
-    assert index.search(q).items == [0]
+    assert index.search(q).items == {0}
     q = TimeQuery() <= t4
-    assert index.search(q).items == [0, 1, 2, 3]
+    assert index.search(q).items == {0, 1, 2, 3}
 
     # Less than.
     q = TimeQuery() < t1
-    assert index.search(q).items == []
+    assert index.search(q).items == set({})
     q = TimeQuery() < t3
-    assert index.search(q).items == [0, 1]
+    assert index.search(q).items == {0, 1}
 
     # Greater than or equal.
     q = TimeQuery() >= t1
-    assert index.search(q).items == [0, 1, 2, 3, 4]
+    assert index.search(q).items == {0, 1, 2, 3, 4}
     q = TimeQuery() >= t3
-    assert index.search(q).items == [2, 3, 4]
+    assert index.search(q).items == {2, 3, 4}
     q = TimeQuery() >= t6
-    assert index.search(q).items == []
+    assert index.search(q).items == set({})
 
     # Greater than.
     q = TimeQuery() > t2
-    assert index.search(q).items == [2, 3, 4]
+    assert index.search(q).items == {2, 3, 4}
     q = TimeQuery() > t5
-    assert index.search(q).items == []
+    assert index.search(q).items == set({})
 
     # Equal to.
     q = TimeQuery() == t1
-    assert index.search(q).items == [0]
+    assert index.search(q).items == {0}
     q = TimeQuery() == t3
-    assert index.search(q).items == [2, 3]
+    assert index.search(q).items == {2, 3}
     q = TimeQuery() == t6
-    assert index.search(q).items == []
+    assert index.search(q).items == set({})
 
     # Not equal to.
     q = TimeQuery() != t2
-    assert index.search(q).items == [0, 2, 3, 4]
+    assert index.search(q).items == {0, 2, 3, 4}
     q = TimeQuery() != t3
-    assert index.search(q).items == [0, 1, 4]
+    assert index.search(q).items == {0, 1, 4}
     q = TimeQuery() != t6
-    assert index.search(q).items == [0, 1, 2, 3, 4]
+    assert index.search(q).items == {0, 1, 2, 3, 4}
 
     # Other type of test.
     q = TimeQuery().test(lambda x: x != t2)
-    assert index.search(q).items == [0, 2, 3, 4]
+    assert index.search(q).items == {0, 2, 3, 4}
     q = TimeQuery().test(lambda x: x != t3)
-    assert index.search(q).items == [0, 1, 4]
+    assert index.search(q).items == {0, 1, 4}
     q = TimeQuery().test(lambda x: x != t6)
-    assert index.search(q).items == [0, 1, 2, 3, 4]
+    assert index.search(q).items == {0, 1, 2, 3, 4}
 
 
 def test_search_tags_query():
@@ -303,35 +303,35 @@ def test_search_tags_query():
     }
 
     rst = index.search(TagQuery().city == "la")
-    assert rst.items == [0]
+    assert rst.items == {0}
     assert rst.is_complete
 
     rst = index.search(TagQuery().city != "la")
-    assert rst.items == [1, 2]
+    assert rst.items == {1, 2}
     assert rst.is_complete
 
     rst = index.search(TagQuery().city == "sf")
-    assert rst.items == [1, 2]
+    assert rst.items == {1, 2}
     assert rst.is_complete
 
     rst = index.search(TagQuery().city != "sf")
-    assert rst.items == [0]
+    assert rst.items == {0}
     assert rst.is_complete
 
     rst = index.search(TagQuery().state == "ca")
-    assert rst.items == [0, 1]
+    assert rst.items == {0, 1}
     assert rst.is_complete
 
     rst = index.search(TagQuery().state != "ca")
-    assert rst.items == []
+    assert rst.items == set({})
     assert rst.is_complete
 
     rst = index.search(TagQuery().neighborhood == "dtla")
-    assert rst.items == [3]
+    assert rst.items == {3}
     assert rst.is_complete
 
     rst = index.search(TagQuery().neighborhood != "dtla")
-    assert rst.items == []
+    assert rst.items == set({})
     assert rst.is_complete
 
 
@@ -347,34 +347,34 @@ def test_search_field_query():
 
     # Queries.
     rst = index.search(FieldQuery().temp == 70.0)
-    assert rst.items == [0, 1]
+    assert rst.items == {0, 1}
     assert not rst.is_complete
 
     rst = index.search(FieldQuery().temp != 70.0)
-    assert rst.items == [0, 1]
+    assert rst.items == {0, 1}
     assert not rst.is_complete
 
     rst = index.search(FieldQuery().pop >= 10000000)
-    assert rst.items == [2]
+    assert rst.items == {2}
     assert not rst.is_complete
 
     rst = index.search(FieldQuery().pop > 40000000)
-    assert rst.items == [2]
+    assert rst.items == {2}
     assert not rst.is_complete
 
     rst = index.search(FieldQuery().pop < 1000)
-    assert rst.items == [2]
+    assert rst.items == {2}
     assert not rst.is_complete
 
     rst = index.search(FieldQuery().pop <= 1000)
-    assert rst.items == [2]
+    assert rst.items == {2}
     assert not rst.is_complete
 
 
 def test_search_compound_query_not():
     """Test search_query of Index on compound 'not' queries."""
     # Some timestamps.
-    t_now = datetime.utcnow()
+    t_now = datetime.now(timezone.utc)
 
     # Some points.
     p1 = Point(
@@ -396,35 +396,35 @@ def test_search_compound_query_not():
 
     # Measurement query.
     rst = index.search(~meas_q)
-    assert rst.items == [0, 1]
+    assert rst.items == {0, 1}
     assert rst.is_complete
 
     # Field query. Note for Field Queries, a NOT operator means we have to
     # check every single item in the storage layer.
     rst = index.search(~fiel_q)
-    assert rst.items == [0, 1]
+    assert rst.items == {0, 1}
     assert not rst.is_complete
 
     # Compount NOT FieldQuery.
     rst = index.search(~fiel_q & tags_q)
-    assert rst.items == [0]
+    assert rst.items == {0}
     assert not rst.is_complete
 
     # Time query.
     rst = index.search(~time_q)
-    assert rst.items == [0]
+    assert rst.items == {0}
     assert rst.is_complete
 
     # Tag query.
     rst = index.search(~tags_q)
-    assert rst.items == [1]
+    assert rst.items == {1}
     assert rst.is_complete
 
 
 def test_search_compound_query_and():
     """Test search_query of Index on compound 'and' queries."""
     # Some timestamps.
-    t_now = datetime.utcnow()
+    t_now = datetime.now(timezone.utc)
 
     # Some points.
     p1 = Point(
@@ -458,39 +458,39 @@ def test_search_compound_query_and():
 
     # Measurement and Field.
     rst = index.search(meas_q & fiel_q)
-    assert rst.items == [0, 2]
+    assert rst.items == {0, 2}
     assert not rst.is_complete
 
     # Measurement and Time.
     rst = index.search(meas_q & time_q)
-    assert rst.items == [2]
+    assert rst.items == {2}
     assert rst.is_complete
 
     # Measurement and Tags.
     rst = index.search(meas_q & tags_q)
-    assert rst.items == [0, 2]
+    assert rst.items == {0, 2}
     assert rst.is_complete
 
     # Field and Time.
     rst = index.search(fiel_q & time_q)
-    assert rst.items == [2]
+    assert rst.items == {2}
     assert not rst.is_complete
 
     # Field and Tags.
     rst = index.search(fiel_q & tags_q)
-    assert rst.items == [0, 2]
+    assert rst.items == {0, 2}
     assert not rst.is_complete
 
     # Time and Tags.
     rst = index.search(time_q & tags_q)
-    assert rst.items == [2]
+    assert rst.items == {2}
     assert rst.is_complete
 
 
 def test_search_compound_query_or():
     """Test search_query of Index on compound 'or' queries."""
     # Some timestamps.
-    t_now = datetime.utcnow()
+    t_now = datetime.now(timezone.utc)
 
     # Some points.
     p1 = Point(
@@ -524,30 +524,30 @@ def test_search_compound_query_or():
 
     # Measurement or Field.
     rst = index.search(meas_q | fiel_q)
-    assert rst.items == [0, 2]
+    assert rst.items == {0, 2}
     assert not rst.is_complete
 
     # Measurement or Time.
     rst = index.search(meas_q | time_q)
-    assert rst.items == [0, 2]
+    assert rst.items == {0, 2}
     assert rst.is_complete
 
     # Measurement or Tags.
     rst = index.search(meas_q | tags_q)
-    assert rst.items == [0, 2]
+    assert rst.items == {0, 2}
     assert rst.is_complete
 
     # Field or Time.
     rst = index.search(fiel_q | time_q)
-    assert rst.items == [0, 2]
+    assert rst.items == {0, 2}
     assert not rst.is_complete
 
     # Field or Tags.
     rst = index.search(fiel_q | tags_q)
-    assert rst.items == [0, 2]
+    assert rst.items == {0, 2}
     assert not rst.is_complete
 
     # Time or Tags.
     rst = index.search(time_q | tags_q)
-    assert rst.items == [0, 2]
+    assert rst.items == {0, 2}
     assert rst.is_complete

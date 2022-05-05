@@ -13,7 +13,7 @@ Usage:
 
 >>> from tinyflux import Point
 >>> p = Point(
-        time=datetime.utcnow(),
+        time=datetime.now(timezone.utc),
         measurement="my measurement",
         fields={"my field": 123.45},
         tags={"my tag key": "my tag value"}
@@ -21,7 +21,7 @@ Usage:
 
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Mapping, Optional, Sequence, Union
 from typing_extensions import TypeAlias
 
@@ -87,7 +87,7 @@ class Point:
 
     Usage:
         >>> p = Point(
-                time=datetime.utcnow(),
+                time=datetime.now(timezone.utc),
                 measurement="my measurement",
                 fields={"my field": 123.45},
                 tags={"my tag key": "my tag value"}
@@ -127,7 +127,7 @@ class Point:
         if kwargs:
             self._validate_kwargs(kwargs)
 
-            self._time = kwargs.get("time", datetime.utcnow())
+            self._time = kwargs.get("time", datetime.now(timezone.utc))
             self._measurement = kwargs.get(
                 "measurement", self.default_measurement_name
             )

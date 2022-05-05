@@ -1,6 +1,6 @@
 """Tests for the tinyflux.queries module."""
 import operator
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from itertools import combinations
 
 import pytest
@@ -32,7 +32,7 @@ def test_init():
 def test_repr():
     """Test __repr__ of a query."""
     # SimpleQuery
-    t1 = datetime.utcnow()
+    t1 = datetime.now(timezone.utc)
 
     q1 = TagQuery().city == "los angeles"
     q2 = FieldQuery().temperature <= 70.0
@@ -182,7 +182,7 @@ def test_eq():
     assert hash(measurement_q)
 
     # Test for time.
-    time_now = datetime.utcnow()
+    time_now = datetime.now(timezone.utc)
     time_q = TimeQuery() == time_now
     assert time_q(Point(time=time_now))
     assert not time_q(Point(time=time_now - timedelta(days=1)))
@@ -214,7 +214,7 @@ def test_ne():
     assert hash(measurement_q)
 
     # Test for time.
-    time_now = datetime.utcnow()
+    time_now = datetime.now(timezone.utc)
     time_q = TimeQuery() != time_now
     assert time_q(Point(time=time_now - timedelta(days=1)))
     assert not time_q(Point(time=time_now))
@@ -246,7 +246,7 @@ def test_lt():
     assert hash(measurement_q)
 
     # Test for time.
-    time_now = datetime.utcnow()
+    time_now = datetime.now(timezone.utc)
     time_q = TimeQuery() < time_now
     assert time_q(Point(time=time_now - timedelta(days=1)))
     assert not time_q(Point(time=time_now))
@@ -278,7 +278,7 @@ def test_le():
     assert hash(measurement_q)
 
     # Test for time.
-    time_now = datetime.utcnow()
+    time_now = datetime.now(timezone.utc)
     time_q = TimeQuery() <= time_now
     assert time_q(Point(time=time_now))
     assert not time_q(Point(time=time_now + timedelta(days=1)))
@@ -310,7 +310,7 @@ def test_gt():
     assert hash(measurement_q)
 
     # Test for time.
-    time_now = datetime.utcnow()
+    time_now = datetime.now(timezone.utc)
     time_q = TimeQuery() > time_now
     assert time_q(Point(time=time_now + timedelta(days=1)))
     assert not time_q(Point(time=time_now))
@@ -342,7 +342,7 @@ def test_ge():
     assert hash(measurement_q)
 
     # Test for time.
-    time_now = datetime.utcnow()
+    time_now = datetime.now(timezone.utc)
     time_q = TimeQuery() >= time_now
     assert time_q(Point(time=time_now))
     assert not time_q(Point(time=time_now - timedelta(days=1)))
@@ -389,8 +389,8 @@ def test_or():
     assert hash(q3)
 
     # Test time query.
-    t1 = datetime.utcnow() - timedelta(days=365 * 1)
-    t2 = datetime.utcnow() + timedelta(days=365 * 1)
+    t1 = datetime.now(timezone.utc) - timedelta(days=365 * 1)
+    t2 = datetime.now(timezone.utc) + timedelta(days=365 * 1)
     q1, q2 = TimeQuery() <= t1, TimeQuery() >= t2
     q3 = q1 | q2
     assert q3(Point(time=t1))
@@ -440,11 +440,11 @@ def test_and():
     assert hash(q3)
 
     # Test time query.
-    t1 = datetime.utcnow() - timedelta(days=365 * 1)
-    t2 = datetime.utcnow() + timedelta(days=365 * 1)
+    t1 = datetime.now(timezone.utc) - timedelta(days=365 * 1)
+    t2 = datetime.now(timezone.utc) + timedelta(days=365 * 1)
     q1, q2 = TimeQuery() >= t1, TimeQuery() <= t2
     q3 = q1 & q2
-    assert q3(Point(time=datetime.utcnow()))
+    assert q3(Point(time=datetime.now(timezone.utc)))
     assert not q3(Point(time=t1 + timedelta(days=365 * 10)))
     assert not q3(Point(time=t1 - timedelta(days=365 * 10)))
     assert hash(q3)
@@ -481,7 +481,7 @@ def test_not():
     assert hash(q2)
 
     # Time
-    t1 = datetime.utcnow()
+    t1 = datetime.now(timezone.utc)
     q1 = TimeQuery() == t1
     q2 = ~q1
     assert q2(Point(time=t1 - timedelta(days=1)))
@@ -575,7 +575,7 @@ def test_hash():
     q1 = TagQuery().a == "b"
     q2 = FieldQuery().t >= 0.0
     q3 = MeasurementQuery() == "m"
-    q4 = TimeQuery() != datetime.utcnow()
+    q4 = TimeQuery() != datetime.now(timezone.utc)
 
     s = {q1, q2, q3, q4}
 
@@ -595,7 +595,7 @@ def test_hash():
         assert p1 in s
         assert p2 in s
 
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
     q1, q2 = TimeQuery() == t, TimeQuery() > t
     q3 = q1 & q2
     q4 = q2 & q1

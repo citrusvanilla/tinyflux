@@ -1,6 +1,6 @@
 """Tests for the tinyflux.storages module."""
 import csv
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import os
 import random
 import re
@@ -10,6 +10,7 @@ from typing import Callable
 import pytest
 
 from tinyflux import TinyFlux, Point
+from tinyflux import storages
 from tinyflux.queries import TagQuery
 from tinyflux.storages import CSVStorage, MemoryStorage, Storage
 
@@ -48,7 +49,7 @@ def test_csv_modes(tmpdir):
     append_ops = [("insert", (p,)), ("insert_multiple", ([p],))]
 
     # Test read only.
-    read_only_db = TinyFlux(path, access_mode="r")
+    read_only_db = TinyFlux(path, auto_index=False, access_mode="r")
 
     for i, args in read_ops:
         read_only_db.__getattribute__(i)(*args)
@@ -62,7 +63,7 @@ def test_csv_modes(tmpdir):
             read_only_db.__getattribute__(i)(*args)
 
     # Test append only.
-    read_only_db = TinyFlux(path, access_mode="a")
+    read_only_db = TinyFlux(path, auto_index=False, access_mode="a")
 
     for i, args in read_ops:
         with pytest.raises(IOError):
@@ -84,7 +85,7 @@ def test_csv_write_read(tmpdir):
 
     data = [
         Point(
-            time=datetime.utcnow(),
+            time=datetime.now(timezone.utc),
             tags={
                 "city": "los angeles",
                 "neighborhood": "chinatown",
@@ -108,7 +109,7 @@ def test_csv_kwargs(tmpdir):
 
     # Write contents.
     p1 = Point(
-        time=datetime.utcnow(),
+        time=datetime.now(timezone.utc),
         tags={"city": "los angeles"},
         fields={"temp_f": 71.2},
     )
@@ -118,50 +119,12 @@ def test_csv_kwargs(tmpdir):
     data = open(dbfile).read()
 
     assert re.fullmatch(
-        r"[0-9-]{5,}T[0-9.:]{7,}"
+        r"[0-9-]{10}T[0-9.:]{8,}[-+]{1}[0-9:]{5}"
         r"\|_default"
         r"\|_tag_city\|los angeles"
         r"\|_field_temp_f\|71.2",
         data.strip(),
     )
-
-
-def test_writes_on_read_only_csv(tmpdir):
-    """Test writing to a CSV opened in read-only mode."""
-    dbfile = os.path.join(tmpdir, "test.csv")
-
-    # Write to a CSV.
-    db = TinyFlux(str(dbfile))
-    p1 = Point(
-        time=datetime.utcnow(),
-        tags={"city": "los angeles"},
-        fields={"temp_f": 71.2},
-    )
-    db.insert(p1)
-    db.close()
-
-    # Open the CSV in read-only mode.
-    db = TinyFlux(str(dbfile), access_mode="r")
-
-    assert db.get(TagQuery().city == "los angeles") == p1
-
-    with pytest.raises(IOError):
-        db.insert(Point())
-
-    with pytest.raises(IOError):
-        db.update(TagQuery().noop(), measurement="test")
-
-    with pytest.raises(IOError):
-        db.remove(TagQuery().city == "los angeles")
-
-    with pytest.raises(IOError):
-        db.remove_all()
-
-    with pytest.raises(IOError):
-        db.drop_measurement("_default")
-
-    with pytest.raises(IOError):
-        db.drop_measurements()
 
 
 def test_create_dirs():
@@ -200,7 +163,7 @@ def test_in_memory_writes():
     # Write contents
     storage = MemoryStorage()
     p1 = Point(
-        time=datetime.utcnow(),
+        time=datetime.now(timezone.utc),
         tags={
             "city": "los angeles",
             "neighborhood": "chinatown",
@@ -223,7 +186,7 @@ def test_in_memory_close():
     with TinyFlux(storage=MemoryStorage) as db:
         db.insert(
             Point(
-                time=datetime.utcnow(),
+                time=datetime.now(timezone.utc),
                 tags={
                     "city": "los angeles",
                     "neighborhood": "chinatown",
@@ -263,9 +226,6 @@ def test_subclassing_storage():
         def search(self):
             """Seach method."""
 
-        def sort_by_time(self):
-            """Reindex method."""
-
         def update(self, func, reindex):
             """Update method."""
 
@@ -296,7 +256,6 @@ def test_subclassing_storage():
 
     # Class properties that are not overridden.
     assert not s.index_intact
-    assert isinstance(s._index_sorter, Callable)
 
 
 def test_read_and_insert_count(mem_storage_with_counters):
@@ -363,9 +322,9 @@ def test_insert_out_of_time_order(tmpdir):
     path = os.path.join(tmpdir, "test.csv")
     db = TinyFlux(path, storage=CSVStorage)
 
-    t_past = datetime.utcnow() - timedelta(days=10)
-    t_present = datetime.utcnow()
-    t_future = datetime.utcnow() + timedelta(days=10)
+    t_past = datetime.now(timezone.utc) - timedelta(days=10)
+    t_present = datetime.now(timezone.utc)
+    t_future = datetime.now(timezone.utc) + timedelta(days=10)
 
     p_past = Point(time=t_past)
     p_present = Point(time=t_present)
@@ -395,9 +354,9 @@ def test_index_intact_csv(tmpdir):
     points_in_order = [
         Point(time=i)
         for i in (
-            datetime.utcnow() - timedelta(days=10),
-            datetime.utcnow(),
-            datetime.utcnow() + timedelta(days=10),
+            datetime.now(timezone.utc) - timedelta(days=10),
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc) + timedelta(days=10),
         )
     ]
 
@@ -436,9 +395,9 @@ def test_index_intact_memory():
     points_in_order = [
         Point(time=i)
         for i in (
-            datetime.utcnow() - timedelta(days=10),
-            datetime.utcnow(),
-            datetime.utcnow() + timedelta(days=10),
+            datetime.now(timezone.utc) - timedelta(days=10),
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc) + timedelta(days=10),
         )
     ]
 
@@ -469,9 +428,9 @@ def test_index_intact_memory():
 def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     """Test read/write counts for connecting to existing db with data."""
     # Some mock points.
-    p1 = Point(time=datetime.utcnow() - timedelta(days=10))
-    p2 = Point(time=datetime.utcnow())
-    p3 = Point(time=datetime.utcnow() + timedelta(days=10))
+    p1 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    p2 = Point(time=datetime.now(timezone.utc))
+    p3 = Point(time=datetime.now(timezone.utc) + timedelta(days=10))
 
     # Mock CSV store.  Insert points out of order.
     path = os.path.join(tmpdir, "test.csv")
@@ -496,14 +455,6 @@ def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     assert storage.write_count == 0
     assert not storage.index_intact
 
-    # Read with reindexing.
-    pts = [p1, p2, p3]
-    storage.sort_by_time()
-    assert storage.read() == pts
-    assert storage.reindex_count == 1
-    assert storage.write_count == 1
-    assert storage.index_intact
-
     storage.close()
 
     # Connect to empty CSV.
@@ -511,6 +462,9 @@ def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     empty_storage = csv_storage_with_counters(path)
     assert empty_storage.index_intact
     assert empty_storage.reindex_count == 0
+
+    empty_storage._write([])
+    assert empty_storage.write_count == 1
 
 
 def test_reindex_on_read_csv(tmpdir, csv_storage_with_counters):
@@ -522,9 +476,9 @@ def test_reindex_on_read_csv(tmpdir, csv_storage_with_counters):
     assert storage.index_intact
 
     # Some mock points.
-    p1 = Point(time=datetime.utcnow() - timedelta(days=10))
-    p2 = Point(time=datetime.utcnow())
-    p3 = Point(time=datetime.utcnow() + timedelta(days=10))
+    p1 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    p2 = Point(time=datetime.now(timezone.utc))
+    p3 = Point(time=datetime.now(timezone.utc) + timedelta(days=10))
 
     # First point in, should not change.
     storage.append([p2])
@@ -547,19 +501,12 @@ def test_reindex_on_read_csv(tmpdir, csv_storage_with_counters):
     assert storage.reindex_count == 0
     assert storage.write_count == 0
 
-    # Read contents with reindexing.
-    storage.sort_by_time()
-    assert storage.index_intact
-    assert storage.append_count == 3
-    assert storage.reindex_count == 1
-    assert storage.write_count == 1
-
     # Read contents again.  Nothing should be written.
     storage.read()
-    assert storage.index_intact
+    assert not storage.index_intact
     assert storage.append_count == 3
-    assert storage.reindex_count == 1
-    assert storage.write_count == 1
+    assert storage.reindex_count == 0
+    assert storage.write_count == 0
 
 
 def test_reindex_on_read_memory(mem_storage_with_counters):
@@ -570,9 +517,9 @@ def test_reindex_on_read_memory(mem_storage_with_counters):
     assert storage.index_intact
 
     # Some mock points.
-    p1 = Point(time=datetime.utcnow() - timedelta(days=10))
-    p2 = Point(time=datetime.utcnow())
-    p3 = Point(time=datetime.utcnow() + timedelta(days=10))
+    p1 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    p2 = Point(time=datetime.now(timezone.utc))
+    p3 = Point(time=datetime.now(timezone.utc) + timedelta(days=10))
 
     # First point in, should not change.
     storage.append([p2])
@@ -600,13 +547,6 @@ def test_reindex_on_read_memory(mem_storage_with_counters):
     assert not storage.index_intact
     assert storage.append_count == 3
     assert storage.reindex_count == 0
-    assert storage.write_count == 0
-
-    # Reindex. One write should be performed.
-    storage.sort_by_time()
-    assert storage.index_intact
-    assert storage.append_count == 3
-    assert storage.reindex_count == 1
     assert storage.write_count == 0
 
 
@@ -623,7 +563,7 @@ def test_multiple_appends(
     assert storage.reindex_count == 0
 
     # Append a bunch of points in-order. No reads should be performed.
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
 
     for i in range(10):
         storage.append([Point(time=t)])
@@ -635,8 +575,8 @@ def test_multiple_appends(
     storage.close()
 
     # Some mock points.
-    p1 = Point(time=datetime.utcnow() - timedelta(days=10))
-    p2 = Point(time=datetime.utcnow())
+    p1 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    p2 = Point(time=datetime.now(timezone.utc))
 
     # Mock CSV store.  Insert points out of order.
     path = os.path.join(tmpdir, "test.csv")
@@ -676,7 +616,7 @@ def test_multiple_reads(
     """Test read/write counts for multiple reads in a row."""
     # Mock CSV store.  Insert points in order.
     path = os.path.join(tmpdir, "test.csv")
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
 
     with open(path, "w") as f:
         w = csv.writer(f)
@@ -705,7 +645,7 @@ def test_multiple_reads(
             w.writerow(Point(time=t)._serialize_to_list())
         w.writerow(
             Point(
-                time=datetime.utcnow() - timedelta(days=365)
+                time=datetime.now(timezone.utc) - timedelta(days=365)
             )._serialize_to_list()
         )
 
@@ -748,3 +688,49 @@ def test_read_on_empty_file(tmpdir, csv_storage_with_counters):
     # Read and assert empty list.
     assert storage.read() == []
     assert storage.read() == []
+
+
+def test_deserialization(tmpdir):
+    """ """
+    path = os.path.join(tmpdir, "test.csv")
+    db = TinyFlux(path)
+
+    t = datetime.now(timezone.utc)
+    p = Point(time=t, measurement="a")
+    db.insert(p)
+
+    serialized_point = db.storage._serialize_point(p)
+
+    assert db.storage._deserialize_measurement(serialized_point) == "a"
+    assert db.storage._deserialize_timestamp(serialized_point) == t
+    assert db.storage._deserialize_storage_item(serialized_point) == p
+
+    db = TinyFlux(storage=MemoryStorage)
+
+    db.insert(p)
+
+    serialized_point = db.storage._serialize_point(p)
+
+    assert db.storage._deserialize_measurement(serialized_point) == "a"
+    assert db.storage._deserialize_timestamp(serialized_point) == t
+    assert db.storage._deserialize_storage_item(serialized_point) == p
+
+
+def test_is_sorted(tmpdir):
+    """ """
+    # CSV DB.
+    path = os.path.join(tmpdir, "test.csv")
+    db = TinyFlux(path)
+    db.insert_multiple([Point(), Point()])
+
+    assert db.storage._is_sorted()
+    db.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=1)))
+    assert not db.storage._is_sorted()
+
+    # Memory DB.
+    db = TinyFlux(storage=MemoryStorage)
+    db.insert_multiple([Point(), Point()])
+
+    assert db.storage._is_sorted()
+    db.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=1)))
+    assert not db.storage._is_sorted()

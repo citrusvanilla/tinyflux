@@ -1,7 +1,7 @@
 """The main module of the TinyFlux package, containing the TinyFlux class."""
 import copy
 import gc
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import (
     Any,
     Callable,
@@ -71,6 +71,14 @@ class TinyFlux:
     def __init__(self, *args, **kwargs) -> None:
         """Initialize a new instance of TinyFlux.
 
+        If 'auto_index' is set to True, TinyFlux will check the storage layer
+        for sortedness, and re-sort if necessary. An index will then be built
+        in-memory for efficient querying.
+
+        Please note, this operation can take some time.  If you need to insert
+        into TinyFlux immediately after initializing the DB, set
+        'auto-index' to False.
+
         Args:
             auto_index: Reindexing of data will be performed automatically.
             storage: Class of Storage instance.
@@ -89,6 +97,10 @@ class TinyFlux:
         # Init references to measurements.
         self._measurements = {}
         self._open = True
+
+        # Reindex if auto_index is True.
+        if self._auto_index:
+            self.reindex()
 
     @property
     def storage(self) -> Storage:
@@ -217,7 +229,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # Not a candidate.
-                if i != index_rst._items[j]:
+                if i not in index_rst._items:
                     continue
 
                 # Candidate, evaluate.
@@ -296,7 +308,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # Not a candidate.
-                if i != index_rst._items[j]:
+                if i not in index_rst._items:
                     continue
 
                 # Candidate, evaluate.
@@ -403,7 +415,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # Not a candidate.
-                if i != index_rst._items[j]:
+                if i not in index_rst._items:
                     continue
 
                 # Candidate, no further evaluation necessary.
@@ -466,7 +478,7 @@ class TinyFlux:
 
         # Add time if not exists.
         if not point.time:
-            point.time = datetime.utcnow()
+            point.time = datetime.now(timezone.utc)
 
         # Update the measurement name if it doesn't match.
         if measurement and point.measurement != measurement:
@@ -498,7 +510,7 @@ class TinyFlux:
 
         # Return value.
         count = 0
-        t = datetime.utcnow()
+        t = datetime.now(timezone.utc)
 
         # Now, we update the table and add the document
         def updater(inp_points: List[Point]) -> None:
@@ -582,12 +594,41 @@ class TinyFlux:
             print("Index already valid.")
             return
 
-        # Check that storage is sorted. If not, sort.
-        if not self._storage._is_sorted():
-            self._storage.sort_by_time()
+        # A container for storage items.
+        temp_memory = []
+
+        last_timestamp = None
+        storage_is_sorted = True
+
+        for item in self._storage:
+
+            # Check to see if storage is sorted.
+            if storage_is_sorted:
+                _time = self._storage._deserialize_timestamp(item)
+
+                if last_timestamp and _time < last_timestamp:
+                    storage_is_sorted = False
+                else:
+                    last_timestamp = _time
+
+            # Add item to temp memory.
+            temp_memory.append(item)
+
+        # If storage wasn't sorted, sort and overwrite it.
+        if not storage_is_sorted:
+            temp_memory.sort(
+                key=lambda x: self._storage._deserialize_timestamp(x)
+            )
+            self._storage._write(temp_memory, True)
 
         # Build the index.
-        self._build_index()
+        self._index.build(
+            self._storage._deserialize_storage_item(i) for i in temp_memory
+        )
+
+        # Clean up temp memory.
+        del temp_memory
+        gc.collect()
 
         return
 
@@ -642,7 +683,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # No more candidates or item is not a candidate.
-                if j == len(index_rst._items) or i != index_rst._items[j]:
+                if j == len(index_rst._items) or i not in index_rst._items:
                     temp_memory.append(item)
 
                     # Add to updated_items if the item has a new position.
@@ -722,7 +763,9 @@ class TinyFlux:
                 key=lambda x: self._storage._deserialize_timestamp(x)
             )
             self._storage._write(temp_memory, True)
-            self._build_index()
+            self._index.build(
+                self._storage._deserialize_storage_item(i) for i in temp_memory
+            )
 
         # We are auto_indexing but storage was already sorted, update index.
         elif self._auto_index and self._index.valid:
@@ -794,7 +837,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # Not a candidate, skip.
-                if i != index_rst._items[j]:
+                if i not in index_rst._items:
                     continue
 
                 _point = self._storage._deserialize_storage_item(item)
@@ -886,23 +929,6 @@ class TinyFlux:
             True, TagQuery().noop(), time, measurement, tags, fields, None
         )
 
-    def _build_index(self):
-        """Build the Index instance.
-
-        This assumes the storage layer is sorted, so it should not be accessed
-        through public interface.  To check that the storage layer is indeed
-        sorted before building the index, use the 'reindex' method.
-        """
-        # Dump index.
-        self._index._reset()
-
-        # Build the index.
-        for item in self._storage:
-            _point = self._storage._deserialize_storage_item(item)
-            self._index.insert([_point])
-
-        return
-
     def _generate_updater(
         self, query=None, time=None, measurement=None, tags=None, fields=None
     ) -> Callable:
@@ -941,7 +967,7 @@ class TinyFlux:
             and not callable(measurement)
             and not isinstance(measurement, str)
         ):
-            raise ValueError("Measurement must be a string")
+            raise ValueError("Measurement must be a string.")
 
         if tags and not callable(tags):
             validate_tags(tags)
@@ -1102,7 +1128,7 @@ class TinyFlux:
             for i, item in enumerate(self._storage):
 
                 # Not a query match, pass item through.
-                if j == len(index_rst.items) or i != index_rst._items[j]:
+                if j == len(index_rst.items) or i not in index_rst._items:
                     temp_memory.append(item)
                     continue
 
@@ -1192,7 +1218,9 @@ class TinyFlux:
 
         # If any item was updated, rebuild the in-memory index.
         if self._auto_index:
-            self._build_index()
+            self._index.build(
+                self._storage._deserialize_storage_item(i) for i in temp_memory
+            )
 
         # Clean up temp memory.
         del temp_memory

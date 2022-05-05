@@ -1,12 +1,12 @@
 """Tests for the tinyflux.point module."""
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import pytest
 from tinyflux.point import Point, validate_tags, validate_fields
 
 
 def test_repr():
     """Test the repr method of Point class."""
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
     t_str = t.isoformat()
 
     p = Point(
@@ -49,7 +49,7 @@ def test_args_and_kwargs():
 
     with pytest.raises(TypeError):
         Point(
-            time=datetime.utcnow(),
+            time=datetime.now(timezone.utc),
             tags={},
             fields={},
             measurement="",
@@ -96,14 +96,14 @@ def test_validate_fields():
 def test_time():
     """Test Point time attribute."""
     p = Point()
-    t = datetime.utcnow() - timedelta(days=1)
+    t = datetime.now(timezone.utc) - timedelta(days=1)
 
     assert p.time == p._time
     p.time = t
     assert p.time == p._time == t
 
     valid_values = [
-        datetime.utcnow(),
+        datetime.now(timezone.utc),
         datetime.strptime("01-01-2000 00:00:00", "%m-%d-%Y %H:%M:%S"),
         datetime.strptime("01-01-3000 00:00:00", "%m-%d-%Y %H:%M:%S"),
     ]
@@ -150,10 +150,10 @@ def test_tags():
     invalid_values = [
         123.22,
         True,
-        datetime.utcnow(),
+        datetime.now(timezone.utc),
         {123: True},
         {True: True},
-        {datetime.utcnow(): "all good"},
+        {datetime.now(timezone.utc): "all good"},
         {tuple((1, 2)): "ok"},
         {"key": {"a": "b"}},
         {"a": True},
@@ -163,7 +163,7 @@ def test_tags():
     for i in invalid_values:
         with pytest.raises((ValueError, TypeError)):
             Point(
-                time=datetime.utcnow(),
+                time=datetime.now(timezone.utc),
                 tags=i,
                 fields={"num_restaurants": 10},
             )
@@ -185,7 +185,7 @@ def test_tags():
 
     points = [
         Point(
-            time=datetime.utcnow(),
+            time=datetime.now(timezone.utc),
             tags=i,
             fields={"num_restaurants": 10},
         )
@@ -202,10 +202,10 @@ def test_fields():
     invalid_values = [
         123.22,
         True,
-        datetime.utcnow(),
+        datetime.now(timezone.utc),
         {123: True},
         {True: True},
-        {datetime.utcnow(): "all good"},
+        {datetime.now(timezone.utc): "all good"},
         {tuple((1, 2)): "ok"},
         {"key": {"a": "b"}},
         {"a": True},
@@ -215,7 +215,7 @@ def test_fields():
     for i in invalid_values:
         with pytest.raises(ValueError):
             Point(
-                time=datetime.utcnow(),
+                time=datetime.now(timezone.utc),
                 tags={"key1", "value1"},
                 fields=i,
             )
@@ -236,7 +236,7 @@ def test_fields():
 
     points = [
         Point(
-            time=datetime.utcnow(),
+            time=datetime.now(timezone.utc),
             tags={"tag1": "value1"},
             fields=i,
         )
@@ -249,7 +249,7 @@ def test_fields():
 
 def test_points_are_equal():
     """Test the __eq__ method of Point class."""
-    time_now = datetime.utcnow()
+    time_now = datetime.now(timezone.utc)
 
     p1 = Point(
         time=time_now,
@@ -279,7 +279,7 @@ def test_points_are_equal():
 
 def test_serialize_point():
     """Test serializaiton of a Point object."""
-    time_now = datetime.utcnow()
+    time_now = datetime.now(timezone.utc)
     time_now_str = time_now.isoformat()
 
     p1 = Point(
@@ -324,7 +324,7 @@ def test_serialize_point():
 
 def test_deserialize_valid_point():
     """Test deserialization of a Point object."""
-    time_now = datetime.utcnow()
+    time_now = datetime.now(timezone.utc)
     time_now_str = time_now.isoformat()
 
     p_tuple = (

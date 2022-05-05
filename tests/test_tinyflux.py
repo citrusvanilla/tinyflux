@@ -3,7 +3,7 @@
 Tests are generally organized by TinyFlux class method.
 """
 import csv
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import os
 from pathlib import Path
 import re
@@ -63,7 +63,7 @@ def test_init(tmpdir):
 def test_len_with_index():
     """Test __len__ when auto_index is True."""
     db = TinyFlux(auto_index=True, storage=MemoryStorage)
-    t_now = datetime.utcnow()
+    t_now = datetime.now(timezone.utc)
 
     db.insert(Point(time=t_now))
     assert db._index.valid
@@ -89,7 +89,7 @@ def test_len_with_index():
 def test_len_without_index():
     """Test __len__ when auto_index is False."""
     db = TinyFlux(auto_index=False, storage=MemoryStorage)
-    t_now = datetime.utcnow()
+    t_now = datetime.now(timezone.utc)
 
     assert not len(db)
     db.insert(Point(time=t_now))
@@ -153,7 +153,7 @@ def test_repr(tmpdir: Path):
         repr(db),
     )
 
-    db.insert(Point(time=datetime.utcnow() - timedelta(days=365)))
+    db.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=365)))
 
     assert re.match(
         r"<TinyFlux " r"auto_index_ON=True, " r"index_valid=False>",
@@ -209,13 +209,14 @@ def test_contains():
     assert not db.contains(TagQuery().x == "z")
 
     # Test with valid index and incomplete index result.
+    assert db.remove(~TagQuery().a.exists())
     assert db.contains(FieldQuery().a > 0)
     assert not db.contains(FieldQuery().a > 10)
 
     # Test with invalid index.
     db.insert(
         Point(
-            time=datetime.utcnow() - timedelta(days=365),
+            time=datetime.now(timezone.utc) - timedelta(days=365),
             tags={"a": "c"},
             fields={"a": 100},
         )
@@ -234,7 +235,7 @@ def test_count():
     # Insert some points.
     db.insert(
         Point(
-            time=datetime.utcnow(),
+            time=datetime.now(timezone.utc),
             tags={"a": "b", "c": "d"},
             fields={"e": 1, "f": 2},
         )
@@ -242,7 +243,7 @@ def test_count():
 
     db.insert(
         Point(
-            time=datetime.utcnow(),
+            time=datetime.now(timezone.utc),
             tags={"a": "b", "c": "dd"},
             fields={"e": 1, "g": 3},
         )
@@ -262,7 +263,7 @@ def test_count():
     # Invalid index.
     db.insert(
         Point(
-            time=datetime.utcnow() - timedelta(days=365),
+            time=datetime.now(timezone.utc) - timedelta(days=365),
             tags={"a": "b", "c": "d"},
             fields={"e": 1, "f": 3},
         )
@@ -288,7 +289,10 @@ def test_drop_measurement():
 
     # Invalidate the index.
     db.insert(
-        Point(time=datetime.utcnow() - timedelta(days=365), measurement="m1")
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=365),
+            measurement="m1",
+        )
     )
     assert not db.index.valid
 
@@ -353,7 +357,7 @@ def test_get():
     assert not db.get(FieldQuery().b > 3)
 
     # Invalidate index.
-    db.insert(Point(time=datetime.utcnow() - timedelta(days=365)))
+    db.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=365)))
     assert not db.index.valid
 
     assert db.get(TagQuery().a == "C") == p3
@@ -395,7 +399,10 @@ def test_insert():
     assert len(db) == 2
 
     # Insert out-of-order.  Index should be invalid.
-    assert db.insert(Point(time=datetime.utcnow() - timedelta(days=1))) == 1
+    assert (
+        db.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=1)))
+        == 1
+    )
     assert not db.index.valid
     assert len(db.index) == 0
     assert len(db) == 3
@@ -422,7 +429,7 @@ def test_insert_on_existingdb(tmpdir):
     db.close()
 
     # Open it again. File is not empty, so index is invalid.
-    db = TinyFlux(path)
+    db = TinyFlux(path, auto_index=False)
     assert not db.index.valid
 
     # Insert points.
@@ -497,7 +504,10 @@ def test_measurements():
 
     # DB with points and invalid index.
     db.insert(
-        Point(measurement="a", time=datetime.utcnow() - timedelta(days=365))
+        Point(
+            measurement="a",
+            time=datetime.now(timezone.utc) - timedelta(days=365),
+        )
     )
     assert not db.index.valid
     assert db.measurements() == {"a", "_default"}
@@ -507,9 +517,9 @@ def test_measurements():
 def test_reindex(tmpdir, capsys):
     """Test storage initialization when auto_index is False."""
     # Some mock points.
-    p1 = Point(time=datetime.utcnow() - timedelta(days=10))
-    p2 = Point(time=datetime.utcnow())
-    p3 = Point(time=datetime.utcnow() + timedelta(days=10))
+    p1 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    p2 = Point(time=datetime.now(timezone.utc))
+    p3 = Point(time=datetime.now(timezone.utc) + timedelta(days=10))
 
     # Mock CSV store.  Insert points out of order.
     path = os.path.join(tmpdir, "test.csv")
@@ -520,7 +530,7 @@ def test_reindex(tmpdir, capsys):
     f.close()
 
     # Open up the DB with TinyFlux.
-    db = TinyFlux(path, auto_index=True, storage=CSVStorage)
+    db = TinyFlux(path, auto_index=False, storage=CSVStorage)
     assert not db.storage._index_intact
     assert not db.index.valid
     assert db.index.empty
@@ -589,7 +599,7 @@ def test_remove():
     # Insert a point out-of-order.
     db.insert(
         Point(
-            time=datetime.utcnow() - timedelta(days=1),
+            time=datetime.now(timezone.utc) - timedelta(days=1),
             tags={"a": "AA"},
             fields={"a": 3},
         )
@@ -605,6 +615,9 @@ def test_remove():
     assert len(db) == 1
     assert db.index.valid
     assert not db.index.empty
+
+    # Try to remove something that doesn't exist.
+    assert db.remove(FieldQuery().a == 12345678) == 0
 
     # Remove last item.
     assert db.remove(FieldQuery().a == 3) == 1
@@ -631,7 +644,7 @@ def test_remove_all():
 def test_search():
     """Test search method."""
     db = TinyFlux(storage=MemoryStorage)
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
     p1, p2 = Point(time=t, tags={"a": "A"}), Point(time=t, fields={"a": 1})
     db.insert_multiple([p1, p2])
 
@@ -678,7 +691,9 @@ def test_update():
     db = TinyFlux(storage=MemoryStorage)
 
     # Insert some points.
-    t1, t2 = datetime.utcnow(), datetime.utcnow() + timedelta(days=1)
+    t1, t2 = datetime.now(timezone.utc), datetime.now(
+        timezone.utc
+    ) + timedelta(days=1)
 
     p1 = Point(
         time=t1,
@@ -698,6 +713,12 @@ def test_update():
     assert len(db) == 2
 
     # Bad invocation.
+    with pytest.raises(ValueError, match="Time must be datetime object."):
+        db.update(TagQuery().tk1 == "tv1", time="chicken")
+
+    with pytest.raises(ValueError, match="Measurement must be a string."):
+        db.update(TagQuery().tk1 == "tv1", measurement={"blehh"})
+
     with pytest.raises(
         ValueError,
         match="Must include time, measurement, tags, and/or fields.",
@@ -788,11 +809,24 @@ def test_update():
     assert db.count(TagQuery().tk1 == "tv10") == 3
     assert db.count(FieldQuery().fk2 == 2) == 3
 
+    # Bad updates.
+    with pytest.raises(
+        ValueError, match="Time must update to a datetime object."
+    ):
+        db.update(FieldQuery().fk2 == 2, time=lambda _: True)
+
+    with pytest.raises(
+        ValueError, match="Measurement must update to a string."
+    ):
+        db.update(
+            FieldQuery().fk2 == 2, measurement=lambda _: {"golden bears"}
+        )
+
 
 def test_update_all():
     """Test updating all using update_all method."""
     db = TinyFlux(storage=MemoryStorage)
-    t = datetime.utcnow()
+    t = datetime.now(timezone.utc)
 
     # Insert some points.
     for i in ["lincoln heights", "santa monica", "monterrey park"]:
@@ -828,7 +862,7 @@ def test_multipledbs():
 
     points = [
         Point(
-            time=datetime.utcnow(),
+            time=datetime.now(timezone.utc),
             tags={"city": "los angeles", "neighborhood": "chinatown"},
             fields={"temp_f": 71.2 + i, "num_restaurants": 6 + i},
         )
@@ -847,12 +881,12 @@ def test_multipledbs():
     assert len(db2) == 2
 
 
-def test_storage_index_initialization_with_autoindex_ON(tmpdir):
+def test_storage_index_initialization_with_autoindex_ON(tmpdir, capsys):
     """Test storage initialization when auto_index is False."""
     # Some mock points.
-    t1 = datetime.utcnow() - timedelta(days=10)
-    t2 = datetime.utcnow()
-    t3 = datetime.utcnow() + timedelta(days=10)
+    t1 = datetime.now(timezone.utc) - timedelta(days=10)
+    t2 = datetime.now(timezone.utc)
+    t3 = datetime.now(timezone.utc) + timedelta(days=10)
 
     p1 = Point(time=t1)
     p2 = Point(time=t2)
@@ -867,22 +901,24 @@ def test_storage_index_initialization_with_autoindex_ON(tmpdir):
 
     # Open up the DB with TinyFlux.
     db = TinyFlux(path, auto_index=True, storage=CSVStorage)
-    assert not db.storage._index_intact
-    assert not db.index.valid
-    assert db.index.empty
+    assert db.storage._index_intact
+    assert db.index.valid
+    assert not db.index.empty
 
     # Append a point.
     db.insert(p3)
-    assert not db.index.valid
-    assert db.index.empty
+    assert db.index.valid
+    assert not db.index.empty
 
     # Read all.
     db.all()
-    assert not db.index.valid
-    assert db.index.empty
+    assert db.index.valid
+    assert not db.index.empty
 
     # Reindex.
     db.reindex()
+    captured = capsys.readouterr()
+    assert captured.out == "Index already valid.\n"
     assert db.index.valid
     assert not db.index.empty
 
@@ -890,9 +926,9 @@ def test_storage_index_initialization_with_autoindex_ON(tmpdir):
 def test_open_unindexed_storage_with_autoindex_OFF(tmpdir):
     """Test opening existing data store with auto_index set to False."""
     # Some mock points.
-    t1 = datetime.utcnow() - timedelta(days=10)
-    t2 = datetime.utcnow()
-    t3 = datetime.utcnow() + timedelta(days=10)
+    t1 = datetime.now(timezone.utc) - timedelta(days=10)
+    t2 = datetime.now(timezone.utc)
+    t3 = datetime.now(timezone.utc) + timedelta(days=10)
 
     p1 = Point(time=t1)
     p2 = Point(time=t2)

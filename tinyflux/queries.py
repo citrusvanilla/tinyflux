@@ -14,7 +14,7 @@ Each SimpleQuery instance contains attributes that constitute the
 right-hand side) so that the other consumers of queries, includng an Index, may
 use them for their own purposes.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 import operator
 import re
 from typing import (
@@ -896,9 +896,9 @@ class TimeQuery(BaseQuery):
     Generates a SimpleQuery that evaluates Point 'measurement' attributes.
 
     Usage:
-        >>> from datetime import datetime
+        >>> from datetime import datetime, timezone
         >>> from tinyflux import TimeQuery
-        >>> my_time_q = TimeQuery() < datetime.utcnow()
+        >>> my_time_q = TimeQuery() < datetime.now(timezone.utc)
     """
 
     def __init__(self) -> None:
