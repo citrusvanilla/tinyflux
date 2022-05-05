@@ -71,6 +71,14 @@ class TinyFlux:
     def __init__(self, *args, **kwargs) -> None:
         """Initialize a new instance of TinyFlux.
 
+        If 'auto_index' is set to True, TinyFlux will check the storage layer
+        for sortedness, and re-sort if necessary. An index will then be built
+        in-memory for efficient querying.
+
+        Please note, this operation can take some time.  If you need to insert
+        into TinyFlux immediately after initializing the DB, set
+        'auto-index' to False.
+
         Args:
             auto_index: Reindexing of data will be performed automatically.
             storage: Class of Storage instance.
@@ -89,6 +97,10 @@ class TinyFlux:
         # Init references to measurements.
         self._measurements = {}
         self._open = True
+
+        # Reindex if auto_index is True.
+        if self._auto_index:
+            self.reindex()
 
     @property
     def storage(self) -> Storage:

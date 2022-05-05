@@ -48,7 +48,7 @@ def test_csv_modes(tmpdir):
     append_ops = [("insert", (p,)), ("insert_multiple", ([p],))]
 
     # Test read only.
-    read_only_db = TinyFlux(path, access_mode="r")
+    read_only_db = TinyFlux(path, auto_index=False, access_mode="r")
 
     for i, args in read_ops:
         read_only_db.__getattribute__(i)(*args)
@@ -62,7 +62,7 @@ def test_csv_modes(tmpdir):
             read_only_db.__getattribute__(i)(*args)
 
     # Test append only.
-    read_only_db = TinyFlux(path, access_mode="a")
+    read_only_db = TinyFlux(path, auto_index=False, access_mode="a")
 
     for i, args in read_ops:
         with pytest.raises(IOError):
@@ -124,44 +124,6 @@ def test_csv_kwargs(tmpdir):
         r"\|_field_temp_f\|71.2",
         data.strip(),
     )
-
-
-def test_writes_on_read_only_csv(tmpdir):
-    """Test writing to a CSV opened in read-only mode."""
-    dbfile = os.path.join(tmpdir, "test.csv")
-
-    # Write to a CSV.
-    db = TinyFlux(str(dbfile))
-    p1 = Point(
-        time=datetime.now(timezone.utc),
-        tags={"city": "los angeles"},
-        fields={"temp_f": 71.2},
-    )
-    db.insert(p1)
-    db.close()
-
-    # Open the CSV in read-only mode.
-    db = TinyFlux(str(dbfile), access_mode="r")
-
-    assert db.get(TagQuery().city == "los angeles") == p1
-
-    with pytest.raises(IOError):
-        db.insert(Point())
-
-    with pytest.raises(IOError):
-        db.update(TagQuery().noop(), measurement="test")
-
-    with pytest.raises(IOError):
-        db.remove(TagQuery().city == "los angeles")
-
-    with pytest.raises(IOError):
-        db.remove_all()
-
-    with pytest.raises(IOError):
-        db.drop_measurement("_default")
-
-    with pytest.raises(IOError):
-        db.drop_measurements()
 
 
 def test_create_dirs():

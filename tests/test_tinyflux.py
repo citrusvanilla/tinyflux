@@ -428,7 +428,7 @@ def test_insert_on_existingdb(tmpdir):
     db.close()
 
     # Open it again. File is not empty, so index is invalid.
-    db = TinyFlux(path)
+    db = TinyFlux(path, auto_index=False)
     assert not db.index.valid
 
     # Insert points.
@@ -529,7 +529,7 @@ def test_reindex(tmpdir, capsys):
     f.close()
 
     # Open up the DB with TinyFlux.
-    db = TinyFlux(path, auto_index=True, storage=CSVStorage)
+    db = TinyFlux(path, auto_index=False, storage=CSVStorage)
     assert not db.storage._index_intact
     assert not db.index.valid
     assert db.index.empty
@@ -858,7 +858,7 @@ def test_multipledbs():
     assert len(db2) == 2
 
 
-def test_storage_index_initialization_with_autoindex_ON(tmpdir):
+def test_storage_index_initialization_with_autoindex_ON(tmpdir, capsys):
     """Test storage initialization when auto_index is False."""
     # Some mock points.
     t1 = datetime.now(timezone.utc) - timedelta(days=10)
@@ -878,22 +878,24 @@ def test_storage_index_initialization_with_autoindex_ON(tmpdir):
 
     # Open up the DB with TinyFlux.
     db = TinyFlux(path, auto_index=True, storage=CSVStorage)
-    assert not db.storage._index_intact
-    assert not db.index.valid
-    assert db.index.empty
+    assert db.storage._index_intact
+    assert db.index.valid
+    assert not db.index.empty
 
     # Append a point.
     db.insert(p3)
-    assert not db.index.valid
-    assert db.index.empty
+    assert db.index.valid
+    assert not db.index.empty
 
     # Read all.
     db.all()
-    assert not db.index.valid
-    assert db.index.empty
+    assert db.index.valid
+    assert not db.index.empty
 
     # Reindex.
     db.reindex()
+    captured = capsys.readouterr()
+    assert captured.out == "Index already valid.\n"
     assert db.index.valid
     assert not db.index.empty
 
