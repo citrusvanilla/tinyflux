@@ -10,7 +10,7 @@ handling, usually as an input to a storage retrieval.
 """
 from datetime import datetime, timezone, timezone
 import operator
-from typing import List, Optional, Set, Union
+from typing import Iterable, List, Optional, Set, Union
 
 from tinyflux.queries import SimpleQuery, CompoundQuery
 from .point import Point
@@ -172,7 +172,7 @@ class Index:
 
         return f'<{type(self).__name__} {", ".join(args)}>'
 
-    def build(self, points: List[Point] = []) -> None:
+    def build(self, points: Iterable) -> None:
         """Build the index from scratch.
 
         Args:
@@ -360,7 +360,7 @@ class Index:
 
         return
 
-    def _search_fields(self, query: SimpleQuery) -> List[int]:
+    def _search_fields(self, query: SimpleQuery) -> Set[int]:
         """Search the index for field matches.
 
         A field value is never indexed, so this search returns a list of
@@ -451,7 +451,7 @@ class Index:
 
         raise TypeError("Query must be SimpleQuery or CompoundQuery.")
 
-    def _search_measurement(self, query: SimpleQuery) -> list[int]:
+    def _search_measurement(self, query: SimpleQuery) -> Set[int]:
         """Search the index for measurement matches.
 
         Args:
@@ -472,7 +472,7 @@ class Index:
 
         return rst_items
 
-    def _search_tags(self, query: SimpleQuery) -> list[int]:
+    def _search_tags(self, query: SimpleQuery) -> Set[int]:
         """Search the index for tag matches.
 
         Args:
@@ -497,7 +497,7 @@ class Index:
 
         return rst_items
 
-    def _search_timestamps(self, query: SimpleQuery) -> list[int]:
+    def _search_timestamps(self, query: SimpleQuery) -> Set[int]:
         """Search for a timestamp.
 
         Search function for searching the timestamp index.
