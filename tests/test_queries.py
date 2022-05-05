@@ -25,7 +25,7 @@ def test_init():
         assert not isinstance(q, SimpleQuery)
         assert not isinstance(q, CompoundQuery)
 
-        with pytest.raises(RuntimeError, match="Empty query was evaluated."):
+        with pytest.raises(TypeError):
             q()
 
 
@@ -59,12 +59,20 @@ def test_repr():
     c5 = q2 | q4
     c6 = ~q3
 
-    rc1 = f"CompoundQuery({c1.operator.__name__}, " f"{repr(q1)}, {repr(q2)})"
-    rc2 = f"CompoundQuery({c2.operator.__name__}, " f"{repr(q1)}, {repr(q3)})"
-    rc3 = f"CompoundQuery({c3.operator.__name__}, " f"{repr(q1)})"
-    rc4 = f"CompoundQuery({c4.operator.__name__}, " f"{repr(q2)}, {repr(q3)})"
-    rc5 = f"CompoundQuery({c5.operator.__name__}, " f"{repr(q2)}, {repr(q4)})"
-    rc6 = f"CompoundQuery({c6.operator.__name__}, " f"{repr(q3)})"
+    rc1 = (
+        f"CompoundQuery({c1.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
+    )
+    rc2 = (
+        f"CompoundQuery({c2.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
+    )
+    rc3 = f"CompoundQuery({c3.operator.__name__}, 'SimpleQuery')"
+    rc4 = (
+        f"CompoundQuery({c4.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
+    )
+    rc5 = (
+        f"CompoundQuery({c5.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
+    )
+    rc6 = "CompoundQuery(not_, 'SimpleQuery')"
 
     assert repr(c1) == rc1
     assert repr(c2) == rc2
@@ -615,22 +623,22 @@ def test_hash():
 
     # Test compound queries with unhashable simple queries.
     q5 = TagQuery().map(lambda x: x) == "b"
-    assert not q5.is_cacheable()
-    assert not (q1 & q5).is_cacheable()
-    assert not (q1 | q5).is_cacheable()
-    assert not (~q5).is_cacheable()
-    assert not ((q1 & q5) & q5).is_cacheable()
-    assert not ((q1 & q5) | q5).is_cacheable()
-    assert not (~(q1 & q5)).is_cacheable()
+    assert not q5.is_hashable()
+    assert not (q1 & q5).is_hashable()
+    assert not (q1 | q5).is_hashable()
+    assert not (~q5).is_hashable()
+    assert not ((q1 & q5) & q5).is_hashable()
+    assert not ((q1 & q5) | q5).is_hashable()
+    assert not (~(q1 & q5)).is_hashable()
 
 
 def test_empty_query_evaluation():
     """Test calling an empty query raises Exception."""
-    with pytest.raises(RuntimeError, match="Empty query was evaluated."):
+    with pytest.raises(TypeError):
         t = TagQuery()
         t(Point())
 
-    with pytest.raises(RuntimeError, match="Empty query was evaluated."):
+    with pytest.raises(TypeError):
         (FieldQuery())(Point())
 
 
@@ -707,7 +715,7 @@ def test_compoundquery_and():
     assert isinstance(c1, CompoundQuery)
     assert isinstance(c1.query1, SimpleQuery)
     assert isinstance(c1.query2, SimpleQuery)
-    assert c1.is_cacheable()
+    assert c1.is_hashable()
     assert c1.operator == operator.and_
     assert (q1 & q2) == (q2 & q1)
     assert not c1 == 1
@@ -717,7 +725,7 @@ def test_compoundquery_and():
     assert isinstance(c2, CompoundQuery)
     assert isinstance(c2.query1, CompoundQuery)
     assert isinstance(c2.query2, SimpleQuery)
-    assert c2.is_cacheable()
+    assert c2.is_hashable()
     assert c2.operator == operator.and_
 
     with pytest.raises(RuntimeError):
@@ -745,7 +753,7 @@ def test_compoundquery_or():
     assert isinstance(c1, CompoundQuery)
     assert isinstance(c1.query1, SimpleQuery)
     assert isinstance(c1.query2, SimpleQuery)
-    assert c1.is_cacheable()
+    assert c1.is_hashable()
     assert c1.operator == operator.or_
     assert (q1 | q2) == (q2 | q1)
     assert not c1 == 1
@@ -755,7 +763,7 @@ def test_compoundquery_or():
     assert isinstance(c2, CompoundQuery)
     assert isinstance(c2.query1, CompoundQuery)
     assert isinstance(c2.query2, SimpleQuery)
-    assert c2.is_cacheable()
+    assert c2.is_hashable()
     assert c2.operator == operator.or_
 
     with pytest.raises(RuntimeError):
@@ -778,7 +786,7 @@ def test_compoundquery_not():
 
     assert isinstance(c1, CompoundQuery)
     assert isinstance(c1.query1, SimpleQuery)
-    assert c1.is_cacheable()
+    assert c1.is_hashable()
     assert c1.operator == operator.not_
     assert not c1 == q1
 
@@ -786,7 +794,7 @@ def test_compoundquery_not():
 
     assert isinstance(c2, CompoundQuery)
     assert isinstance(c2.query1, CompoundQuery)
-    assert c2.is_cacheable()
+    assert c2.is_hashable()
     assert c2.operator == operator.not_
 
     with pytest.raises(RuntimeError):
@@ -809,9 +817,9 @@ def test_basequery():
     assert q._path == ()
     assert not q._path_required
     assert not q._hash
-    assert not q.is_cacheable()
+    assert not q.is_hashable()
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(TypeError):
         q()
 
     assert repr(q) == "BaseQuery()"

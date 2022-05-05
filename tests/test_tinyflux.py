@@ -830,6 +830,16 @@ def test_update():
             FieldQuery().fk2 == 2, measurement=lambda _: {"golden bears"}
         )
 
+    with pytest.raises(
+        ValueError, match="Tags must update to a valid TagSet."
+    ):
+        db.update(FieldQuery().fk2 == 2, tags=lambda _: {"golden bears"})
+
+    with pytest.raises(
+        ValueError, match="Fields must update to a valid FieldSet."
+    ):
+        db.update(FieldQuery().fk2 == 2, fields=lambda _: {"golden bears"})
+
 
 def test_update_all():
     """Test updating all using update_all method."""

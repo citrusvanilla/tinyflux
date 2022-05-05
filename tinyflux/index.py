@@ -10,9 +10,9 @@ handling, usually as an input to a storage retrieval.
 """
 from datetime import datetime, timezone
 import operator
-from typing import Iterable, List, Optional, Set, Union
+from typing import Iterable, List, Optional, Set
 
-from tinyflux.queries import SimpleQuery, CompoundQuery
+from tinyflux.queries import SimpleQuery, CompoundQuery, Query
 from .point import Point
 from .utils import find_eq, find_lt, find_le, find_gt, find_ge
 
@@ -48,12 +48,12 @@ class IndexResult:
         self._index_count = index_count
 
     @property
-    def items(self):
+    def items(self) -> Set[int]:
         """Return query result items."""
         return self._items
 
     @property
-    def is_complete(self):
+    def is_complete(self) -> bool:
         """Return whether query is complete or needs to be passed along."""
         return self._is_complete
 
@@ -235,7 +235,7 @@ class Index:
 
         return
 
-    def invalidate(self):
+    def invalidate(self) -> None:
         """Invalidate an Index.
 
         This method is invoked when the Index no longer represents the
@@ -263,13 +263,13 @@ class Index:
 
         return
 
-    def search(self, query: Union[CompoundQuery, SimpleQuery]) -> IndexResult:
+    def search(self, query: Query) -> IndexResult:
         """Handle a TinyFlux query.
 
         Parses the query, generates a new IndexResult, and returns it.
 
         Args:
-            query: A tinyflux.queries.SimpleQuery.
+            query: A tinyflux.queries.Query.
 
         Returns:
             An IndexResult instance.
@@ -397,15 +397,13 @@ class Index:
 
         return rst_items
 
-    def _search_helper(
-        self, query: Optional[Union[CompoundQuery, SimpleQuery]]
-    ) -> IndexResult:
+    def _search_helper(self, query: Optional[Query]) -> IndexResult:
         """Return an IndexResult from a parsed query.
 
-        This method is recursive in order to handle compound queries.
+        This method is recursive in order to handle a CompoundQuery.
 
         Args:
-            query: A CompoundQuert or SimpleQuery.
+            query: A Query.
 
         Returns:
             An IndexResult instance.

@@ -406,7 +406,6 @@ class MemoryStorage(Storage):
             points: A list of Point objects.
         """
         for point in points:
-            # Append point to memory.
             self._memory.append(point)
 
         return

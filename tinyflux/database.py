@@ -19,7 +19,13 @@ from typing import (
 from .measurement import Measurement
 from .index import Index
 from .point import Point, validate_fields, validate_tags
-from .queries import CompoundQuery, MeasurementQuery, SimpleQuery, TagQuery
+from .queries import (
+    CompoundQuery,
+    MeasurementQuery,
+    SimpleQuery,
+    TagQuery,
+    Query,
+)
 from .storages import CSVStorage, Storage
 
 
@@ -68,7 +74,7 @@ class TinyFlux:
     _measurements: Dict[str, Measurement]
     _open: bool
 
-    def __init__(self, *args, auto_index=True, **kwargs) -> None:
+    def __init__(self, *args, auto_index: bool = True, **kwargs):
         """Initialize a new instance of TinyFlux.
 
         If 'auto_index' is set to True, TinyFlux will check the storage layer
@@ -181,16 +187,14 @@ class TinyFlux:
 
         return
 
-    def contains(
-        self, query: Union[CompoundQuery, SimpleQuery], measurement: str = None
-    ) -> bool:
+    def contains(self, query: Query, measurement: str = None) -> bool:
         """Check whether the database contains a point matching a query.
 
         Defines a function that iterates over storage items and submits it to
         the storage layer.
 
         Args:
-            query: A SimpleQuery.
+            query: A Query.
             measurement: An optional measurement to filter by.
 
         Returns:
@@ -263,13 +267,11 @@ class TinyFlux:
 
         return contains
 
-    def count(
-        self, query: Union[CompoundQuery, SimpleQuery], measurement: str = None
-    ) -> int:
+    def count(self, query: Query, measurement: str = None) -> int:
         """Count the documents matching a query in the database.
 
         Args:
-            query: a SimpleQuery.
+            query: a Query.
             measurement: An optional measurement to filter by.
 
         Returns:
@@ -371,15 +373,13 @@ class TinyFlux:
 
         return
 
-    def get(
-        self, query: Union[CompoundQuery, SimpleQuery], measurement: str = None
-    ) -> Optional[Point]:
+    def get(self, query: Query, measurement: str = None) -> Optional[Point]:
         """Get exactly one point specified by a query from the database.
 
         Returns None if the point doesn't exist.
 
         Args:
-            query: A SimpleQuery.
+            query: A Query.
             measurement: An optional measurement to filter by.
 
         Returns:
@@ -471,9 +471,6 @@ class TinyFlux:
 
         Raises:
             TypeError if point is not a Point instance.
-
-        Todo:
-            profile the isinstance call.
         """
         assert self._storage.can_append
 
@@ -592,9 +589,7 @@ class TinyFlux:
 
         return
 
-    def remove(
-        self, query: Union[CompoundQuery, SimpleQuery], measurement=None
-    ) -> int:
+    def remove(self, query: Query, measurement=None) -> int:
         """Remove Points from this database by query.
 
         This is irreversible.
@@ -755,15 +750,13 @@ class TinyFlux:
 
         return
 
-    def search(
-        self, query: Union[CompoundQuery, SimpleQuery], measurement=None
-    ) -> List[Point]:
+    def search(self, query: Query, measurement=None) -> List[Point]:
         """Get all points specified by a query.
 
         Order is guaranteed only if index is valid.
 
         Args:
-            query: A SimpleQuery.
+            query: A Query.
 
         Returns:
             A list of found Points.
@@ -838,11 +831,11 @@ class TinyFlux:
 
     def update(
         self,
-        query: Union[CompoundQuery, SimpleQuery],
-        time: Union[datetime, Callable, None] = None,
-        measurement: Union[str, Callable, None] = None,
-        tags: Union[Mapping, Callable, None] = None,
-        fields: Union[Mapping, Callable, None] = None,
+        query: Query,
+        time: Union[datetime, Callable[[datetime], datetime], None] = None,
+        measurement: Union[str, Callable[[str], str], None] = None,
+        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
         _measurement: str = None,
     ) -> int:
         """Update all matching Points in the database with new attributes.
@@ -856,9 +849,6 @@ class TinyFlux:
 
         Returns:
             A count of updated points.
-
-        Todo:
-            Update index in a smart way.
         """
         assert self._storage.can_write
 
@@ -868,10 +858,10 @@ class TinyFlux:
 
     def update_all(
         self,
-        time: Union[datetime, Callable, None] = None,
-        measurement: Union[str, Callable, None] = None,
-        tags: Union[Mapping, Callable, None] = None,
-        fields: Union[Mapping, Callable, None] = None,
+        time: Union[datetime, Callable[[datetime], datetime], None] = None,
+        measurement: Union[str, Callable[[str], str], None] = None,
+        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
     ) -> int:
         """Update all points in the database with new attributes.
 
@@ -883,9 +873,6 @@ class TinyFlux:
 
         Returns:
             A count of updated points.
-
-        Todo:
-            Update index in a smart way.
         """
         assert self._storage.can_write
 
@@ -894,8 +881,13 @@ class TinyFlux:
         )
 
     def _generate_updater(
-        self, query=None, time=None, measurement=None, tags=None, fields=None
-    ) -> Callable:
+        self,
+        query: Query,
+        time: Union[datetime, Callable[[datetime], datetime], None] = None,
+        measurement: Union[str, Callable[[str], str], None] = None,
+        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+    ) -> Callable[[Point], Tuple[bool, bool]]:
         """Generate a routine that updates a Point with new attributes.
 
         Performs validation of attribute arguments.
@@ -946,8 +938,9 @@ class TinyFlux:
 
             if time:
                 if callable(time):
-                    point.time = time(point.time)
-                    if not isinstance(point.time, datetime):
+                    try:
+                        point.time = time(point.time)
+                    except ValueError:
                         raise ValueError(
                             "Time must update to a datetime object."
                         )
@@ -956,8 +949,9 @@ class TinyFlux:
 
             if measurement:
                 if callable(measurement):
-                    point.measurement = measurement(point.measurement)
-                    if not isinstance(point.measurement, str):
+                    try:
+                        point.measurement = measurement(point.measurement)
+                    except ValueError:
                         raise ValueError(
                             "Measurement must update to a string."
                         )
@@ -966,15 +960,22 @@ class TinyFlux:
 
             if tags:
                 if callable(tags):
-                    point.tags.update(tags(point.tags))
-                    validate_tags(point.tags)
+                    try:
+                        point.tags.update(tags(point.tags))
+                    except ValueError:
+                        raise ValueError("Tags must update to a valid TagSet.")
+
                 else:
                     point.tags.update(tags)
 
             if fields:
                 if callable(fields):
-                    point.fields.update(fields(point.fields))
-                    validate_fields(point.fields)
+                    try:
+                        point.fields.update(fields(point.fields))
+                    except ValueError:
+                        raise ValueError(
+                            "Fields must update to a valid FieldSet."
+                        )
                 else:
                     point.fields.update(fields)
 
@@ -1050,13 +1051,13 @@ class TinyFlux:
     def _update_helper(
         self,
         update_all: bool,
-        query: Union[CompoundQuery, SimpleQuery],
-        time: Union[datetime, Callable, None] = None,
-        measurement: Union[str, Callable, None] = None,
-        tags: Union[Mapping, Callable, None] = None,
-        fields: Union[Mapping, Callable, None] = None,
+        query: Query,
+        time: Union[datetime, Callable[[datetime], datetime], None] = None,
+        measurement: Union[str, Callable[[str], str], None] = None,
+        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
         _measurement: str = None,
-    ):
+    ) -> int:
         """Update all matching Points in the database with new attributes.
 
         Args:
@@ -1068,9 +1069,6 @@ class TinyFlux:
 
         Returns:
             A count of updated points.
-
-        Todo:
-            Update index in a smart way.
         """
         # Return value.
         update_count = 0

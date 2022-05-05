@@ -10,6 +10,8 @@ class FrozenDict(dict):
     This is used to generate stable hashes for queries that contain dicts.
     Usually, Python dicts are not hashable because they are mutable. This
     class removes the mutability and implements the ``__hash__`` method.
+
+    From TinyDB.
     """
 
     def __hash__(self):
