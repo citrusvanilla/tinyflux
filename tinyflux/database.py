@@ -11,7 +11,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Set,
     Tuple,
     Union,
 )
@@ -454,25 +453,6 @@ class TinyFlux:
 
         return measurement
 
-    def measurements(self) -> Set[str]:
-        """Get the names of all measurements in the database.
-
-        Returns:
-            Names of all measurements in storage as a set.
-        """
-        # Check the index.
-        if self._index.valid:
-            return self._index.get_measurement_names()
-
-        # Return value.
-        names = set({})
-
-        # Otherwise, check storage.
-        for item in self._storage:
-            names.add(self._storage._deserialize_measurement(item))
-
-        return names
-
     def reindex(self) -> None:
         """Sort the storage layer and build a new in-memory index.
 
@@ -763,6 +743,83 @@ class TinyFlux:
             fp.time.replace(tzinfo=timezone.utc)
 
         return found_points
+
+    def show_measurements(self) -> List[str]:
+        """Get the names of all measurements in the database.
+
+        Returns:
+            Names of all measurements in storage as a set.
+        """
+        # Check the index.
+        if self._index.valid:
+            return sorted(self._index.get_measurement_names())
+
+        # Return value.
+        names = set({})
+
+        # Otherwise, check storage.
+        for item in self._storage:
+            names.add(self._storage._deserialize_measurement(item))
+
+        return sorted(names)
+
+    def show_field_keys(self, measurement: Optional[str] = None) -> List[str]:
+        """Show all field keys in the database.
+
+        Args:
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            List of field keys, sorted.
+        """
+        rst = set({})
+
+        if self._index.valid:
+
+            # Measurement specified.
+            if measurement:
+                # No measurement in the DB.
+                if measurement not in self._index._measurements:
+                    return []
+
+                # If there is a measurement in the DB, we intersect.
+                else:
+                    measurement_items = set(
+                        self._index._measurements[measurement]
+                    )
+
+                    for field_key, items in self._index._fields.items():
+                        if measurement_items.intersection(
+                            set([i[0] for i in items])
+                        ):
+                            rst.add(field_key)
+
+                    return sorted(rst)
+
+            # No measurement specified.
+            else:
+                return sorted(set(list(self._index._fields.keys())))
+
+        # Otherwise, go through storage.
+        else:
+
+            for item in self._storage:
+
+                # Filter by measurement.
+                if (
+                    measurement
+                    and self._storage._deserialize_measurement(item)
+                    != measurement
+                ):
+                    continue
+
+                # Match, add to results.
+                _point = self._storage._deserialize_storage_item(item)
+
+                for fk in _point.fields.keys():
+                    rst.add(fk)
+
+        return sorted(rst)
 
     def update(
         self,

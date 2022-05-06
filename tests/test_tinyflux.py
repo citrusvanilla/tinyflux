@@ -309,11 +309,11 @@ def test_drop_measurements():
     db.insert(Point())
     db.insert(Point(measurement="m"))
     assert db.index.valid
-    assert len(db.measurements()) == 2
+    assert len(db.show_measurements()) == 2
 
     # Valid index, drop all measurements.
     db.drop_measurements()
-    assert len(db.measurements()) == 0
+    assert len(db.show_measurements()) == 0
     assert db.index.valid
     assert db.index.empty
 
@@ -322,7 +322,7 @@ def test_drop_measurements():
     db.insert(Point())
     db.insert(Point(measurement="m"))
     assert not db.index.valid
-    assert len(db.measurements()) == 2
+    assert len(db.show_measurements()) == 2
     assert db.drop_measurement("m") == 1
     assert db.drop_measurement("_default") == 1
     assert not len(db)
@@ -475,18 +475,18 @@ def test_measurement():
     # Empty db.  No actual measurements, no Measurement references.
     db = TinyFlux(storage=MemoryStorage)
     assert not db._measurements
-    assert not db.measurements()
+    assert not db.show_measurements()
 
     # Create a reference to a measurment that does not exist.
     m = db.measurement("a")
     assert "a" in db._measurements
     assert not len(m)
-    assert not db.measurements()
+    assert not db.show_measurements()
 
     # Add a point to the db.
     db.insert(Point())
     assert "_default" not in db._measurements
-    assert db.measurements() == {"_default"}
+    assert db.show_measurements() == ["_default"]
 
     # Create a reference to a measurement that does exist.
     m2 = db.measurement("_default")
@@ -495,30 +495,6 @@ def test_measurement():
 
     assert isinstance(m, Measurement)
     assert isinstance(m2, Measurement)
-
-
-def test_measurements():
-    """Test measurements method."""
-    # Empty DB.
-    db = TinyFlux(storage=MemoryStorage)
-    assert db.index.valid
-    assert db.measurements() == set({})
-
-    # DB with points and valid index.
-    db.insert(Point())
-    assert db.index.valid
-    assert db.measurements() == {"_default"}
-
-    # DB with points and invalid index.
-    db.insert(
-        Point(
-            measurement="a",
-            time=datetime.now(timezone.utc) - timedelta(days=365),
-        )
-    )
-    assert not db.index.valid
-    assert db.measurements() == {"a", "_default"}
-    assert not db.index.valid
 
 
 def test_reindex(tmpdir, capsys):
@@ -696,6 +672,58 @@ def test_search():
     # Search with a query that has a path.
     assert db.search(TagQuery().a.exists()) == [p1]
     assert db.search(FieldQuery().a.exists()) == [p2]
+
+
+def test_show_field_keys():
+    """Test show field keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert db.show_field_keys() == []
+
+    db.insert(Point())
+    assert db.show_field_keys() == []
+
+    db.insert(Point(fields={"a": 1}))
+    assert db.show_field_keys() == ["a"]
+
+    db.insert(Point(fields={"a": 2, "b": 3}))
+    assert db.show_field_keys() == ["a", "b"]
+
+    # Invalidate index.
+    db.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            fields={"a": 1, "c": 3},
+        )
+    )
+
+    assert db.show_field_keys() == ["a", "b", "c"]
+
+
+def test_show_measurements():
+    """Test measurements method."""
+    # Empty DB.
+    db = TinyFlux(storage=MemoryStorage)
+    assert db.index.valid
+    assert db.show_measurements() == []
+
+    # DB with points and valid index.
+    db.insert(Point())
+    assert db.index.valid
+    assert db.show_measurements() == ["_default"]
+
+    # DB with points and invalid index.
+    db.insert(
+        Point(
+            measurement="a",
+            time=datetime.now(timezone.utc) - timedelta(days=365),
+        )
+    )
+    assert not db.index.valid
+    assert db.show_measurements() == ["_default", "a"]
+    assert not db.index.valid
 
 
 def test_update():

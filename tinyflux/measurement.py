@@ -215,6 +215,14 @@ class Measurement:
         """
         return self._db.drop_measurement(self._name)
 
+    def show_field_keys(self) -> List[str]:
+        """Show all field keys for this measurement.
+
+        Returns:
+            List of field keys, sorted.
+        """
+        return self._db.show_field_keys(self._name)
+
     def search(self, query: SimpleQuery) -> List[Point]:
         """Get all points specified by a query from this measurement.
 
