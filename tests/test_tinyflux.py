@@ -702,6 +702,34 @@ def test_show_field_keys():
     assert db.show_field_keys() == ["a", "b", "c"]
 
 
+def test_show_tag_keys():
+    """Test show tag keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert db.show_tag_keys() == []
+
+    db.insert(Point())
+    assert db.show_tag_keys() == []
+
+    db.insert(Point(tags={"a": "1"}))
+    assert db.show_tag_keys() == ["a"]
+
+    db.insert(Point(tags={"a": "1", "b": "2"}))
+    assert db.show_tag_keys() == ["a", "b"]
+
+    # Invalidate index.
+    db.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            tags={"a": "a", "c": "3"},
+        )
+    )
+
+    assert db.show_tag_keys() == ["a", "b", "c"]
+
+
 def test_show_measurements():
     """Test measurements method."""
     # Empty DB.

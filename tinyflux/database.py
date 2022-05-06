@@ -821,6 +821,65 @@ class TinyFlux:
 
         return sorted(rst)
 
+    def show_tag_keys(self, measurement: Optional[str] = None) -> List[str]:
+        """Show all tag keys in the database.
+
+        Args:
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            List of field keys, sorted.
+        """
+        rst = set({})
+
+        if self._index.valid:
+
+            # Measurement specified.
+            if measurement:
+                # No measurement in the DB.
+                if measurement not in self._index._measurements:
+                    return []
+
+                # If there is a measurement in the DB, we intersect.
+                else:
+                    measurement_items = set(
+                        self._index._measurements[measurement]
+                    )
+
+                    for tag_key, tag_values in self._index._tags.items():
+                        for items in tag_values.values():
+                            if measurement_items.intersection(set(items)):
+                                rst.add(tag_key)
+
+                    return sorted(rst)
+
+            # No measurement specified.
+            else:
+                return sorted(set(list(self._index._tags.keys())))
+
+        # Otherwise, go through storage.
+        else:
+
+            for item in self._storage:
+
+                # Filter by measurement.
+                if (
+                    measurement
+                    and self._storage._deserialize_measurement(item)
+                    != measurement
+                ):
+                    continue
+
+                # Match, add to results.
+                _point = self._storage._deserialize_storage_item(item)
+
+                for tk in _point.tags.keys():
+                    rst.add(tk)
+
+        return sorted(rst)
+
+
+
     def update(
         self,
         query: Query,

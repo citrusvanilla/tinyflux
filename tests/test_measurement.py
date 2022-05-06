@@ -517,6 +517,40 @@ def test_show_field_keys():
     assert m2.show_field_keys() == []
 
 
+def test_show_tag_keys():
+    """Test show tag keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    m = db.measurement("_default")
+    m2 = db.measurement("some_missing_measurement")
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert m.show_tag_keys() == []
+
+    m.insert(Point())
+    assert m.show_tag_keys() == []
+    assert m2.show_tag_keys() == []
+
+    m.insert(Point(tags={"a": "1"}))
+    assert m.show_tag_keys() == ["a"]
+    assert m2.show_tag_keys() == []
+
+    m.insert(Point(tags={"a": "2", "b": "3"}))
+    assert m.show_tag_keys() == ["a", "b"]
+    assert m2.show_tag_keys() == []
+
+    # Invalidate index.
+    m.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            tags={"a": "1", "c": "3"},
+        )
+    )
+
+    assert m.show_tag_keys() == ["a", "b", "c"]
+    assert m2.show_tag_keys() == []
+
+
 def test_update():
     """Test the update method of the Measurement class."""
     # Open up the DB with TinyFlux.

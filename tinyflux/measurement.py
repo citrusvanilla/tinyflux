@@ -223,6 +223,14 @@ class Measurement:
         """
         return self._db.show_field_keys(self._name)
 
+    def show_tag_keys(self) -> List[str]:
+        """Show all tag keys for this measurement.
+
+        Returns:
+            List of tag keys, sorted.
+        """
+        return self._db.show_tag_keys(self._name)
+
     def search(self, query: SimpleQuery) -> List[Point]:
         """Get all points specified by a query from this measurement.
 
