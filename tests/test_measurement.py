@@ -138,15 +138,13 @@ def test_contains():
     with pytest.raises(TypeError):
         m1.contains()
 
-    # Valid index, no query candidates.
+    # Valid index, no query items.
     assert not m1.contains(TagQuery().b.exists())
     assert not m2.contains(TagQuery().a.exists())
 
-    # Valid index, complete query with candidates.
+    # Valid index, complete query with items.
     assert m1.contains(TagQuery().a.exists())
     assert m2.contains(TagQuery().b.exists())
-
-    # Test with valid index and incomplete index result.
     assert m1.contains(FieldQuery().a == 2)
     assert not m1.contains(FieldQuery().a == 3)
     assert m2.contains(FieldQuery().b == 1)
@@ -183,8 +181,6 @@ def test_count():
     # Valid index, complete index query.
     assert m1.count(TagQuery().a == "A") == 2
     assert m2.count(TagQuery().b == "B") == 2
-
-    # Valid index, incomplete index query.
     assert m1.count(FieldQuery().a == 1) == 1
     assert m2.count(FieldQuery().b == 3) == 0
 
@@ -223,8 +219,6 @@ def test_get():
     # Valid index, complete index query.
     assert m1.get(TagQuery().a == "A") == p1
     assert m2.get(TagQuery().b == "B") == p3
-
-    # Valid index, incomplete index query.
     assert m1.get(FieldQuery().a == 1) == p1
     assert not m2.get(FieldQuery().b == 3)
 
@@ -324,11 +318,9 @@ def test_remove():
     m2.insert(Point(tags={"b": "B"}, fields={"a": 1}))
     m2.insert(Point(tags={"b": "B"}, fields={"b": 2}))
 
-    # Valid index, no candidates.
+    # Valid index, no items.
     assert not m1.remove(TagQuery().c == "C")
     assert not m2.remove(TagQuery().c == "C")
-
-    # Valid index, incomplete index query.
     assert m1.remove(FieldQuery().a == 1) == 1
     assert m2.remove(FieldQuery().a == 1) == 1
     assert len(m1) == 2
@@ -394,7 +386,7 @@ def test_remove_all():
     m2.insert(Point())
     m1.insert(Point())
 
-    # Valid index, no index candidates.
+    # Valid index, no index items.
     assert not m3.remove_all()
     assert db.index.valid
 
@@ -447,15 +439,13 @@ def test_search():
     m2.insert(p4)
     m2.insert(p5)
 
-    # Valid index, no candidates.
+    # Valid index, no items.
     assert not m1.search(TagQuery().c == "B")
     assert not m2.search(TagQuery().c == "B")
 
     # Valid index, complete index search.
     assert m1.search(TagQuery().a == "A") == [p1, p2]
     assert m2.search(TagQuery().b == "B") == [p4, p5]
-
-    # Valid index, incomplete index search.
     assert m1.search(FieldQuery().a == 1) == [p1]
     assert m2.search(FieldQuery().b == 2) == [p5]
 
@@ -549,8 +539,6 @@ def test_update():
     assert m1.update(MeasurementQuery() == "a", fields={"fk1": 2}) == 1
     assert m1.get(FieldQuery().fk1 == 2) == p1
     assert p1.fields["fk1"] == 2
-
-    # Valid index, incomplete search.
     assert m1.update(FieldQuery().fk1 == 2, fields={"fk1": 1}) == 1
     assert m1.update(FieldQuery().fk1 == 20, fields={"fk1": 1}) == 0
     assert m1.search(FieldQuery().fk1 == 1) == [p1]

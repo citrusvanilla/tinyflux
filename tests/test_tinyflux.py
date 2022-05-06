@@ -207,8 +207,6 @@ def test_contains():
     assert db.contains(TagQuery().a == "b")
     assert not db.contains(TagQuery().a == "c")
     assert not db.contains(TagQuery().x == "z")
-
-    # Test with valid index and incomplete index result.
     assert db.remove(~TagQuery().a.exists())
     assert db.contains(FieldQuery().a > 0)
     assert not db.contains(FieldQuery().a > 10)
@@ -254,8 +252,6 @@ def test_count():
 
     # Valid index, complete index query.
     assert db.count(TagQuery().a == "b") == 2
-
-    # Valid index, incomplete index query.
     assert db.count(FieldQuery().e == 1) == 2
     assert not db.count(FieldQuery().f == 1)
     assert db.count(FieldQuery().g == 3) == 1
@@ -353,6 +349,8 @@ def test_get():
     # Valid index, candidates.
     assert db.get(TagQuery().a == "C") == p3
     assert db.get(FieldQuery().b == 3) == p3
+    assert db.get(MeasurementQuery() == "_default") == p1
+    assert not db.get(MeasurementQuery() == None)
     assert not db.get(TagQuery().a == "D")
     assert not db.get(FieldQuery().b > 3)
 
@@ -597,8 +595,6 @@ def test_remove():
     assert db.index.valid
     assert len(db.index) == 2
     assert len(db) == 2
-
-    # Valid index, incomplete query.
     assert db.remove(FieldQuery().a == 1) == 1
     assert db.index.valid
     assert len(db.index) == 1
@@ -633,6 +629,16 @@ def test_remove():
     assert len(db) == 0
     assert db.index.empty
 
+    db.close()
+
+    # Test remove with auto-index off.
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+    db.insert(Point(tags={"a": "A"}, fields={"a": 1}))
+    db.insert(Point(tags={"a": "AA"}, fields={"a": 2}))
+    db.insert(Point(tags={"b": "B"}, fields={"b": 2}))
+
+    assert db.remove(FieldQuery().a == 12345678) == 0
+
 
 def test_remove_all():
     """Test remove_all method."""
@@ -661,8 +667,6 @@ def test_search():
 
     # Valid index, complete index search.
     assert db.search(TagQuery().a == "A") == [p1]
-
-    # Valid index, incomplete index search.
     assert db.search(FieldQuery().a == 1) == [p2]
 
     # Invalidate the index.
@@ -779,11 +783,12 @@ def test_update():
     assert db.update(MeasurementQuery() == "m1", fields={"fk1": 2}) == 1
     assert db.get(FieldQuery().fk1 == 2) == p1
     assert p1.fields["fk1"] == 2
-
-    # Valid index, incomplete search.
     assert db.update(FieldQuery().fk1 == 2, fields={"fk1": 1}) == 1
     assert db.search(FieldQuery().fk1 == 1) == [p1, p2]
     assert p1.fields["fk1"] == 1
+
+    # Valid index, no actual update performed.
+    assert db.update(MeasurementQuery() == "m1", measurement="m1") == 0
 
     # Invalidate the index.
     p3 = Point(
