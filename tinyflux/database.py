@@ -105,7 +105,7 @@ class TinyFlux:
         self._open = True
 
         # Reindex if auto_index is True.
-        if self._auto_index:
+        if self._auto_index and not self._storage._initially_empty:
             self.reindex()
 
     @property
