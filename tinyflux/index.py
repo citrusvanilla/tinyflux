@@ -24,38 +24,28 @@ class IndexResult:
 
     Arritributes:
         items: A set of indicies as ints.
-        is_complete: A boolean indicating if the query is complete or needs to
-            be passed onto the storage layer for further querying.
 
     Usage:
-        >>> IndexResult(items=set(), is_complete=True, index_count=0)
+        >>> IndexResult(items=set(), index_count=0)
     """
 
     _items: Set[int]
-    _is_complete: bool
     _index_count: int
 
-    def __init__(self, items: Set[int], is_complete: bool, index_count: int):
+    def __init__(self, items: Set[int], index_count: int):
         """Init IndexResult.
 
         Args:
             items: Matching items from a query as indicies.
-            is_complete: Items should be passed to another search.
             index_count: Number of items in the index..
         """
         self._items = items
-        self._is_complete = is_complete
         self._index_count = index_count
 
     @property
     def items(self) -> Set[int]:
         """Return query result items."""
         return self._items
-
-    @property
-    def is_complete(self) -> bool:
-        """Return whether query is complete or needs to be passed along."""
-        return self._is_complete
 
     def __invert__(self) -> "IndexResult":
         """Return the complement list.
@@ -68,7 +58,6 @@ class IndexResult:
         """
         return IndexResult(
             set(range(self._index_count)).difference(self._items),
-            self._is_complete,
             self._index_count,
         )
 
@@ -86,7 +75,6 @@ class IndexResult:
         """
         return IndexResult(
             self._items.intersection(other._items),
-            self._is_complete and other._is_complete,
             self._index_count,
         )
 
@@ -104,7 +92,6 @@ class IndexResult:
         """
         return IndexResult(
             self._items.union(other._items),
-            self._is_complete and other._is_complete,
             self._index_count,
         )
 
@@ -300,12 +287,12 @@ class Index:
             idx: Index of the point.
             fields: Dict of Field key/vals.
         """
-        for field_key in fields.keys():
+        for field_key, field_value in fields.items():
 
             if field_key not in self._fields:
-                self._fields[field_key] = [idx]
+                self._fields[field_key] = [(idx, field_value)]
             else:
-                self._fields[field_key].append(idx)
+                self._fields[field_key].append((idx, field_value))
 
         return
 
@@ -370,10 +357,6 @@ class Index:
     def _search_fields(self, query: SimpleQuery) -> Set[int]:
         """Search the index for field matches.
 
-        A field value is never indexed, so this search returns a list of
-        candidates by index.  This list will then be passed onto the storage
-        layer for full evaluation.
-
         Args:
             query: A SimpleQuery instance.
 
@@ -385,15 +368,16 @@ class Index:
         for field_key, items in self._fields.items():
 
             # Transform the key. We're only concerned with whether or not a
-            # storage item has a relevant field key. It if does, then we add
-            # these items to the list of candidates we need to eventually
-            # evaluate in directly from the store.
+            # storage item has a relevant field key before testing its value.
+            # It if does, then we the values, and add these items to results.
             try:
                 query._path_resolver({field_key: 0.0})
             except Exception:
                 continue
 
-            rst_items = rst_items.union(set(items))
+            for idx, test_value in items:
+                if query._test(test_value):
+                    rst_items.add(idx)
 
         return rst_items
 
@@ -436,23 +420,19 @@ class Index:
         if isinstance(query, SimpleQuery):
             if query.point_attr == "_time":
                 return IndexResult(
-                    self._search_timestamps(query), True, self._num_items
+                    self._search_timestamps(query), self._num_items
                 )
 
             if query.point_attr == "_measurement":
                 return IndexResult(
-                    self._search_measurement(query), True, self._num_items
+                    self._search_measurement(query), self._num_items
                 )
 
             if query.point_attr == "_tags":
-                return IndexResult(
-                    self._search_tags(query), True, self._num_items
-                )
+                return IndexResult(self._search_tags(query), self._num_items)
 
             if query.point_attr == "_fields":
-                return IndexResult(
-                    self._search_fields(query), False, self._num_items
-                )
+                return IndexResult(self._search_fields(query), self._num_items)
 
         raise TypeError("Query must be SimpleQuery or CompoundQuery.")
 
@@ -618,7 +598,7 @@ class Index:
         new_fields = {}
 
         for field_key, old_items in self._fields.items():
-            new_items = [i for i in old_items if i not in r_items]
+            new_items = [i for i in old_items if i[0] not in r_items]
             if new_items:
                 new_fields[field_key] = new_items
 
@@ -691,7 +671,8 @@ class Index:
         """
         for field_key, old_items in self._fields.items():
             self._fields[field_key] = [
-                u_items[i] if i in u_items else i for i in old_items
+                (u_items[i[0]], i[1]) if i[0] in u_items else i
+                for i in old_items
             ]
 
         return

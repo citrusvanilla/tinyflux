@@ -78,7 +78,7 @@ def test_build():
         "state": {"ca": [2]},
     }
 
-    assert index._fields == {"temp": [1], "pop": [2]}
+    assert index._fields == {"temp": [(1, 70)], "pop": [(2, 30000000)]}
 
     assert index._measurements == {
         "_default": [0],
@@ -160,13 +160,16 @@ def test_insert_fields_method():
     index = Index()
 
     index._insert_fields(0, {"temp": 70.0})
-    assert index._fields == {"temp": [0]}
+    assert index._fields == {"temp": [(0, 70.0)]}
 
     index._insert_fields(1, {"temp": 71.0})
-    assert index._fields == {"temp": [0, 1]}
+    assert index._fields == {"temp": [(0, 70.0), (1, 71.0)]}
 
     index._insert_fields(2, {"pop": 5000})
-    assert index._fields == {"temp": [0, 1], "pop": [2]}
+    assert index._fields == {
+        "temp": [(0, 70.0), (1, 71.0)],
+        "pop": [(2, 5000)],
+    }
 
 
 def test_reset_method():
@@ -209,9 +212,8 @@ def test_search_measurement_query():
     index._insert_measurements(2, "_default")
     assert index._measurements == {"_default": [0, 2], "cities": [1]}
 
-    index_rst = index.search(q)
-    assert index_rst.items == {0, 2}
-    assert index_rst.is_complete
+    rst = index.search(q)
+    assert rst.items == {0, 2}
 
 
 def test_search_time_query():
@@ -237,7 +239,6 @@ def test_search_time_query():
     # Less than or equal.
     q = TimeQuery() <= t0
     assert index.search(q).items == set({})
-    assert index.search(q).is_complete
     q = TimeQuery() <= t1
     assert index.search(q).items == {0}
     q = TimeQuery() <= t4
@@ -304,35 +305,27 @@ def test_search_tags_query():
 
     rst = index.search(TagQuery().city == "la")
     assert rst.items == {0}
-    assert rst.is_complete
 
     rst = index.search(TagQuery().city != "la")
     assert rst.items == {1, 2}
-    assert rst.is_complete
 
     rst = index.search(TagQuery().city == "sf")
     assert rst.items == {1, 2}
-    assert rst.is_complete
 
     rst = index.search(TagQuery().city != "sf")
     assert rst.items == {0}
-    assert rst.is_complete
 
     rst = index.search(TagQuery().state == "ca")
     assert rst.items == {0, 1}
-    assert rst.is_complete
 
     rst = index.search(TagQuery().state != "ca")
     assert rst.items == set({})
-    assert rst.is_complete
 
     rst = index.search(TagQuery().neighborhood == "dtla")
     assert rst.items == {3}
-    assert rst.is_complete
 
     rst = index.search(TagQuery().neighborhood != "dtla")
     assert rst.items == set({})
-    assert rst.is_complete
 
 
 def test_search_field_query():
@@ -343,32 +336,29 @@ def test_search_field_query():
     index._insert_fields(0, {"temp": 78.3})
     index._insert_fields(1, {"temp": 59.1})
     index._insert_fields(2, {"pop": 30000000})
-    assert index._fields == {"temp": [0, 1], "pop": [2]}
+    assert index._fields == {
+        "temp": [(0, 78.3), (1, 59.1)],
+        "pop": [(2, 30000000)],
+    }
 
     # Queries.
     rst = index.search(FieldQuery().temp == 70.0)
-    assert rst.items == {0, 1}
-    assert not rst.is_complete
+    assert rst.items == set({})
 
     rst = index.search(FieldQuery().temp != 70.0)
     assert rst.items == {0, 1}
-    assert not rst.is_complete
 
     rst = index.search(FieldQuery().pop >= 10000000)
-    assert rst.items == {2}
-    assert not rst.is_complete
+    assert rst.items == set({2})
 
     rst = index.search(FieldQuery().pop > 40000000)
-    assert rst.items == {2}
-    assert not rst.is_complete
+    assert rst.items == set({})
 
     rst = index.search(FieldQuery().pop < 1000)
-    assert rst.items == {2}
-    assert not rst.is_complete
+    assert rst.items == set({})
 
     rst = index.search(FieldQuery().pop <= 1000)
-    assert rst.items == {2}
-    assert not rst.is_complete
+    assert rst.items == set({})
 
 
 def test_search_compound_query_not():
@@ -397,28 +387,23 @@ def test_search_compound_query_not():
     # Measurement query.
     rst = index.search(~meas_q)
     assert rst.items == {0, 1}
-    assert rst.is_complete
 
     # Field query. Note for Field Queries, a NOT operator means we have to
     # check every single item in the storage layer.
     rst = index.search(~fiel_q)
     assert rst.items == {0, 1}
-    assert not rst.is_complete
 
     # Compount NOT FieldQuery.
     rst = index.search(~fiel_q & tags_q)
     assert rst.items == {0}
-    assert not rst.is_complete
 
     # Time query.
     rst = index.search(~time_q)
     assert rst.items == {0}
-    assert rst.is_complete
 
     # Tag query.
     rst = index.search(~tags_q)
     assert rst.items == {1}
-    assert rst.is_complete
 
 
 def test_search_compound_query_and():
@@ -458,33 +443,27 @@ def test_search_compound_query_and():
 
     # Measurement and Field.
     rst = index.search(meas_q & fiel_q)
-    assert rst.items == {0, 2}
-    assert not rst.is_complete
+    assert rst.items == {0}
 
     # Measurement and Time.
     rst = index.search(meas_q & time_q)
     assert rst.items == {2}
-    assert rst.is_complete
 
     # Measurement and Tags.
     rst = index.search(meas_q & tags_q)
     assert rst.items == {0, 2}
-    assert rst.is_complete
 
     # Field and Time.
     rst = index.search(fiel_q & time_q)
-    assert rst.items == {2}
-    assert not rst.is_complete
+    assert rst.items == set({})
 
     # Field and Tags.
     rst = index.search(fiel_q & tags_q)
-    assert rst.items == {0, 2}
-    assert not rst.is_complete
+    assert rst.items == {0}
 
     # Time and Tags.
     rst = index.search(time_q & tags_q)
     assert rst.items == {2}
-    assert rst.is_complete
 
 
 def test_search_compound_query_or():
@@ -525,29 +504,23 @@ def test_search_compound_query_or():
     # Measurement or Field.
     rst = index.search(meas_q | fiel_q)
     assert rst.items == {0, 2}
-    assert not rst.is_complete
 
     # Measurement or Time.
     rst = index.search(meas_q | time_q)
     assert rst.items == {0, 2}
-    assert rst.is_complete
 
     # Measurement or Tags.
     rst = index.search(meas_q | tags_q)
     assert rst.items == {0, 2}
-    assert rst.is_complete
 
     # Field or Time.
     rst = index.search(fiel_q | time_q)
     assert rst.items == {0, 2}
-    assert not rst.is_complete
 
     # Field or Tags.
     rst = index.search(fiel_q | tags_q)
     assert rst.items == {0, 2}
-    assert not rst.is_complete
 
     # Time or Tags.
     rst = index.search(time_q | tags_q)
     assert rst.items == {0, 2}
-    assert rst.is_complete
