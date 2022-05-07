@@ -551,6 +551,57 @@ def test_show_tag_keys():
     assert m2.show_tag_keys() == []
 
 
+def test_show_tag_values():
+    """Test show tag keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    m = db.measurement("_default")
+    m2 = db.measurement("some_missing_measurement")
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert m.show_tag_values() == {}
+    assert m2.show_tag_values() == {}
+
+    m.insert(Point())
+    m2.insert(Point())
+    assert m.show_tag_values() == {}
+    assert m2.show_tag_values() == {}
+
+    m.insert(Point(tags={"a": "1"}))
+    m2.insert(Point(tags={"a": "horse"}))
+    assert m.show_tag_values() == {"a": ["1"]}
+    assert m.show_tag_values(["a"]) == {"a": ["1"]}
+    assert m.show_tag_values(["b"]) == {"b": []}
+    assert m2.show_tag_values() == {"a": ["horse"]}
+    assert m2.show_tag_values(["a"]) == {"a": ["horse"]}
+    assert m2.show_tag_values(["b"]) == {"b": []}
+
+    m.insert(Point(tags={"a": "1", "b": "2"}))
+    m2.insert(Point(tags={"a": "cow", "b": "bird"}))
+    assert m.show_tag_values() == {"a": ["1"], "b": ["2"]}
+    assert m.show_tag_values(["a"]) == {"a": ["1"]}
+    assert m.show_tag_values(["b"]) == {"b": ["2"]}
+    assert m.show_tag_values(["c"]) == {"c": []}
+    assert m.show_tag_values(["a", "b"]) == {"a": ["1"], "b": ["2"]}
+    assert m.show_tag_values(["a", "c"]) == {"a": ["1"], "c": []}
+    assert m2.show_tag_values() == {"a": ["cow", "horse"], "b": ["bird"]}
+
+    # Invalidate index.
+    m.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            tags={"a": "a", "c": "3"},
+        )
+    )
+
+    assert m.show_tag_values() == {"a": ["1", "a"], "b": ["2"], "c": ["3"]}
+    assert m.show_tag_values(["c"]) == {"c": ["3"]}
+    assert m.show_tag_values(["d"]) == {"d": []}
+    assert m.show_tag_values(["a", "b"]) == {"a": ["1", "a"], "b": ["2"]}
+    assert m.show_tag_values(["c", "d"]) == {"c": ["3"], "d": []}
+    assert m2.show_tag_values() == {"a": ["cow", "horse"], "b": ["bird"]}
+
+
 def test_update():
     """Test the update method of the Measurement class."""
     # Open up the DB with TinyFlux.

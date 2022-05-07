@@ -13,6 +13,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import (
     Callable,
+    Dict,
     Iterable,
     Generator,
     List,
@@ -230,6 +231,19 @@ class Measurement:
             List of tag keys, sorted.
         """
         return self._db.show_tag_keys(self._name)
+
+    def show_tag_values(
+        self, tag_keys: List[str] = []
+    ) -> Dict[str, List[str]]:
+        """Show all tag values in the database.
+
+        Args:
+            tag_keys: Optional list of tag keys to get associated values for.
+
+        Returns:
+            Mapping of tag_keys to associated tag values as a sorted list.
+        """
+        return self._db.show_tag_values(tag_keys, self._name)
 
     def search(self, query: SimpleQuery) -> List[Point]:
         """Get all points specified by a query from this measurement.

@@ -350,7 +350,7 @@ def test_get():
     assert db.get(TagQuery().a == "C") == p3
     assert db.get(FieldQuery().b == 3) == p3
     assert db.get(MeasurementQuery() == "_default") == p1
-    assert not db.get(MeasurementQuery() == None)
+    assert not db.get(MeasurementQuery() == None)  # noqa: E711
     assert not db.get(TagQuery().a == "D")
     assert not db.get(FieldQuery().b > 3)
 
@@ -728,6 +728,45 @@ def test_show_tag_keys():
     )
 
     assert db.show_tag_keys() == ["a", "b", "c"]
+
+
+def test_show_tag_values():
+    """Test show tag keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert db.show_tag_values() == {}
+
+    db.insert(Point())
+    assert db.show_tag_values() == {}
+
+    db.insert(Point(tags={"a": "1"}))
+    assert db.show_tag_values() == {"a": ["1"]}
+    assert db.show_tag_values(["a"]) == {"a": ["1"]}
+    assert db.show_tag_values(["b"]) == {"b": []}
+
+    db.insert(Point(tags={"a": "1", "b": "2"}))
+    assert db.show_tag_values() == {"a": ["1"], "b": ["2"]}
+    assert db.show_tag_values(["a"]) == {"a": ["1"]}
+    assert db.show_tag_values(["b"]) == {"b": ["2"]}
+    assert db.show_tag_values(["c"]) == {"c": []}
+    assert db.show_tag_values(["a", "b"]) == {"a": ["1"], "b": ["2"]}
+    assert db.show_tag_values(["a", "c"]) == {"a": ["1"], "c": []}
+
+    # Invalidate index.
+    db.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            tags={"a": "a", "c": "3"},
+        )
+    )
+
+    assert db.show_tag_values() == {"a": ["1", "a"], "b": ["2"], "c": ["3"]}
+    assert db.show_tag_values(["c"]) == {"c": ["3"]}
+    assert db.show_tag_values(["d"]) == {"d": []}
+    assert db.show_tag_values(["a", "b"]) == {"a": ["1", "a"], "b": ["2"]}
+    assert db.show_tag_values(["c", "d"]) == {"c": ["3"], "d": []}
 
 
 def test_show_measurements():

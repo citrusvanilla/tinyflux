@@ -11,6 +11,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Set,
     Tuple,
     Union,
 )
@@ -878,7 +879,87 @@ class TinyFlux:
 
         return sorted(rst)
 
+    def show_tag_values(
+        self,
+        tag_keys: List[str] = [],
+        measurement: Optional[str] = None,
+    ) -> Dict[str, List[str]]:
+        """Show all tag values in the database.
 
+        Args:
+            tag_keys: Optional list of tag keys to get associated values for.
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            Mapping of tag_keys to associated tag values as a sorted list.
+        """
+        if self._index.valid:
+
+            # Relevant tags.
+            relevant_tags = (
+                set(tag_keys).intersection(set(self._index._tags.keys()))
+                if tag_keys
+                else set(self._index._tags.keys())
+            )
+
+            # Measurement specified.
+            if measurement:
+
+                # No measurement in the DB.
+                if measurement not in self._index._measurements:
+                    return {}
+
+                # If there is a measurement in the DB, we intersect.
+                measurement_items = set(self._index._measurements[measurement])
+
+                rst: Dict[str, Set[str]] = {
+                    i: set({})
+                    for i in sorted(set(tag_keys).union(relevant_tags))
+                }
+
+                for tag_key in relevant_tags:
+                    for tag_value, items in self._index._tags[tag_key].items():
+                        if measurement_items.intersection(set(items)):
+                            rst[tag_key].add(tag_value)
+
+            # No measurement specified.
+            else:
+
+                rst = {
+                    i: set({})
+                    for i in sorted(set(tag_keys).union(relevant_tags))
+                }
+
+                for tag_key in relevant_tags:
+                    for tag_value, items in self._index._tags[tag_key].items():
+                        rst[tag_key].add(tag_value)
+
+        # Otherwise, go through storage.
+        else:
+
+            relevant_tags = set(tag_keys)
+            rst = {i: set({}) for i in sorted(relevant_tags)}
+
+            for item in self._storage:
+
+                # Filter by measurement.
+                if (
+                    measurement
+                    and self._storage._deserialize_measurement(item)
+                    != measurement
+                ):
+                    continue
+
+                # Match, add to results.
+                _point = self._storage._deserialize_storage_item(item)
+
+                for tk, tv in _point.tags.items():
+                    if relevant_tags and tk not in relevant_tags:
+                        continue
+
+                    rst[tk] = rst[tk].union({tv}) if tk in rst else set([tv])
+
+        return {i: sorted(j) for i, j in rst.items()}
 
     def update(
         self,
