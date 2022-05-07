@@ -13,7 +13,7 @@ import operator
 from typing import Dict, Iterable, List, Optional, Set
 
 from tinyflux.queries import SimpleQuery, CompoundQuery, Query
-from .point import Point
+from .point import FieldValue, Point
 from .utils import find_eq, find_lt, find_le, find_gt, find_ge
 
 
@@ -215,6 +215,63 @@ class Index:
 
         return rst
 
+    def get_field_values(
+        self, field_key: str, measurement: Optional[str] = None
+    ) -> List[FieldValue]:
+        """Get field values from this index, optionally filtered by measurement.
+
+        Args:
+            field_key: Field key to get field values for.
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            List of field values.
+        """
+        # No measurement specified.
+        if not measurement:
+            if field_key in self._fields:
+                field_values = [i[1] for i in self._fields[field_key]]
+                return field_values
+            else:
+                return []
+
+        # Measurement specified.
+        rst: List[FieldValue] = []
+
+        # No measurement in the DB.
+        if measurement not in self._measurements:
+            return rst
+
+        # If there is a measurement in the DB, we intersect.
+        measurement_items = set(self._measurements[measurement])
+
+        for fk, items in self._fields.items():
+
+            # Not a matching field key.
+            if fk != field_key:
+                continue
+
+            # The field items are the first element of the tuple.
+            field_items = [i[0] for i in items]
+
+            # Check to see if there is overlap, if so, extend results.
+            if measurement_items.intersection(set(field_items)):
+                field_values = [i[1] for i in items]
+                rst.extend(field_values)
+
+        return rst
+
+    def get_measurements(self) -> set[str]:
+        """Get the names of all measurements in the Index.
+
+        Returns:
+            Unique names of measurements as a set.
+
+        Usage:
+            >>> n = Index().build([Point()]).get_measurements()
+        """
+        return set(self._measurements.keys())
+
     def get_tag_keys(self, measurement: Optional[str] = None) -> Set[str]:
         """Get tag keys from this index, optionally filtered by measurement.
 
@@ -244,17 +301,6 @@ class Index:
                     rst.add(tag_key)
 
         return rst
-
-    def get_measurements(self) -> set[str]:
-        """Get the names of all measurements in the Index.
-
-        Returns:
-            Unique names of measurements as a set.
-
-        Usage:
-            >>> n = Index().build([Point()]).get_measurements()
-        """
-        return set(self._measurements.keys())
 
     def get_tag_values(
         self, tag_keys: List[str] = [], measurement: Optional[str] = None

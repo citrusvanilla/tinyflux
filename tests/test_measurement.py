@@ -233,6 +233,159 @@ def test_get():
     assert m1.get(FieldQuery().e == 1) == p5
 
 
+def test_get_field_keys():
+    """Test show field keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    m = db.measurement("_default")
+    m2 = db.measurement("some_missing_measurement")
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert m.get_field_keys() == []
+
+    m.insert(Point())
+    assert m.get_field_keys() == []
+    assert m2.get_field_keys() == []
+
+    m.insert(Point(fields={"a": 1}))
+    assert m.get_field_keys() == ["a"]
+    assert m2.get_field_keys() == []
+
+    m.insert(Point(fields={"a": 2, "b": 3}))
+    assert m.get_field_keys() == ["a", "b"]
+    assert m2.get_field_keys() == []
+
+    # Invalidate index.
+    m.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            fields={"a": 1, "c": 3},
+        )
+    )
+
+    assert m.get_field_keys() == ["a", "b", "c"]
+    assert m2.get_field_keys() == []
+
+
+def test_get_field_values():
+    """Test show field values."""
+    db = TinyFlux(storage=MemoryStorage)
+    m = db.measurement("_default")
+    m2 = db.measurement("some_missing_measurement")
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert m.get_field_values("a") == []
+
+    m.insert(Point())
+    assert m.get_field_values("a") == []
+    assert m2.get_field_values("a") == []
+
+    m.insert(Point(fields={"a": 1}))
+    assert m.get_field_values("a") == [1]
+    assert m2.get_field_values("a") == []
+
+    m.insert(Point(fields={"a": 2, "b": 3}))
+    assert m.get_field_values("a") == [1, 2]
+    assert m2.get_field_values("b") == []
+
+    # Invalidate index.
+    m.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            fields={"a": 1, "c": 3},
+        )
+    )
+
+    assert m.get_field_values("a") == [1, 2, 1]
+    assert m2.get_field_values("a") == []
+
+
+def test_get_tag_keys():
+    """Test show tag keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    m = db.measurement("_default")
+    m2 = db.measurement("some_missing_measurement")
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert m.get_tag_keys() == []
+
+    m.insert(Point())
+    assert m.get_tag_keys() == []
+    assert m2.get_tag_keys() == []
+
+    m.insert(Point(tags={"a": "1"}))
+    assert m.get_tag_keys() == ["a"]
+    assert m2.get_tag_keys() == []
+
+    m.insert(Point(tags={"a": "2", "b": "3"}))
+    assert m.get_tag_keys() == ["a", "b"]
+    assert m2.get_tag_keys() == []
+
+    # Invalidate index.
+    m.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            tags={"a": "1", "c": "3"},
+        )
+    )
+
+    assert m.get_tag_keys() == ["a", "b", "c"]
+    assert m2.get_tag_keys() == []
+
+
+def test_get_tag_values():
+    """Test show tag keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    m = db.measurement("_default")
+    m2 = db.measurement("some_missing_measurement")
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert m.get_tag_values() == {}
+    assert m2.get_tag_values() == {}
+
+    m.insert(Point())
+    m2.insert(Point())
+    assert m.get_tag_values() == {}
+    assert m2.get_tag_values() == {}
+
+    m.insert(Point(tags={"a": "1"}))
+    m2.insert(Point(tags={"a": "horse"}))
+    assert m.get_tag_values() == {"a": ["1"]}
+    assert m.get_tag_values(["a"]) == {"a": ["1"]}
+    assert m.get_tag_values(["b"]) == {"b": []}
+    assert m2.get_tag_values() == {"a": ["horse"]}
+    assert m2.get_tag_values(["a"]) == {"a": ["horse"]}
+    assert m2.get_tag_values(["b"]) == {"b": []}
+
+    m.insert(Point(tags={"a": "1", "b": "2"}))
+    m2.insert(Point(tags={"a": "cow", "b": "bird"}))
+    assert m.get_tag_values() == {"a": ["1"], "b": ["2"]}
+    assert m.get_tag_values(["a"]) == {"a": ["1"]}
+    assert m.get_tag_values(["b"]) == {"b": ["2"]}
+    assert m.get_tag_values(["c"]) == {"c": []}
+    assert m.get_tag_values(["a", "b"]) == {"a": ["1"], "b": ["2"]}
+    assert m.get_tag_values(["a", "c"]) == {"a": ["1"], "c": []}
+    assert m2.get_tag_values() == {"a": ["cow", "horse"], "b": ["bird"]}
+
+    # Invalidate index.
+    m.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            tags={"a": "a", "c": "3"},
+        )
+    )
+
+    assert m.get_tag_values() == {"a": ["1", "a"], "b": ["2"], "c": ["3"]}
+    assert m.get_tag_values(["c"]) == {"c": ["3"]}
+    assert m.get_tag_values(["d"]) == {"d": []}
+    assert m.get_tag_values(["a", "b"]) == {"a": ["1", "a"], "b": ["2"]}
+    assert m.get_tag_values(["c", "d"]) == {"c": ["3"], "d": []}
+    assert m2.get_tag_values() == {"a": ["cow", "horse"], "b": ["bird"]}
+
+
 def test_insert():
     """Test the insert method of the Measurement class."""
     db = TinyFlux(storage=MemoryStorage)
@@ -481,125 +634,6 @@ def test_search():
     # Search with a query that has a path.
     assert m1.search(TagQuery().a.exists()) == [p3, p1, p2]
     assert m2.search(FieldQuery().a.exists()) == [p4]
-
-
-def test_get_field_keys():
-    """Test show field keys."""
-    db = TinyFlux(storage=MemoryStorage)
-    m = db.measurement("_default")
-    m2 = db.measurement("some_missing_measurement")
-    assert db.index.valid
-
-    # Valid index, nothing in storage/index.
-    assert m.get_field_keys() == []
-
-    m.insert(Point())
-    assert m.get_field_keys() == []
-    assert m2.get_field_keys() == []
-
-    m.insert(Point(fields={"a": 1}))
-    assert m.get_field_keys() == ["a"]
-    assert m2.get_field_keys() == []
-
-    m.insert(Point(fields={"a": 2, "b": 3}))
-    assert m.get_field_keys() == ["a", "b"]
-    assert m2.get_field_keys() == []
-
-    # Invalidate index.
-    m.insert(
-        Point(
-            time=datetime.now(timezone.utc) - timedelta(days=1),
-            fields={"a": 1, "c": 3},
-        )
-    )
-
-    assert m.get_field_keys() == ["a", "b", "c"]
-    assert m2.get_field_keys() == []
-
-
-def test_get_tag_keys():
-    """Test show tag keys."""
-    db = TinyFlux(storage=MemoryStorage)
-    m = db.measurement("_default")
-    m2 = db.measurement("some_missing_measurement")
-    assert db.index.valid
-
-    # Valid index, nothing in storage/index.
-    assert m.get_tag_keys() == []
-
-    m.insert(Point())
-    assert m.get_tag_keys() == []
-    assert m2.get_tag_keys() == []
-
-    m.insert(Point(tags={"a": "1"}))
-    assert m.get_tag_keys() == ["a"]
-    assert m2.get_tag_keys() == []
-
-    m.insert(Point(tags={"a": "2", "b": "3"}))
-    assert m.get_tag_keys() == ["a", "b"]
-    assert m2.get_tag_keys() == []
-
-    # Invalidate index.
-    m.insert(
-        Point(
-            time=datetime.now(timezone.utc) - timedelta(days=1),
-            tags={"a": "1", "c": "3"},
-        )
-    )
-
-    assert m.get_tag_keys() == ["a", "b", "c"]
-    assert m2.get_tag_keys() == []
-
-
-def test_get_tag_values():
-    """Test show tag keys."""
-    db = TinyFlux(storage=MemoryStorage)
-    m = db.measurement("_default")
-    m2 = db.measurement("some_missing_measurement")
-    assert db.index.valid
-
-    # Valid index, nothing in storage/index.
-    assert m.get_tag_values() == {}
-    assert m2.get_tag_values() == {}
-
-    m.insert(Point())
-    m2.insert(Point())
-    assert m.get_tag_values() == {}
-    assert m2.get_tag_values() == {}
-
-    m.insert(Point(tags={"a": "1"}))
-    m2.insert(Point(tags={"a": "horse"}))
-    assert m.get_tag_values() == {"a": ["1"]}
-    assert m.get_tag_values(["a"]) == {"a": ["1"]}
-    assert m.get_tag_values(["b"]) == {"b": []}
-    assert m2.get_tag_values() == {"a": ["horse"]}
-    assert m2.get_tag_values(["a"]) == {"a": ["horse"]}
-    assert m2.get_tag_values(["b"]) == {"b": []}
-
-    m.insert(Point(tags={"a": "1", "b": "2"}))
-    m2.insert(Point(tags={"a": "cow", "b": "bird"}))
-    assert m.get_tag_values() == {"a": ["1"], "b": ["2"]}
-    assert m.get_tag_values(["a"]) == {"a": ["1"]}
-    assert m.get_tag_values(["b"]) == {"b": ["2"]}
-    assert m.get_tag_values(["c"]) == {"c": []}
-    assert m.get_tag_values(["a", "b"]) == {"a": ["1"], "b": ["2"]}
-    assert m.get_tag_values(["a", "c"]) == {"a": ["1"], "c": []}
-    assert m2.get_tag_values() == {"a": ["cow", "horse"], "b": ["bird"]}
-
-    # Invalidate index.
-    m.insert(
-        Point(
-            time=datetime.now(timezone.utc) - timedelta(days=1),
-            tags={"a": "a", "c": "3"},
-        )
-    )
-
-    assert m.get_tag_values() == {"a": ["1", "a"], "b": ["2"], "c": ["3"]}
-    assert m.get_tag_values(["c"]) == {"c": ["3"]}
-    assert m.get_tag_values(["d"]) == {"d": []}
-    assert m.get_tag_values(["a", "b"]) == {"a": ["1", "a"], "b": ["2"]}
-    assert m.get_tag_values(["c", "d"]) == {"c": ["3"], "d": []}
-    assert m2.get_tag_values() == {"a": ["cow", "horse"], "b": ["bird"]}
 
 
 def test_update():

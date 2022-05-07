@@ -17,7 +17,7 @@ from typing import (
 
 from .index import Index
 from .measurement import Measurement
-from .point import Point, validate_fields, validate_tags
+from .point import FieldValue, Point, validate_fields, validate_tags
 from .queries import (
     CompoundQuery,
     MeasurementQuery,
@@ -133,6 +133,11 @@ class TinyFlux:
 
         return
 
+    def __iter__(self) -> Iterator[Point]:
+        """Return an iterater for all Points in the storage layer."""
+        for item in self._storage:
+            yield self._storage._deserialize_storage_item(item)
+
     def __len__(self):
         """Get the number of Points in the storage layer."""
         # If the index is valid, check it.
@@ -141,11 +146,6 @@ class TinyFlux:
 
         # Otherwise, we get it from storage class.
         return len(self._storage)
-
-    def __iter__(self) -> Iterator[Point]:
-        """Return an iterater for all Points in the storage layer."""
-        for item in self._storage:
-            yield self._storage._deserialize_storage_item(item)
 
     def __repr__(self):
         """Get a printable representation of the TinyFlux instance."""
@@ -387,7 +387,7 @@ class TinyFlux:
         return got_point
 
     def get_field_keys(self, measurement: Optional[str] = None) -> List[str]:
-        """Show all field keys in the database.
+        """Get all field keys in the database.
 
         Args:
             measurement: Optional measurement to filter by.
@@ -419,6 +419,44 @@ class TinyFlux:
 
         return sorted(rst)
 
+    def get_field_values(
+        self, field_key: str, measurement: Optional[str] = None
+    ) -> List[FieldValue]:
+        """Get field values in the database.
+
+        Args:
+            field_key: Field key to get values for.
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            List of field values.
+        """
+        # If index is valid, get keys from index.
+        if self._index.valid:
+            return self._index.get_field_values(field_key, measurement)
+
+        # Otherwise, go through storage.
+        rst = []
+
+        for item in self._storage:
+
+            # Filter by measurement.
+            if (
+                measurement
+                and self._storage._deserialize_measurement(item) != measurement
+            ):
+                continue
+
+            # Match, add to results.
+            _point = self._storage._deserialize_storage_item(item)
+
+            # Filter for matching field key.
+            for fk, fv in _point.fields.items():
+                if fk == field_key:
+                    rst.append(fv)
+
+        return rst
+
     def get_measurements(self) -> List[str]:
         """Get the names of all measurements in the database.
 
@@ -439,7 +477,7 @@ class TinyFlux:
         return sorted(names)
 
     def get_tag_keys(self, measurement: Optional[str] = None) -> List[str]:
-        """Show all tag keys in the database.
+        """Get all tag keys in the database.
 
         Args:
             measurement: Optional measurement to filter by.
@@ -476,7 +514,7 @@ class TinyFlux:
         tag_keys: List[str] = [],
         measurement: Optional[str] = None,
     ) -> Dict[str, List[str]]:
-        """Show all tag values in the database.
+        """Get all tag values in the database.
 
         Args:
             tag_keys: Optional list of tag keys to get associated values for.

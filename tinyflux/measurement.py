@@ -22,7 +22,7 @@ from typing import (
     Union,
 )
 
-from .point import Point
+from .point import FieldValue, Point
 from .queries import MeasurementQuery, Query, SimpleQuery
 from .index import Index
 from .storages import Storage
@@ -160,15 +160,26 @@ class Measurement:
         return self._db.get(query, self._name)
 
     def get_field_keys(self) -> List[str]:
-        """Show all field keys for this measurement.
+        """Get all field keys for this measurement.
 
         Returns:
             List of field keys, sorted.
         """
         return self._db.get_field_keys(self._name)
 
+    def get_field_values(self, field_key: str) -> List[FieldValue]:
+        """Get field values from this measurement for the specified key.
+
+        Args:
+            field_key: The field key to get field values for.
+
+        Returns:
+            List of field keys, sorted.
+        """
+        return self._db.get_field_values(field_key, self._name)
+
     def get_tag_keys(self) -> List[str]:
-        """Show all tag keys for this measurement.
+        """Get all tag keys for this measurement.
 
         Returns:
             List of tag keys, sorted.
@@ -176,7 +187,7 @@ class Measurement:
         return self._db.get_tag_keys(self._name)
 
     def get_tag_values(self, tag_keys: List[str] = []) -> Dict[str, List[str]]:
-        """Show all tag values in the database.
+        """Get all tag values in the database.
 
         Args:
             tag_keys: Optional list of tag keys to get associated values for.
