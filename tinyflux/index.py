@@ -10,7 +10,7 @@ handling, usually as an input to a storage retrieval.
 """
 from datetime import datetime, timezone
 import operator
-from typing import Iterable, List, Optional, Set
+from typing import Dict, Iterable, List, Optional, Set
 
 from tinyflux.queries import SimpleQuery, CompoundQuery, Query
 from .point import Point
@@ -186,16 +186,121 @@ class Index:
 
         return
 
-    def get_measurement_names(self) -> set:
+    def get_field_keys(self, measurement: Optional[str] = None) -> Set[str]:
+        """Get field keys from this index, optionally filtered by measurement.
+
+        Args:
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            Set of field keys.
+        """
+        # No measurement specified.
+        if not measurement:
+            return set(list(self._fields.keys()))
+
+        # Measurement specified.
+        rst: Set[str] = set({})
+
+        # No measurement in the DB.
+        if measurement not in self._measurements:
+            return rst
+
+        # If there is a measurement in the DB, we intersect.
+        measurement_items = set(self._measurements[measurement])
+
+        for field_key, items in self._fields.items():
+            if measurement_items.intersection(set([i[0] for i in items])):
+                rst.add(field_key)
+
+        return rst
+
+    def get_tag_keys(self, measurement: Optional[str] = None) -> Set[str]:
+        """Get tag keys from this index, optionally filtered by measurement.
+
+        Args:
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            Set of field keys.
+        """
+        # No measurement specified.
+        if not measurement:
+            return set(list(self._tags.keys()))
+
+        # Measurement specified.
+        rst: Set[str] = set({})
+
+        # No measurement in the DB.
+        if measurement not in self._measurements:
+            return rst
+
+        # If there is a measurement in the DB, we intersect.
+        measurement_items = set(self._measurements[measurement])
+
+        for tag_key, tag_values in self._tags.items():
+            for items in tag_values.values():
+                if measurement_items.intersection(set(items)):
+                    rst.add(tag_key)
+
+        return rst
+
+    def get_measurements(self) -> set[str]:
         """Get the names of all measurements in the Index.
 
         Returns:
             Unique names of measurements as a set.
 
         Usage:
-            >>> n = Index().build([Point()]).get_measurement_names()
+            >>> n = Index().build([Point()]).get_measurements()
         """
         return set(self._measurements.keys())
+
+    def get_tag_values(
+        self, tag_keys: List[str] = [], measurement: Optional[str] = None
+    ) -> Dict[str, Set[str]]:
+        """Get all tag values from the index.
+
+        Args:
+            tag_keys: Optional list of tag keys to get associated values for.
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            Mapping of tag_keys to associated tag values as a set.
+        """
+        # These is the set of tags that actually exist in index from tag_keys.
+        relevant_tags = (
+            set(tag_keys).intersection(set(self._tags.keys()))
+            if tag_keys
+            else set(self._tags.keys())
+        )
+
+        # Initalize a return value.
+        rst: Dict[str, Set[str]] = {
+            i: set({}) for i in sorted(set(tag_keys).union(relevant_tags))
+        }
+
+        # No measurement specified.
+        if not measurement:
+            for tag_key in relevant_tags:
+                for tag_value, items in self._tags[tag_key].items():
+                    rst[tag_key].add(tag_value)
+
+            return rst
+
+        # Measurement specified, no measurement in the DB.
+        if measurement not in self._measurements:
+            return {}
+
+        # If there is a measurement in the DB, we intersect.
+        measurement_items = set(self._measurements[measurement])
+
+        for tag_key in relevant_tags:
+            for tag_value, items in self._tags[tag_key].items():
+                if measurement_items.intersection(set(items)):
+                    rst[tag_key].add(tag_value)
+
+        return rst
 
     def insert(self, points: List[Point] = []) -> None:
         """Update index with new points.
