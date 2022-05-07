@@ -13,6 +13,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import (
     Callable,
+    Dict,
     Iterable,
     Generator,
     List,
@@ -21,7 +22,7 @@ from typing import (
     Union,
 )
 
-from .point import Point
+from .point import FieldValue, Point
 from .queries import MeasurementQuery, Query, SimpleQuery
 from .index import Index
 from .storages import Storage
@@ -47,19 +48,21 @@ class Measurement:
     def __init__(
         self,
         name: str,
-        parent_database: TinyFlux,
+        db: TinyFlux,
     ) -> None:
         """Initialize a measurement instance.
 
         Args:
-            auto_index: The index should be automatically managed.
-            index_sorter: The ordering function for the index.
-            storage: The Storage instance for the parent database.
-            index: The Index instance for the parent database.
             name: The name of the measurement.
+            db: A reference to the database this measurement belongs to.
         """
         self._name = name
-        self._db = parent_database
+        self._db = db
+
+    @property
+    def index(self) -> Index:
+        """Get the measurement storage instance."""
+        return self._db._index
 
     @property
     def name(self) -> str:
@@ -70,11 +73,6 @@ class Measurement:
     def storage(self) -> Storage:
         """Get the measurement storage instance."""
         return self._db._storage
-
-    @property
-    def index(self) -> Index:
-        """Get the measurement storage instance."""
-        return self._db._index
 
     def __iter__(self) -> Generator:
         """Define the iterator for this class."""
@@ -160,6 +158,44 @@ class Measurement:
             First found Point or None.
         """
         return self._db.get(query, self._name)
+
+    def get_field_keys(self) -> List[str]:
+        """Get all field keys for this measurement.
+
+        Returns:
+            List of field keys, sorted.
+        """
+        return self._db.get_field_keys(self._name)
+
+    def get_field_values(self, field_key: str) -> List[FieldValue]:
+        """Get field values from this measurement for the specified key.
+
+        Args:
+            field_key: The field key to get field values for.
+
+        Returns:
+            List of field keys, sorted.
+        """
+        return self._db.get_field_values(field_key, self._name)
+
+    def get_tag_keys(self) -> List[str]:
+        """Get all tag keys for this measurement.
+
+        Returns:
+            List of tag keys, sorted.
+        """
+        return self._db.get_tag_keys(self._name)
+
+    def get_tag_values(self, tag_keys: List[str] = []) -> Dict[str, List[str]]:
+        """Get all tag values in the database.
+
+        Args:
+            tag_keys: Optional list of tag keys to get associated values for.
+
+        Returns:
+            Mapping of tag_keys to associated tag values as a sorted list.
+        """
+        return self._db.get_tag_values(tag_keys, self._name)
 
     def insert(self, point: Point) -> int:
         """Insert a Point into a measurement.

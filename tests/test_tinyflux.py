@@ -309,11 +309,11 @@ def test_drop_measurements():
     db.insert(Point())
     db.insert(Point(measurement="m"))
     assert db.index.valid
-    assert len(db.measurements()) == 2
+    assert len(db.get_measurements()) == 2
 
     # Valid index, drop all measurements.
     db.drop_measurements()
-    assert len(db.measurements()) == 0
+    assert len(db.get_measurements()) == 0
     assert db.index.valid
     assert db.index.empty
 
@@ -322,7 +322,7 @@ def test_drop_measurements():
     db.insert(Point())
     db.insert(Point(measurement="m"))
     assert not db.index.valid
-    assert len(db.measurements()) == 2
+    assert len(db.get_measurements()) == 2
     assert db.drop_measurement("m") == 1
     assert db.drop_measurement("_default") == 1
     assert not len(db)
@@ -350,7 +350,7 @@ def test_get():
     assert db.get(TagQuery().a == "C") == p3
     assert db.get(FieldQuery().b == 3) == p3
     assert db.get(MeasurementQuery() == "_default") == p1
-    assert not db.get(MeasurementQuery() == None)
+    assert not db.get(MeasurementQuery() == None)  # noqa: E711
     assert not db.get(TagQuery().a == "D")
     assert not db.get(FieldQuery().b > 3)
 
@@ -362,6 +362,159 @@ def test_get():
     assert db.get(FieldQuery().b == 3) == p3
     assert not db.get(TagQuery().a == "D")
     assert not db.get(FieldQuery().b > 3)
+
+
+def test_get_field_keys():
+    """Test show field keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert db.get_field_keys() == []
+
+    db.insert(Point())
+    assert db.get_field_keys() == []
+
+    db.insert(Point(fields={"a": 1}))
+    assert db.get_field_keys() == ["a"]
+
+    db.insert(Point(fields={"a": 2, "b": 3}))
+    assert db.get_field_keys() == ["a", "b"]
+
+    # Invalidate index.
+    db.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            fields={"a": 1, "c": 3},
+        )
+    )
+
+    assert db.get_field_keys() == ["a", "b", "c"]
+
+
+def test_get_field_values():
+    """Test show field keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert db.get_field_values("a") == []
+
+    db.insert(Point())
+    assert db.get_field_values("a") == []
+
+    db.insert(Point(fields={"a": 1}))
+    assert db.get_field_values("a") == [1]
+    assert db.get_field_values("b") == []
+
+    db.insert(Point(fields={"a": 2, "b": 3}))
+    assert db.get_field_values("a") == [1, 2]
+    assert db.get_field_values("b") == [3]
+    assert db.get_field_values("c") == []
+
+    # Invalidate index.
+    db.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            fields={"a": 1, "c": 3},
+        )
+    )
+
+    assert db.get_field_values("a") == [1, 2, 1]
+    assert db.get_field_values("b") == [3]
+    assert db.get_field_values("c") == [3]
+    assert db.get_field_values("d") == []
+
+
+def test_get_tag_keys():
+    """Test show tag keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert db.get_tag_keys() == []
+
+    db.insert(Point())
+    assert db.get_tag_keys() == []
+
+    db.insert(Point(tags={"a": "1"}))
+    assert db.get_tag_keys() == ["a"]
+
+    db.insert(Point(tags={"a": "1", "b": "2"}))
+    assert db.get_tag_keys() == ["a", "b"]
+
+    # Invalidate index.
+    db.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            tags={"a": "a", "c": "3"},
+        )
+    )
+
+    assert db.get_tag_keys() == ["a", "b", "c"]
+
+
+def test_get_tag_values():
+    """Test show tag keys."""
+    db = TinyFlux(storage=MemoryStorage)
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert db.get_tag_values() == {}
+
+    db.insert(Point())
+    assert db.get_tag_values() == {}
+
+    db.insert(Point(tags={"a": "1"}))
+    assert db.get_tag_values() == {"a": ["1"]}
+    assert db.get_tag_values(["a"]) == {"a": ["1"]}
+    assert db.get_tag_values(["b"]) == {"b": []}
+
+    db.insert(Point(tags={"a": "1", "b": "2"}))
+    assert db.get_tag_values() == {"a": ["1"], "b": ["2"]}
+    assert db.get_tag_values(["a"]) == {"a": ["1"]}
+    assert db.get_tag_values(["b"]) == {"b": ["2"]}
+    assert db.get_tag_values(["c"]) == {"c": []}
+    assert db.get_tag_values(["a", "b"]) == {"a": ["1"], "b": ["2"]}
+    assert db.get_tag_values(["a", "c"]) == {"a": ["1"], "c": []}
+
+    # Invalidate index.
+    db.insert(
+        Point(
+            time=datetime.now(timezone.utc) - timedelta(days=1),
+            tags={"a": "a", "c": "3"},
+        )
+    )
+
+    assert db.get_tag_values() == {"a": ["1", "a"], "b": ["2"], "c": ["3"]}
+    assert db.get_tag_values(["c"]) == {"c": ["3"]}
+    assert db.get_tag_values(["d"]) == {"d": []}
+    assert db.get_tag_values(["a", "b"]) == {"a": ["1", "a"], "b": ["2"]}
+    assert db.get_tag_values(["c", "d"]) == {"c": ["3"], "d": []}
+
+
+def test_get_measurements():
+    """Test measurements method."""
+    # Empty DB.
+    db = TinyFlux(storage=MemoryStorage)
+    assert db.index.valid
+    assert db.get_measurements() == []
+
+    # DB with points and valid index.
+    db.insert(Point())
+    assert db.index.valid
+    assert db.get_measurements() == ["_default"]
+
+    # DB with points and invalid index.
+    db.insert(
+        Point(
+            measurement="a",
+            time=datetime.now(timezone.utc) - timedelta(days=365),
+        )
+    )
+    assert not db.index.valid
+    assert db.get_measurements() == ["_default", "a"]
+    assert not db.index.valid
 
 
 def test_insert():
@@ -475,18 +628,18 @@ def test_measurement():
     # Empty db.  No actual measurements, no Measurement references.
     db = TinyFlux(storage=MemoryStorage)
     assert not db._measurements
-    assert not db.measurements()
+    assert not db.get_measurements()
 
     # Create a reference to a measurment that does not exist.
     m = db.measurement("a")
     assert "a" in db._measurements
     assert not len(m)
-    assert not db.measurements()
+    assert not db.get_measurements()
 
     # Add a point to the db.
     db.insert(Point())
     assert "_default" not in db._measurements
-    assert db.measurements() == {"_default"}
+    assert db.get_measurements() == ["_default"]
 
     # Create a reference to a measurement that does exist.
     m2 = db.measurement("_default")
@@ -495,30 +648,6 @@ def test_measurement():
 
     assert isinstance(m, Measurement)
     assert isinstance(m2, Measurement)
-
-
-def test_measurements():
-    """Test measurements method."""
-    # Empty DB.
-    db = TinyFlux(storage=MemoryStorage)
-    assert db.index.valid
-    assert db.measurements() == set({})
-
-    # DB with points and valid index.
-    db.insert(Point())
-    assert db.index.valid
-    assert db.measurements() == {"_default"}
-
-    # DB with points and invalid index.
-    db.insert(
-        Point(
-            measurement="a",
-            time=datetime.now(timezone.utc) - timedelta(days=365),
-        )
-    )
-    assert not db.index.valid
-    assert db.measurements() == {"a", "_default"}
-    assert not db.index.valid
 
 
 def test_reindex(tmpdir, capsys):
