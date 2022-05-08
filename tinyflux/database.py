@@ -620,10 +620,7 @@ class TinyFlux:
         return measurement
 
     def reindex(self) -> None:
-        """Sort the storage layer and build a new in-memory index.
-
-        Reindexing the storage sorts storage items by timestamp. The Index
-        instance is then built while iterating over the storage items.
+        """Build a new in-memory index.
 
         Raises:
             OSError if storage cannot be written to.
@@ -635,41 +632,10 @@ class TinyFlux:
             print("Index already valid.")
             return
 
-        # A container for storage items.
-        temp_memory = []
-
-        last_timestamp = None
-        storage_is_sorted = True
-
-        for item in self._storage:
-
-            # Check to see if storage is sorted.
-            if storage_is_sorted:
-                _time = self._storage._deserialize_timestamp(item)
-
-                if last_timestamp and _time < last_timestamp:
-                    storage_is_sorted = False
-                else:
-                    last_timestamp = _time
-
-            # Add item to temp memory.
-            temp_memory.append(item)
-
-        # If storage wasn't sorted, sort and overwrite it.
-        if not storage_is_sorted:
-            temp_memory.sort(
-                key=lambda x: self._storage._deserialize_timestamp(x)
-            )
-            self._storage._write(temp_memory, True)
-
         # Build the index.
         self._index.build(
-            self._storage._deserialize_storage_item(i) for i in temp_memory
+            self._storage._deserialize_storage_item(i) for i in self._storage
         )
-
-        # Clean up temp memory.
-        del temp_memory
-        gc.collect()
 
         return
 

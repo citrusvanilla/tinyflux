@@ -230,10 +230,6 @@ def test_subclassing_storage():
             """Deserialize storage."""
             ...
 
-        def _is_sorted(self) -> bool:
-            """Check if the storage layer is sorted."""
-            ...
-
         def _serialize_point(self, Point) -> None:
             """Serialize Point."""
             ...
@@ -661,7 +657,9 @@ def test_deserialization(tmpdir):
     serialized_point = db.storage._serialize_point(p)
 
     assert db.storage._deserialize_measurement(serialized_point) == "a"
-    assert db.storage._deserialize_timestamp(serialized_point) == t
+    assert db.storage._deserialize_timestamp(serialized_point) == t.replace(
+        tzinfo=None
+    )
     assert db.storage._deserialize_storage_item(serialized_point) == p
 
     db = TinyFlux(storage=MemoryStorage)
@@ -673,26 +671,6 @@ def test_deserialization(tmpdir):
     assert db.storage._deserialize_measurement(serialized_point) == "a"
     assert db.storage._deserialize_timestamp(serialized_point) == t
     assert db.storage._deserialize_storage_item(serialized_point) == p
-
-
-def test_is_sorted(tmpdir):
-    """Test the is_sorted method."""
-    # CSV DB.
-    path = os.path.join(tmpdir, "test.csv")
-    db = TinyFlux(path)
-    db.insert_multiple([Point(), Point()])
-
-    assert db.storage._is_sorted()
-    db.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=1)))
-    assert not db.storage._is_sorted()
-
-    # Memory DB.
-    db = TinyFlux(storage=MemoryStorage)
-    db.insert_multiple([Point(), Point()])
-
-    assert db.storage._is_sorted()
-    db.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=1)))
-    assert not db.storage._is_sorted()
 
 
 def test_flush_on_insert(tmpdir):

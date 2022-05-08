@@ -676,19 +676,17 @@ def test_reindex(tmpdir, capsys):
     db.insert(p3)
     assert not db.index.valid
     assert db.index.empty
-    assert not db._storage._is_sorted()
 
     # Reindex.
     db.reindex()
 
-    # Check storage layer is sorted.
+    # Check storage layer.
     f = open(path, "r+")
     r = csv.reader(f)
-    for row, point in zip(r, [p1, p2, p3]):
+    for row, point in zip(r, [p2, p1, p3]):
         assert tuple(row) == point._serialize_to_list()
     f.close()
 
-    assert db._storage._is_sorted()
     assert not db._storage._initially_empty
 
     # Check new index.
@@ -812,12 +810,12 @@ def test_search():
     assert not db.index.empty
 
     # Search by measurement.
-    assert db.search(MeasurementQuery() == "_default") == [p3, p1, p2]
+    assert db.search(MeasurementQuery() == "_default") == [p1, p2, p3]
     assert not db.search(MeasurementQuery() != "_default")
 
     # Search by time.
     assert db.search(TimeQuery() < t) == [p3]
-    assert db.search(TimeQuery() <= t) == [p3, p1, p2]
+    assert db.search(TimeQuery() <= t) == [p1, p2, p3]
     assert db.search(TimeQuery() == t) == [p1, p2]
     assert db.search(TimeQuery() > t) == []
     assert db.search(TimeQuery() >= t) == [p1, p2]

@@ -626,13 +626,13 @@ def test_search():
 
     # Search by time.
     assert m1.search(TimeQuery() < t) == [p3]
-    assert m1.search(TimeQuery() <= t) == [p3, p1, p2]
+    assert m1.search(TimeQuery() <= t) == [p1, p2, p3]
     assert m2.search(TimeQuery() == t) == [p4, p5]
     assert m2.search(TimeQuery() > t) == []
     assert m2.search(TimeQuery() >= t) == [p4, p5]
 
     # Search with a query that has a path.
-    assert m1.search(TagQuery().a.exists()) == [p3, p1, p2]
+    assert m1.search(TagQuery().a.exists()) == [p1, p2, p3]
     assert m2.search(FieldQuery().a.exists()) == [p4]
 
 

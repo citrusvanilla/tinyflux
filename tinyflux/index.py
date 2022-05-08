@@ -10,7 +10,7 @@ handling, usually as an input to a storage retrieval.
 """
 from datetime import datetime, timezone
 import operator
-from typing import Dict, Iterable, List, Optional, Set
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from tinyflux.queries import SimpleQuery, CompoundQuery, Query
 from .point import FieldValue, Point
@@ -113,6 +113,7 @@ class Index:
     _measurements: dict[str, list]
     _timestamps: List[float]
     _valid: bool
+    _storage_pos_sorted_by_ts: List[int]
 
     def __init__(self, valid: bool = True) -> None:
         """Initialize an Index.
@@ -128,6 +129,7 @@ class Index:
         self._measurements = {}
         self._timestamps = []
         self._valid = valid
+        self._storage_pos_sorted_by_ts = []
 
     @property
     def empty(self) -> bool:
@@ -177,12 +179,25 @@ class Index:
         """
         self._reset()
 
+        # A buffer for the new timestamps and their storage positions.
+        timestamp_buffer: Tuple[datetime, int] = []
+
         for idx, point in enumerate(points):
             self._num_items += 1
-            self._insert_time(point.time)
+            self._insert_measurements(idx, point.measurement)
             self._insert_tags(idx, point.tags)
             self._insert_fields(idx, point.fields)
-            self._insert_measurements(idx, point.measurement)
+
+            timestamp_buffer.append((point.time.timestamp(), idx))
+
+        # Sort the timestamp buffer by timestamp.
+        timestamp_buffer.sort(key=lambda x: x[0])
+
+        # Split up the tuple into their own lists.
+        # We have to do this because the bisect library does not work on
+        # containers prior to py310.
+        self._timestamps = [i[0] for i in timestamp_buffer]
+        self._storage_pos_sorted_by_ts = [i[1] for i in timestamp_buffer]
 
         return
 
@@ -486,6 +501,10 @@ class Index:
         Args:
             time: Time to index.
         """
+        # Add the new storage position.
+        self._storage_pos_sorted_by_ts.append(len(self._timestamps))
+
+        # Add the timestamp.
         self._timestamps.append(time.timestamp())
 
         return
@@ -651,19 +670,20 @@ class Index:
         # Exact timestamp match.
         if op == operator.eq:
 
+            # Find the exact match, or return empty set if None.
             match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
 
-            results = set([match])
-
+            # Find the other timestamps with same value.
+            results = set([self._storage_pos_sorted_by_ts[match]])
             match += 1
 
             while match < len(self._timestamps):
                 if self._timestamps[match] != rhs.timestamp():
                     break
 
-                results.add(match)
+                results.add(self._storage_pos_sorted_by_ts[match])
                 match += 1
 
             return results
@@ -671,64 +691,66 @@ class Index:
         # Anything except exact timestamp match.
         elif op == operator.ne:
 
+            # Find the exact match, or return full set if None.
             match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
-                return set(range(len(self._timestamps)))
+                return set(self._storage_pos_sorted_by_ts)
 
-            results = set([match])
-
+            # Find the other timestamps with same value.
+            results = set([self._storage_pos_sorted_by_ts[match]])
             match += 1
 
             while match < len(self._timestamps):
                 if self._timestamps[match] != rhs.timestamp():
                     break
 
-                results.add(match)
+                results.add(self._storage_pos_sorted_by_ts[match])
                 match += 1
 
-            return set(range(len(self._timestamps))).difference(results)
+            return set(self._storage_pos_sorted_by_ts).difference(results)
 
         # Everything less than rhs.
         elif op == operator.lt:
 
             match = find_lt(self._timestamps, rhs.timestamp())
-
             if match is None:
                 return set([])
 
-            return set(range(match + 1))
+            return set(self._storage_pos_sorted_by_ts[: match + 1])
 
         # Every less than or equal to rhs.
         elif op == operator.le:
-            match = find_le(self._timestamps, rhs.timestamp())
 
+            match = find_le(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
 
-            return set(range(match + 1))
+            return set(self._storage_pos_sorted_by_ts[: match + 1])
 
         # Everything greater than rhs.
         elif op == operator.gt:
-            match = find_gt(self._timestamps, rhs.timestamp())
 
+            match = find_gt(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
 
-            return set(range(match, len(self._timestamps)))
+            return set(self._storage_pos_sorted_by_ts[match:])
 
         # Everything greater than or equal to rhs.
         elif op == operator.ge:
-            match = find_ge(self._timestamps, rhs.timestamp())
 
+            match = find_ge(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
 
-            return set(range(match, len(self._timestamps)))
+            return set(self._storage_pos_sorted_by_ts[match:])
 
         # All other operators.
         else:
             items = set([])
-            for idx, timestamp in enumerate(self._timestamps):
+            for idx, timestamp in zip(
+                self._storage_pos_sorted_by_ts, self._timestamps
+            ):
                 if query._test(
                     query._path_resolver(
                         datetime.fromtimestamp(timestamp).astimezone(

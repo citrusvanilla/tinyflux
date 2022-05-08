@@ -137,24 +137,6 @@ class Storage(ABC):  # pragma: no cover
         ...
 
     @abstractmethod
-    def _is_sorted(self) -> bool:
-        """Check if the storage layer is sorted."""
-        # We're reading all data, start w/ an intact index & no latest time.
-        latest_time = None
-
-        # Iterate over all rows.
-        for item in self:
-            # Deserialize the Point.
-            timestamp = self._deserialize_timestamp(item)
-
-            if latest_time and timestamp < latest_time:
-                return False
-
-            latest_time = timestamp
-
-        return True
-
-    @abstractmethod
     def _serialize_point(self, point: Point) -> Any:
         """Serialize a point to an item for storage."""
         ...
@@ -321,13 +303,7 @@ class CSVStorage(Storage):
 
     def _deserialize_timestamp(self, row: CSVStorageItem) -> datetime:
         """Deserialize timestamp from a row."""
-        return datetime.fromisoformat(row[self._timestamp_idx]).replace(
-            tzinfo=timezone.utc
-        )
-
-    def _is_sorted(self) -> bool:
-        """Check if the storage layer is sorted."""
-        return super()._is_sorted()
+        return datetime.fromisoformat(row[self._timestamp_idx])
 
     def _serialize_point(
         self, point: Point
@@ -429,10 +405,6 @@ class MemoryStorage(Storage):
     def _deserialize_timestamp(self, item: MemStorageItem) -> datetime:
         """Deserialize timestamp from a point."""
         return item.time
-
-    def _is_sorted(self) -> bool:
-        """Check if the storage layer is sorted."""
-        return super()._is_sorted()
 
     def _serialize_point(self, point: Point) -> MemStorageItem:
         """Serialize a point to an item for storage."""
