@@ -1,7 +1,6 @@
 """The main module of the TinyFlux package, containing the TinyFlux class."""
 import copy
 from datetime import datetime, timezone
-import gc
 from typing import (
     Any,
     Callable,
@@ -11,7 +10,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Tuple,
     Union,
 )
 
@@ -277,6 +275,7 @@ class TinyFlux:
 
         return count
 
+    @read_op
     @write_op
     def drop_measurement(self, name: str) -> int:
         """Drop a specific measurement from the database.
@@ -844,6 +843,7 @@ class TinyFlux:
 
         return found_points
 
+    @read_op
     @write_op
     def update(
         self,
@@ -874,6 +874,7 @@ class TinyFlux:
             False, query, time, measurement, tags, fields, _measurement
         )
 
+    @read_op
     @write_op
     def update_all(
         self,
@@ -1040,7 +1041,7 @@ class TinyFlux:
                 point.time = t
 
             # Insert the points into storage.
-            self._storage.append([point])
+            self._storage.append([self._storage._serialize_point(point)])
 
             # Check index.
             if self._auto_index and self._index.valid:
@@ -1131,9 +1132,6 @@ class TinyFlux:
             if len(index_rst._items) == len(self._index):
                 use_index = False
 
-        # Whether or not updates to time attributes were made.
-        time_updates_performed = False
-
         # Update with the help of the index.
         if use_index:
 
@@ -1209,6 +1207,9 @@ class TinyFlux:
 
         # Items were updated. Swap storages and clean up.
         self._storage._swap_temp_with_primary()
+
+        # Invalidate index.
+        self._index.invalidate()
 
         # If any item was updated, rebuild the in-memory index.
         if self._auto_index:

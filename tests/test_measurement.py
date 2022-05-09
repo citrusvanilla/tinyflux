@@ -125,7 +125,7 @@ def test_all():
 
 def test_contains():
     """Test the contains method of the Measurement class."""
-    db = TinyFlux(storage=MemoryStorage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
     m1 = db.measurement("m1")
     m2 = db.measurement("m2")
 
@@ -139,6 +139,7 @@ def test_contains():
         m1.contains()
 
     # Valid index, no query items.
+    db.reindex()
     assert not m1.contains(TagQuery().b.exists())
     assert not m2.contains(TagQuery().a.exists())
 
@@ -165,7 +166,7 @@ def test_contains():
 
 def test_count():
     """Test the count method of the Measurement class."""
-    db = TinyFlux(storage=MemoryStorage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
     m1 = db.measurement("m1")
     m2 = db.measurement("m2")
 
@@ -175,6 +176,7 @@ def test_count():
     m2.insert(Point(tags={"b": "B"}, fields={"b": 2}))
 
     # Valid index, no items.
+    db.reindex()
     assert not m1.count(TagQuery().ummm == "okay")
     assert not m2.count(TagQuery().ummm == "okay")
 
@@ -198,7 +200,7 @@ def test_count():
 
 def test_get():
     """Test the get method of the Measurement class."""
-    db = TinyFlux(storage=MemoryStorage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
     m1 = db.measurement("m1")
     m2 = db.measurement("m2")
 
@@ -213,6 +215,7 @@ def test_get():
     m2.insert(p4)
 
     # Valid index, no items.
+    db.reindex()
     assert not m1.get(TagQuery().ummm == "okay")
     assert not m2.get(TagQuery().ummm == "okay")
 
@@ -235,7 +238,7 @@ def test_get():
 
 def test_get_field_keys():
     """Test show field keys."""
-    db = TinyFlux(storage=MemoryStorage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
     m = db.measurement("_default")
     m2 = db.measurement("some_missing_measurement")
     assert db.index.valid
@@ -244,14 +247,17 @@ def test_get_field_keys():
     assert m.get_field_keys() == []
 
     m.insert(Point())
+    db.reindex()
     assert m.get_field_keys() == []
     assert m2.get_field_keys() == []
 
     m.insert(Point(fields={"a": 1}))
+    db.reindex()
     assert m.get_field_keys() == ["a"]
     assert m2.get_field_keys() == []
 
     m.insert(Point(fields={"a": 2, "b": 3}))
+    db.reindex()
     assert m.get_field_keys() == ["a", "b"]
     assert m2.get_field_keys() == []
 
@@ -269,7 +275,7 @@ def test_get_field_keys():
 
 def test_get_field_values():
     """Test show field values."""
-    db = TinyFlux(storage=MemoryStorage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
     m = db.measurement("_default")
     m2 = db.measurement("some_missing_measurement")
     assert db.index.valid
@@ -278,14 +284,17 @@ def test_get_field_values():
     assert m.get_field_values("a") == []
 
     m.insert(Point())
+    db.reindex()
     assert m.get_field_values("a") == []
     assert m2.get_field_values("a") == []
 
     m.insert(Point(fields={"a": 1}))
+    db.reindex()
     assert m.get_field_values("a") == [1]
     assert m2.get_field_values("a") == []
 
     m.insert(Point(fields={"a": 2, "b": 3}))
+    db.reindex()
     assert m.get_field_values("a") == [1, 2]
     assert m2.get_field_values("b") == []
 
@@ -303,7 +312,7 @@ def test_get_field_values():
 
 def test_get_tag_keys():
     """Test show tag keys."""
-    db = TinyFlux(storage=MemoryStorage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
     m = db.measurement("_default")
     m2 = db.measurement("some_missing_measurement")
     assert db.index.valid
@@ -312,14 +321,17 @@ def test_get_tag_keys():
     assert m.get_tag_keys() == []
 
     m.insert(Point())
+    db.reindex()
     assert m.get_tag_keys() == []
     assert m2.get_tag_keys() == []
 
     m.insert(Point(tags={"a": "1"}))
+    db.reindex()
     assert m.get_tag_keys() == ["a"]
     assert m2.get_tag_keys() == []
 
     m.insert(Point(tags={"a": "2", "b": "3"}))
+    db.reindex()
     assert m.get_tag_keys() == ["a", "b"]
     assert m2.get_tag_keys() == []
 
@@ -337,9 +349,10 @@ def test_get_tag_keys():
 
 def test_get_tag_values():
     """Test show tag keys."""
-    db = TinyFlux(storage=MemoryStorage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
     m = db.measurement("_default")
-    m2 = db.measurement("some_missing_measurement")
+    m2 = db.measurement("other_measurement")
+    m3 = db.measurement("missing_measurement")
     assert db.index.valid
 
     # Valid index, nothing in storage/index.
@@ -348,11 +361,13 @@ def test_get_tag_values():
 
     m.insert(Point())
     m2.insert(Point())
+    db.reindex()
     assert m.get_tag_values() == {}
     assert m2.get_tag_values() == {}
 
     m.insert(Point(tags={"a": "1"}))
     m2.insert(Point(tags={"a": "horse"}))
+    db.reindex()
     assert m.get_tag_values() == {"a": ["1"]}
     assert m.get_tag_values(["a"]) == {"a": ["1"]}
     assert m.get_tag_values(["b"]) == {"b": []}
@@ -362,6 +377,7 @@ def test_get_tag_values():
 
     m.insert(Point(tags={"a": "1", "b": "2"}))
     m2.insert(Point(tags={"a": "cow", "b": "bird"}))
+    db.reindex()
     assert m.get_tag_values() == {"a": ["1"], "b": ["2"]}
     assert m.get_tag_values(["a"]) == {"a": ["1"]}
     assert m.get_tag_values(["b"]) == {"b": ["2"]}
@@ -369,6 +385,8 @@ def test_get_tag_values():
     assert m.get_tag_values(["a", "b"]) == {"a": ["1"], "b": ["2"]}
     assert m.get_tag_values(["a", "c"]) == {"a": ["1"], "c": []}
     assert m2.get_tag_values() == {"a": ["cow", "horse"], "b": ["bird"]}
+    assert m3.get_tag_values(["a", "b"]) == {"a": [], "b": []}
+    assert m3.get_tag_values() == {}
 
     # Invalidate index.
     m.insert(
@@ -461,7 +479,7 @@ def test_insert_multiple():
 
 def test_remove():
     """Test the remove method of the Measurement class."""
-    db = TinyFlux(storage=MemoryStorage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
     m1 = db.measurement("m1")
     m2 = db.measurement("m2")
 
@@ -470,12 +488,15 @@ def test_remove():
     m1.insert(Point(tags={"a": "AA"}, fields={"b": 3}))
     m2.insert(Point(tags={"b": "B"}, fields={"a": 1}))
     m2.insert(Point(tags={"b": "B"}, fields={"b": 2}))
+    db.reindex()
 
     # Valid index, no items.
     assert not m1.remove(TagQuery().c == "C")
     assert not m2.remove(TagQuery().c == "C")
     assert m1.remove(FieldQuery().a == 1) == 1
+    db.reindex()
     assert m2.remove(FieldQuery().a == 1) == 1
+    db.reindex()
     assert len(m1) == 2
     assert len(m2) == 1
     assert db.index.valid
@@ -489,6 +510,7 @@ def test_remove():
 
     # Remove last item in db.
     assert m2.remove(TagQuery().b == "B") == 1
+    db.reindex()
     assert db.index.valid
     assert db.index.empty
     assert len(db) == 0
@@ -509,11 +531,12 @@ def test_remove():
         )
     )
     m1.insert(Point(fields={"a": 4}))
-    assert db.index.valid
-    assert not db.index.empty
+    assert not db.index.valid
+    assert db.index.empty
 
     # Invalid index. Remove 1 item.
     assert m1.remove(FieldQuery().a == 3) == 1
+    db.reindex()
     assert db.index.valid
     assert not db.index.empty
     assert len(m1) == 1
@@ -522,6 +545,7 @@ def test_remove():
 
     # Remove last item.
     assert m2.remove(FieldQuery().a == 3) == 1
+    db.reindex()
     assert db.index.valid
     assert db.index.empty
     assert len(m2) == 0
@@ -573,7 +597,7 @@ def test_remove_all():
 
 def test_search():
     """Test the search method of the Measurement class."""
-    db = TinyFlux(storage=MemoryStorage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
     m1 = db.measurement("m1")
     m2 = db.measurement("m2")
 
@@ -593,6 +617,7 @@ def test_search():
     m2.insert(p5)
 
     # Valid index, no items.
+    db.reindex()
     assert not m1.search(TagQuery().c == "B")
     assert not m2.search(TagQuery().c == "B")
 
@@ -639,7 +664,7 @@ def test_search():
 def test_update():
     """Test the update method of the Measurement class."""
     # Open up the DB with TinyFlux.
-    db = TinyFlux(auto_index=True, storage=MemoryStorage)
+    db = TinyFlux(auto_index=False, storage=MemoryStorage)
 
     # Some mock points.
     t1 = datetime.now(timezone.utc) - timedelta(days=10)
@@ -659,8 +684,8 @@ def test_update():
     m2.insert(p2)
     m3.insert(p3)
 
-    assert db.index.valid
-    assert len(db) == len(db.index) == 3
+    assert not db.index.valid
+    assert len(db) == 3
 
     # Bad invocation.
     with pytest.raises(
@@ -686,6 +711,7 @@ def test_update():
         m1.update(TagQuery().noop(), fields={"a": "a"})
 
     # Valid index, no index results.
+    db.reindex()
     assert not m3.update(TagQuery().tk1 == "tv1", tags={"tk1": "tv1"})
 
     # Valid index, complete search.
@@ -707,16 +733,16 @@ def test_update():
     db.insert(p3)
     assert not db.index.valid
 
-    # Update with no found matches.  DB will NOT reindex.
+    # Update with no found matches. DB will NOT reindex.
     assert m2.update(FieldQuery().fk2 == 1000, fields={"fk2": 4}) == 0
 
-    # Update with found matches.  DB WILL reindex.
+    # Update with found matches.
     assert m2.update(TagQuery().tk2 == "tv2", fields={"fk2": 4}) == 1
     assert m2.count(FieldQuery().fk2.exists()) == 1
 
-    # Update should reindex the db.
-    assert db.index.valid
-    assert len(db.index) == 4
+    # Update should not reindex the db.
+    assert not db.index.valid
+    assert db.index.empty
 
     # Update with callables.
     rst = m1.update(

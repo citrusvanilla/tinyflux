@@ -4,7 +4,7 @@ import pytest
 from tinyflux.storages import CSVStorage, MemoryStorage
 
 
-class CSVStorageWithCounters(CSVStorage):
+class CSVStorageWithCounters(CSVStorage):  # pragma: no cover
     """CSVStorage with some counters for read/write/append ops."""
 
     def __init__(self, *args, **kwargs):
@@ -25,7 +25,7 @@ class CSVStorageWithCounters(CSVStorage):
         return super()._write(points, is_sorted)
 
 
-class MemoryStorageWithCounters(MemoryStorage):
+class MemoryStorageWithCounters(MemoryStorage):  # pragma: no cover
     """MemoryStorage with some counters for read/write/append ops."""
 
     def __init__(self):

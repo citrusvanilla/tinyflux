@@ -246,6 +246,7 @@ class CSVStorage(Storage):
             access_mode: File access mode.
         """
         super().__init__()
+        self._encoding = encoding
         self._mode = access_mode
         self.kwargs = kwargs
         self._latest_time = None
@@ -261,12 +262,11 @@ class CSVStorage(Storage):
         self._handle = open(path, mode=self._mode, encoding=encoding)
 
         # Open a tempfile.
-        if self._mode not in ("r+", "w", "w+"):
-            tempfile = NamedTemporaryFile("w+t", newline="", delete=False)
-            self._tempile_name = tempfile.name
-            self._temp_handle = tempfile
+        if self._mode in ("r+", "w+"):
+            self._temp_handle = NamedTemporaryFile(
+                "w+t", newline="", delete=False
+            )
         else:
-            self._tempfile_name = None
             self._temp_handle = None
 
         # Check if there is already data in the file.
@@ -314,30 +314,32 @@ class CSVStorage(Storage):
 
         return sum(1 for _ in self._handle)
 
-    def append(self, points: List[Point], temporary=False) -> None:
+    def append(self, items: List[CSVStorageItem], temporary=False) -> None:
         """Append points to the CSV store.
 
         Args:
-            points: A list of Point objects.
+            items: A list of objects.
             temporary: Whether or not to append to temporary storage.
         """
-        if temporary:
-            csv_writer = csv.writer(self._temp_handle, **self.kwargs)
-        else:
-            csv_writer = csv.writer(self._handle, **self.kwargs)
+
+        # Switch on temporary arg.
+        handle = self._temp_handle if temporary else self._handle
+        handle.seek(0, os.SEEK_END)
+
+        csv_writer = csv.writer(handle, **self.kwargs)
 
         # Iterate over the points.
-        for point in points:
+        for item in items:
             # Write the row.
-            csv_writer.writerow(point._serialize_to_list())
+            csv_writer.writerow(item)
 
         if self._flush_on_insert:
             # Ensure the file has been written.
-            self._handle.flush()
-            os.fsync(self._handle.fileno())
+            handle.flush()
+            os.fsync(handle.fileno())
 
             # Remove data that is behind the new cursor.
-            self._handle.truncate()
+            handle.truncate()
 
         return
 
@@ -347,6 +349,7 @@ class CSVStorage(Storage):
         Closes the file object.
         """
         self._handle.close()
+
         if self._temp_handle:
             self._temp_handle.close()
 
@@ -391,7 +394,18 @@ class CSVStorage(Storage):
 
     def _swap_temp_with_primary(self) -> None:
         """Swap primary data store with temporary data store."""
-        shutil.move(self._tempile_name, self._path)
+        # Close the primary storage file object.
+        self._handle.close()
+
+        # Copy auxiliary storage to primary location.
+        shutil.copy(self._temp_handle.name, self._path)
+
+        # Init a new file object with the initial handle reference.
+        self._handle = open(
+            self._path, mode=self._mode, encoding=self._encoding
+        )
+
+        # Clean up auxiliary storage.
         self._write([], temporary=True)
 
         return
@@ -410,6 +424,9 @@ class CSVStorage(Storage):
         """
         # Switch on temporary arg.
         handle = self._temp_handle if temporary else self._handle
+
+        if not handle:
+            return
 
         # Dump the existing contents.
         handle.seek(0)
@@ -463,18 +480,18 @@ class MemoryStorage(Storage):
         """Return the number of items."""
         return len(self._memory)
 
-    def append(self, points: List[Point], temporary=False) -> None:
+    def append(self, items: List[MemStorageItem], temporary=False) -> None:
         """Append points to the memory.
 
         Args:
             points: A list of Point objects.
             temporary: Whether or not to append to temporary storage.
         """
-        for point in points:
+        for item in items:
             if temporary:
-                self._temp_memory.append(point)
+                self._temp_memory.append(item)
             else:
-                self._memory.append(point)
+                self._memory.append(item)
 
         return
 

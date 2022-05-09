@@ -40,43 +40,51 @@ def test_csv_modes(tmpdir):
         ("search", (q,)),
     ]
 
-    write_ops = [
+    read_and_write_ops = [
         ("drop_measurement", ("_default",)),
         ("remove", (q,)),
-        ("remove_all", ()),
         ("update", (q, None, "a")),
-        ("update", (None, "a")),
+        ("update_all", (None, "a")),
+    ]
+
+    write_ops = [
+        ("remove_all", ()),
     ]
 
     append_ops = [("insert", (p,)), ("insert_multiple", ([p],))]
 
     # Test read only.
     read_only_db = TinyFlux(path, auto_index=False, access_mode="r")
+    assert read_only_db._storage.can_read
 
     for i, args in read_ops:
         read_only_db.__getattribute__(i)(*args)
 
-    for i, args in write_ops:
-        with pytest.raises(IOError):
-            read_only_db.__getattribute__(i)(*args)
-
-    for i, args in append_ops:
+    for i, args in read_and_write_ops + write_ops + append_ops:
         with pytest.raises(IOError):
             read_only_db.__getattribute__(i)(*args)
 
     # Test append only.
     append_only_db = TinyFlux(path, auto_index=False, access_mode="a")
+    assert append_only_db._storage.can_append
 
-    for i, args in read_ops:
-        with pytest.raises(IOError):
-            append_only_db.__getattribute__(i)(*args)
-
-    for i, args in write_ops:
+    for i, args in read_ops + read_and_write_ops + write_ops:
         with pytest.raises(IOError):
             append_only_db.__getattribute__(i)(*args)
 
     for i, args in append_ops:
         append_only_db.__getattribute__(i)(*args)
+
+    # Test write only.
+    write_only_db = TinyFlux(path, auto_index=False, access_mode="w")
+    assert write_only_db._storage.can_write
+
+    for i, args in read_ops + read_and_write_ops:
+        with pytest.raises(IOError):
+            write_only_db.__getattribute__(i)(*args)
+
+    for i, args in write_ops + append_ops:
+        write_only_db.__getattribute__(i)(*args)
 
 
 def test_csv_write_read(tmpdir):
@@ -84,21 +92,11 @@ def test_csv_write_read(tmpdir):
     # Write contents
     path = os.path.join(tmpdir, "test.csv")
     storage = CSVStorage(path)
-
-    data = [
-        Point(
-            time=datetime.now(timezone.utc),
-            tags={
-                "city": "los angeles",
-                "neighborhood": "chinatown",
-            },
-            fields={"temp_f": 71.2},
-        )
-    ]
-    storage.append(data)
+    p = Point(time=datetime.now(timezone.utc), measurement="m")
+    storage.append([storage._serialize_point(p)])
 
     # Verify contents
-    assert data == storage.read()
+    assert [p] == storage.read()
     storage.close()
 
 
@@ -333,88 +331,6 @@ def test_insert_out_of_time_order(tmpdir):
     assert Point()._deserialize_from_list(csv_data[-3]).time == t_future
 
 
-# def test_index_intact_csv(tmpdir):
-#     """Test index_intact property of a CSV storage."""
-#     path = os.path.join(tmpdir, "test.csv")
-#     storage = CSVStorage(path=path)
-
-#     # Storage should be intact by default as it is empty.
-#     assert storage._index_intact
-
-#     points_in_order = [
-#         Point(time=i)
-#         for i in (
-#             datetime.now(timezone.utc) - timedelta(days=10),
-#             datetime.now(timezone.utc),
-#             datetime.now(timezone.utc) + timedelta(days=10),
-#         )
-#     ]
-
-#     # First point in, should not change.
-#     storage.append([points_in_order[-1]])
-#     assert storage._index_intact
-
-#     # Insert a point from a previous time.
-#     storage.append([points_in_order[-3]])
-#     assert not storage._index_intact
-
-#     # Insert a point from a later time (should still be unsorted).
-#     storage.append([points_in_order[-2]])
-#     assert not storage._index_intact
-
-#     # Verify contents.
-#     assert sorted(storage.read(), key=lambda x: x.time) == points_in_order
-
-#     # Delete contents.
-#     storage.reset()
-#     assert storage._index_intact
-#     storage.append(points_in_order)
-#     assert storage._index_intact
-#     storage.append(points_in_order[::-1])
-#     assert not storage._index_intact
-
-
-# def test_index_intact_memory():
-#     """Test index_intact property of a memory storage instance."""
-#     # Write contents
-#     storage = MemoryStorage()
-
-#     # Storage should be sorted by default.
-#     assert storage._index_intact
-
-#     points_in_order = [
-#         Point(time=i)
-#         for i in (
-#             datetime.now(timezone.utc) - timedelta(days=10),
-#             datetime.now(timezone.utc),
-#             datetime.now(timezone.utc) + timedelta(days=10),
-#         )
-#     ]
-
-#     # First point in, should not change.
-#     storage.append([points_in_order[-1]])
-#     assert storage._index_intact
-
-#     # Insert a point from a previous time.
-#     storage.append([points_in_order[-3]])
-#     assert not storage._index_intact
-
-#     # Insert a point from a later time (should still be unsorted).
-#     storage.append([points_in_order[-2]])
-#     assert not storage._index_intact
-
-#     # Verify contents.
-#     assert sorted(storage.read(), key=lambda x: x.time) == points_in_order
-
-#     # Delete contents.
-#     storage.reset()
-#     assert storage._index_intact
-#     storage.append(points_in_order)
-#     assert storage._index_intact
-#     storage.append(points_in_order[::-1])
-#     assert not storage._index_intact
-
-
 def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     """Test read/write counts for connecting to existing db with data."""
     # Some mock points.
@@ -434,7 +350,7 @@ def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     assert storage.reindex_count == 0
 
     # Append a point.  No reads should be performed.
-    storage.append([p3])
+    storage.append([storage._serialize_point(p3)])
     assert storage.reindex_count == 0
 
     # Read without reindexing.
@@ -464,19 +380,19 @@ def test_reindex_on_read_csv(tmpdir, csv_storage_with_counters):
     p3 = Point(time=datetime.now(timezone.utc) + timedelta(days=10))
 
     # First point in, should not change.
-    storage.append([p2])
+    storage.append([storage._serialize_point(p2)])
     assert storage.append_count == 1
     assert storage.reindex_count == 0
     assert storage.write_count == 0
 
     # Insert a point from a previous time.
-    storage.append([p1])
+    storage.append([storage._serialize_point(p1)])
     assert storage.append_count == 2
     assert storage.reindex_count == 0
     assert storage.write_count == 0
 
     # Insert a point from a previous time.
-    storage.append([p3])
+    storage.append([storage._serialize_point(p3)])
     assert storage.append_count == 3
     assert storage.reindex_count == 0
     assert storage.write_count == 0
@@ -537,7 +453,7 @@ def test_multiple_appends(
     t = datetime.now(timezone.utc)
 
     for i in range(10):
-        storage.append([Point(time=t)])
+        storage.append([storage._serialize_point(Point(time=t))])
         assert storage.append_count == i + 1
         assert storage.reindex_count == 0
         assert storage.write_count == 0
@@ -560,7 +476,7 @@ def test_multiple_appends(
 
     # Append a bunch of points in-order. No reads should be performed.
     for i in range(10):
-        storage.append([Point(time=t)])
+        storage.append([storage._serialize_point(Point(time=t))])
         assert storage.append_count == i + 1
         assert storage.reindex_count == 0
         assert storage.write_count == 0
@@ -572,7 +488,7 @@ def test_multiple_appends(
 
     # Append a bunch of points in-order. No reads should be performed.
     for i in range(10):
-        storage.append([Point(time=t)])
+        storage.append([storage._serialize_point(Point(time=t))])
         assert storage.append_count == i + 1
         assert storage.reindex_count == 0
         assert storage.write_count == 0
@@ -595,7 +511,7 @@ def test_multiple_reads(
     storage = csv_storage_with_counters(path)
 
     # Append a bunch of points in-order. No reads should be performed.
-    for i in range(5):
+    for _ in range(5):
         storage.read()
         assert storage.reindex_count == 0
         assert storage.append_count == 0
@@ -695,3 +611,14 @@ def test_flush_on_insert(tmpdir):
     p2 = Point()
     db.insert(p2)
     assert db.all() == [p1, p2]
+
+
+def test_write(tmpdir):
+    """Test write method."""
+    path = os.path.join(tmpdir, "test.csv")
+    storage = CSVStorage(path)
+    t = datetime.now(timezone.utc)
+    p1 = Point(time=t)
+
+    storage._write([storage._serialize_point(p1)])
+    assert storage.read() == [p1]

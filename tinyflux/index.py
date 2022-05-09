@@ -349,7 +349,7 @@ class Index:
             if measurement in self._measurements:
                 measurement_items = set(self._measurements[measurement])
             else:
-                measurement_items = set({})
+                return rst
 
             for tag_key, tag_values in self._tags.items():
                 for tag_value, items in self._tags[tag_key].items():
@@ -380,7 +380,7 @@ class Index:
             if measurement in self._measurements:
                 measurement_items = set(self._measurements[measurement])
             else:
-                measurement_items = set({})
+                return rst
 
             for tag_key, tag_values in self._tags.items():
                 for tag_value, items in self._tags[tag_key].items():

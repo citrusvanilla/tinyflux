@@ -105,16 +105,8 @@ def test_empty_property():
     assert not index.empty
 
 
-def test_update():
-    """Test update method of Index."""
-    index = Index()
-    t = datetime.now(timezone.utc)
-
-    index.insert([Point(time=t), Point(time=t)])
-    assert index._num_items == 2
-
-    index.insert([Point(time=t)])
-    assert index._num_items == 3
+def get_tag_values():
+    """ """
 
 
 def test_insert_time_method():
@@ -524,3 +516,15 @@ def test_search_compound_query_or():
     # Time or Tags.
     rst = index.search(time_q | tags_q)
     assert rst.items == {0, 2}
+
+
+def test_update():
+    """Test update method of Index."""
+    index = Index()
+    t = datetime.now(timezone.utc)
+
+    index.insert([Point(time=t), Point(time=t)])
+    assert index._num_items == 2
+
+    index.insert([Point(time=t)])
+    assert index._num_items == 3
