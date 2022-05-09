@@ -744,9 +744,11 @@ def test_update():
     assert m0.count(TimeQuery() == t1) == 0
 
 
-def test_auto_index_off(mem_storage_with_counters):
+def test_auto_index_off():
     """Test the behavior of the Measurement class without auto-indexing."""
-    db = TinyFlux(auto_index=False, storage=mem_storage_with_counters)
+    # Open up the DB with TinyFlux.
+    db = TinyFlux(auto_index=True, storage=MemoryStorage)
+
     p = Point(tags={"tk": "tv"}, fields={"fk": 1})
     m = db.measurement("m")
     q1 = TagQuery().tk == "tv"

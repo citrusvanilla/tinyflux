@@ -486,7 +486,7 @@ def test_get_measurements():
     )
     assert not db.index.valid
     assert db.get_measurements() == ["_default", "a"]
-    assert not db.index.valid
+    assert db.index.valid
 
 
 def test_insert():

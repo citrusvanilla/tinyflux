@@ -329,39 +329,67 @@ class Index:
         Returns:
             Mapping of tag_keys to associated tag values as a set.
         """
-        # These is the set of tags that actually exist in index from tag_keys.
-        relevant_tags = (
-            set(tag_keys).intersection(set(self._tags.keys()))
-            if tag_keys
-            else set(self._tags.keys())
-        )
+        # Return set.
+        rst = {}
 
-        # Initalize a return value.
-        rst: Dict[str, Set[str]] = {
-            i: set({}) for i in sorted(set(tag_keys).union(relevant_tags))
-        }
+        # 1. No measurement, no tag keys. Return all.
+        if not measurement and not tag_keys:
 
-        # No measurement specified.
-        if not measurement:
-            for tag_key in relevant_tags:
-                for tag_value, items in self._tags[tag_key].items():
+            for tag_key, tag_values in self._tags.items():
+                rst[tag_key] = set({})
+
+                for tag_value in tag_values:
                     rst[tag_key].add(tag_value)
 
             return rst
 
-        # Measurement specified, no measurement in the DB.
-        if measurement not in self._measurements:
-            return {}
+        # 2. Measurement, no tag keys.
+        elif measurement and not tag_keys:
 
-        # If there is a measurement in the DB, we intersect.
-        measurement_items = set(self._measurements[measurement])
+            if measurement in self._measurements:
+                measurement_items = set(self._measurements[measurement])
+            else:
+                measurement_items = set({})
 
-        for tag_key in relevant_tags:
-            for tag_value, items in self._tags[tag_key].items():
-                if measurement_items.intersection(set(items)):
-                    rst[tag_key].add(tag_value)
+            for tag_key, tag_values in self._tags.items():
+                for tag_value, items in self._tags[tag_key].items():
+                    if measurement_items.intersection(set(items)):
+                        if tag_key not in rst:
+                            rst[tag_key] = set([tag_value])
+                        else:
+                            rst[tag_key].add(tag_value)
 
-        return rst
+            return rst
+
+        # 3. No measurement, tag keys.
+        elif not measurement and tag_keys:
+
+            rst = {i: set({}) for i in tag_keys}
+
+            for tag_key, tag_values in self._tags.items():
+                if tag_key in rst:
+                    for tag_value in tag_values:
+                        rst[tag_key].add(tag_value)
+
+            return rst
+
+        # 4. Measurement, tag keys.
+        else:
+            rst = {i: set({}) for i in tag_keys}
+
+            if measurement in self._measurements:
+                measurement_items = set(self._measurements[measurement])
+            else:
+                measurement_items = set({})
+
+            for tag_key, tag_values in self._tags.items():
+                for tag_value, items in self._tags[tag_key].items():
+                    if tag_key in rst and measurement_items.intersection(
+                        set(items)
+                    ):
+                        rst[tag_key].add(tag_value)
+
+            return rst
 
     def insert(self, points: List[Point] = []) -> None:
         """Update index with new points.

@@ -69,7 +69,6 @@ def test_csv_modes(tmpdir):
 
     for i, args in read_ops:
         with pytest.raises(IOError):
-            print(i)
             append_only_db.__getattribute__(i)(*args)
 
     for i, args in write_ops:
@@ -237,6 +236,10 @@ def test_subclassing_storage():
 
         def _serialize_point(self, Point) -> None:
             """Serialize Point."""
+            ...
+
+        def _swap_temp_with_primary(self) -> None:
+            """Swap temp and primary storage."""
             ...
 
         def _write(self, _):
