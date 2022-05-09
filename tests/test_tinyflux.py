@@ -165,9 +165,6 @@ def test_all():
     """Test all method."""
     db = TinyFlux(storage=MemoryStorage)
 
-    # Drop all and add new points.
-    db.drop_measurements()
-
     for i in range(10):
         db.insert(
             Point(
@@ -300,31 +297,6 @@ def test_drop_measurement():
     assert db.drop_measurement("m1") == 1
     assert db.index.valid
     assert db.index.empty
-    assert not len(db)
-
-
-def test_drop_measurements():
-    """Test drop_measurement method."""
-    db = TinyFlux(storage=MemoryStorage)
-    db.insert(Point())
-    db.insert(Point(measurement="m"))
-    assert db.index.valid
-    assert len(db.get_measurements()) == 2
-
-    # Valid index, drop all measurements.
-    db.drop_measurements()
-    assert len(db.get_measurements()) == 0
-    assert db.index.valid
-    assert db.index.empty
-
-    # No auto-indexing. Populate and drop measurements.
-    db = TinyFlux(auto_index=False, storage=MemoryStorage)
-    db.insert(Point())
-    db.insert(Point(measurement="m"))
-    assert not db.index.valid
-    assert len(db.get_measurements()) == 2
-    assert db.drop_measurement("m") == 1
-    assert db.drop_measurement("_default") == 1
     assert not len(db)
 
 

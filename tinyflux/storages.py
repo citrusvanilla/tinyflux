@@ -55,6 +55,39 @@ def create_file(path: Union[str, Path], create_dirs: bool) -> None:
     return
 
 
+def append_op(method):
+    """Decorate an append operation with assertion."""
+
+    def op(self, *args, **kwargs):
+        """Decorate."""
+        assert self._storage.can_append
+        return method(self, *args, **kwargs)
+
+    return op
+
+
+def read_op(method):
+    """Decorate a read operation with assertion."""
+
+    def op(self, *args, **kwargs):
+        """Decorate."""
+        assert self._storage.can_read
+        return method(self, *args, **kwargs)
+
+    return op
+
+
+def write_op(method):
+    """Decorate a write operation with assertion."""
+
+    def op(self, *args, **kwargs):
+        """Decorate."""
+        assert self._storage.can_write
+        return method(self, *args, **kwargs)
+
+    return op
+
+
 class Storage(ABC):  # pragma: no cover
     """The abstract base class for all storage types for TinyFlux.
 
@@ -72,6 +105,11 @@ class Storage(ABC):  # pragma: no cover
     @property
     def can_append(self) -> bool:
         """Can append to DB."""
+        return True
+
+    @property
+    def can_read(self) -> bool:
+        """Can read the DB."""
         return True
 
     @property
@@ -211,9 +249,9 @@ class CSVStorage(Storage):
         self._check_for_existing_data()
 
     @property
-    def can_write(self) -> bool:
-        """Return whether or not writes can occur."""
-        if self._mode not in ["r+", "w", "w+"]:
+    def can_append(self) -> bool:
+        """Return whether or not appends can occur."""
+        if self._mode not in ("r+", "w", "w+", "a", "a+"):
             raise IOError(
                 f'Cannot update the database. Access mode is "{self._mode}"'
             )
@@ -221,9 +259,19 @@ class CSVStorage(Storage):
         return True
 
     @property
-    def can_append(self) -> bool:
-        """Return whether or not appends can occur."""
-        if self._mode not in ["r+", "w", "w+", "a", "a+"]:
+    def can_read(self) -> bool:
+        """Return whether or not reads can occur."""
+        if self._mode not in ("r+", "r", "w+", "a+"):
+            raise IOError(
+                f'Cannot update the database. Access mode is "{self._mode}"'
+            )
+
+        return True
+
+    @property
+    def can_write(self) -> bool:
+        """Return whether or not writes can occur."""
+        if self._mode not in ("r+", "w", "w+"):
             raise IOError(
                 f'Cannot update the database. Access mode is "{self._mode}"'
             )

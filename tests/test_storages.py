@@ -31,13 +31,17 @@ def test_csv_modes(tmpdir):
         ("contains", (q,)),
         ("count", (q,)),
         ("get", (q,)),
+        ("get_field_keys", ()),
+        ("get_field_values", ("",)),
+        ("get_measurements", ()),
+        ("get_tag_keys", ()),
+        ("get_tag_values", ()),
+        ("reindex", ()),
         ("search", (q,)),
     ]
 
     write_ops = [
         ("drop_measurement", ("_default",)),
-        ("drop_measurements", ()),
-        ("reindex", ()),
         ("remove", (q,)),
         ("remove_all", ()),
         ("update", (q, None, "a")),
@@ -61,18 +65,19 @@ def test_csv_modes(tmpdir):
             read_only_db.__getattribute__(i)(*args)
 
     # Test append only.
-    read_only_db = TinyFlux(path, auto_index=False, access_mode="a")
+    append_only_db = TinyFlux(path, auto_index=False, access_mode="a")
 
     for i, args in read_ops:
         with pytest.raises(IOError):
-            read_only_db.__getattribute__(i)(*args)
+            print(i)
+            append_only_db.__getattribute__(i)(*args)
 
     for i, args in write_ops:
         with pytest.raises(IOError):
-            read_only_db.__getattribute__(i)(*args)
+            append_only_db.__getattribute__(i)(*args)
 
     for i, args in append_ops:
-        read_only_db.__getattribute__(i)(*args)
+        append_only_db.__getattribute__(i)(*args)
 
 
 def test_csv_write_read(tmpdir):

@@ -25,7 +25,7 @@ from .queries import (
     TagQuery,
     Query,
 )
-from .storages import CSVStorage, Storage
+from .storages import CSVStorage, Storage, append_op, read_op, write_op
 
 
 class TinyFlux:
@@ -163,6 +163,7 @@ class TinyFlux:
 
         return f'<{type(self).__name__} {", ".join(args)}>'
 
+    @read_op
     def all(self) -> List[Point]:
         """Get all data in the storage layer as Points."""
         return self._storage.read()
@@ -186,6 +187,7 @@ class TinyFlux:
 
         return
 
+    @read_op
     def contains(
         self, query: Query, measurement: Optional[str] = None
     ) -> bool:
@@ -233,6 +235,7 @@ class TinyFlux:
 
         return contains
 
+    @read_op
     def count(self, query: Query, measurement: Optional[str] = None) -> int:
         """Count the documents matching a query in the database.
 
@@ -274,6 +277,7 @@ class TinyFlux:
 
         return count
 
+    @write_op
     def drop_measurement(self, name: str) -> int:
         """Drop a specific measurement from the database.
 
@@ -289,29 +293,12 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
-
         if name in self._measurements:
             del self._measurements[name]
 
         return self.remove(MeasurementQuery() == name, name)
 
-    def drop_measurements(self) -> None:
-        """Drop all measurements from the database.
-
-        This removes all Points from the database.
-
-        This is irreversible.
-
-        Raises:
-            OSError if storage cannot be written to.
-        """
-        assert self._storage.can_write
-
-        self._reset_database()
-
-        return
-
+    @read_op
     def get(
         self, query: Query, measurement: Optional[str] = None
     ) -> Optional[Point]:
@@ -386,6 +373,7 @@ class TinyFlux:
 
         return got_point
 
+    @read_op
     def get_field_keys(self, measurement: Optional[str] = None) -> List[str]:
         """Get all field keys in the database.
 
@@ -419,6 +407,7 @@ class TinyFlux:
 
         return sorted(rst)
 
+    @read_op
     def get_field_values(
         self, field_key: str, measurement: Optional[str] = None
     ) -> List[FieldValue]:
@@ -457,6 +446,7 @@ class TinyFlux:
 
         return rst
 
+    @read_op
     def get_measurements(self) -> List[str]:
         """Get the names of all measurements in the database.
 
@@ -476,6 +466,7 @@ class TinyFlux:
 
         return sorted(names)
 
+    @read_op
     def get_tag_keys(self, measurement: Optional[str] = None) -> List[str]:
         """Get all tag keys in the database.
 
@@ -509,6 +500,7 @@ class TinyFlux:
 
         return sorted(rst)
 
+    @read_op
     def get_tag_values(
         self,
         tag_keys: List[str] = [],
@@ -552,6 +544,7 @@ class TinyFlux:
 
         return {i: sorted(j) for i, j in rst.items()}
 
+    @append_op
     def insert(self, point: Point, measurement: Optional[str] = None) -> int:
         """Insert a Point into the database.
 
@@ -566,10 +559,9 @@ class TinyFlux:
         OSError if storage cannot be appendex to.
             TypeError if point is not a Point instance.
         """
-        assert self._storage.can_append
-
         return self._insert_helper([point], measurement)
 
+    @append_op
     def insert_multiple(
         self, points: Iterable[Any], measurement: Optional[str] = None
     ) -> int:
@@ -586,8 +578,6 @@ class TinyFlux:
             OSError if storage cannot be appendex to.
             TypeError if point is not a Point instance.
         """
-        assert self._storage.can_append
-
         return self._insert_helper(points, measurement)
 
     def measurement(self, name: str, **kwargs) -> Measurement:
@@ -619,14 +609,13 @@ class TinyFlux:
 
         return measurement
 
+    @read_op
     def reindex(self) -> None:
         """Build a new in-memory index.
 
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
-
         # Pass if the index is already valid.
         if self._index.valid:
             print("Index already valid.")
@@ -639,6 +628,7 @@ class TinyFlux:
 
         return
 
+    @write_op
     def remove(self, query: Query, measurement: Optional[str] = None) -> int:
         """Remove Points from this database by query.
 
@@ -654,8 +644,6 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
-
         use_index = self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
@@ -781,6 +769,7 @@ class TinyFlux:
 
         return len(filtered_items)
 
+    @write_op
     def remove_all(self) -> None:
         """Remove all Points from this database.
 
@@ -789,12 +778,11 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
-
         self._reset_database()
 
         return
 
+    @read_op
     def search(
         self, query: Query, measurement: Optional[str] = None
     ) -> List[Point]:
@@ -876,6 +864,7 @@ class TinyFlux:
 
         return found_points
 
+    @write_op
     def update(
         self,
         query: Query,
@@ -901,12 +890,11 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
-
         return self._update_helper(
             False, query, time, measurement, tags, fields, _measurement
         )
 
+    @write_op
     def update_all(
         self,
         time: Union[datetime, Callable[[datetime], datetime], None] = None,
@@ -928,8 +916,6 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
-
         return self._update_helper(
             True, TagQuery().noop(), time, measurement, tags, fields, None
         )
