@@ -72,6 +72,10 @@ def read_op(method):
     def op(self, *args, **kwargs):
         """Decorate."""
         assert self._storage.can_read
+
+        if self._auto_index and not self._index.valid:
+            self.reindex()
+
         return method(self, *args, **kwargs)
 
     return op

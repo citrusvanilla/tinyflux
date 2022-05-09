@@ -609,13 +609,14 @@ class TinyFlux:
 
         return measurement
 
-    @read_op
     def reindex(self) -> None:
         """Build a new in-memory index.
 
         Raises:
             OSError if storage cannot be written to.
         """
+        assert self._storage.can_read
+
         # Pass if the index is already valid.
         if self._index.valid:
             print("Index already valid.")
