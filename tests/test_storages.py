@@ -220,6 +220,9 @@ def test_subclassing_storage():
         def read(self, _):
             """Read method."""
 
+        def reset(self):
+            """Reindex method."""
+
         def _deserialize_measurement(self, item):
             """Deserialize measurement."""
             ...
@@ -243,6 +246,7 @@ def test_subclassing_storage():
         def _write(self, _):
             """Write method."""
 
+    # Make sure no exceptions are thrown.
     MyStorage2()
 
 

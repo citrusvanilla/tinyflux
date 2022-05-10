@@ -16,6 +16,7 @@ Usage:
 from abc import ABC, abstractmethod
 import csv
 from datetime import datetime
+from io import IOBase
 import os
 from pathlib import Path
 import shutil
@@ -25,6 +26,7 @@ from typing import (
     Any,
     Iterator,
     List,
+    Optional,
     Sequence,
     Union,
 )
@@ -56,43 +58,6 @@ def create_file(path: Union[str, Path], create_dirs: bool) -> None:
         pass
 
     return
-
-
-def append_op(method):
-    """Decorate an append operation with assertion."""
-
-    def op(self, *args, **kwargs):
-        """Decorate."""
-        assert self._storage.can_append
-        return method(self, *args, **kwargs)
-
-    return op
-
-
-def read_op(method):
-    """Decorate a read operation with assertion."""
-
-    def op(self, *args, **kwargs):
-        """Decorate."""
-        assert self._storage.can_read
-
-        if self._auto_index and not self._index.valid:
-            self.reindex()
-
-        return method(self, *args, **kwargs)
-
-    return op
-
-
-def write_op(method):
-    """Decorate a write operation with assertion."""
-
-    def op(self, *args, **kwargs):
-        """Decorate."""
-        assert self._storage.can_write
-        return method(self, *args, **kwargs)
-
-    return op
 
 
 class Storage(ABC):  # pragma: no cover
@@ -130,7 +95,7 @@ class Storage(ABC):  # pragma: no cover
         ...
 
     @abstractmethod
-    def append(self, points: List[Point], temporary=False) -> None:
+    def append(self, points: List[Any], temporary: bool = False) -> None:
         """Append points to the store.
 
         Args:
@@ -158,15 +123,13 @@ class Storage(ABC):  # pragma: no cover
         """
         return list(self._deserialize_storage_item(i) for i in iter(self))
 
+    @abstractmethod
     def reset(self) -> None:
         """Reset the storage instance.
 
         Removes all data.
         """
-        self._write([])
-        self._write([], temporary=True)
-
-        return
+        ...
 
     @abstractmethod
     def _deserialize_measurement(self, item: Any) -> str:
@@ -262,12 +225,7 @@ class CSVStorage(Storage):
         self._handle = open(path, mode=self._mode, encoding=encoding)
 
         # Open a tempfile.
-        if self._mode in ("r+", "w+"):
-            self._temp_handle = NamedTemporaryFile(
-                "w+t", newline="", delete=False
-            )
-        else:
-            self._temp_handle = None
+        self._temp_handle: Optional[Any] = None
 
         # Check if there is already data in the file.
         self._check_for_existing_data()
@@ -321,9 +279,15 @@ class CSVStorage(Storage):
             items: A list of objects.
             temporary: Whether or not to append to temporary storage.
         """
-
         # Switch on temporary arg.
-        handle = self._temp_handle if temporary else self._handle
+        if temporary:
+            if not self._temp_handle:
+                raise IOError
+            else:
+                handle = self._temp_handle
+        else:
+            handle = self._handle
+
         handle.seek(0, os.SEEK_END)
 
         csv_writer = csv.writer(handle, **self.kwargs)
@@ -363,6 +327,16 @@ class CSVStorage(Storage):
         """
         return super().read()
 
+    def reset(self) -> None:
+        """Reset the storage instance.
+
+        Removes all data.
+        """
+        self._write([])
+        self._write([], temporary=True)
+
+        return
+
     def _check_for_existing_data(self) -> None:
         """Check the file for existing data, w/o reading data into memory."""
         self._handle.seek(0, os.SEEK_END)
@@ -371,6 +345,14 @@ class CSVStorage(Storage):
         # If the file is empty, flip index_intact to True.
         if not size:
             self._initially_empty = True
+
+        return
+
+    def _cleanup_temp_storage(self) -> None:
+        """ """
+        if self._temp_handle is not None:
+            self._temp_handle.close()
+            self._temp_handle = None
 
         return
 
@@ -386,6 +368,12 @@ class CSVStorage(Storage):
         """Deserialize timestamp from a row."""
         return datetime.fromisoformat(row[self._timestamp_idx])
 
+    def _init_temp_storage(self) -> None:
+        """ """
+        self._temp_handle = NamedTemporaryFile("w+t", newline="", delete=False)
+
+        return
+
     def _serialize_point(
         self, point: Point
     ) -> Sequence[Union[str, float, int]]:
@@ -394,19 +382,17 @@ class CSVStorage(Storage):
 
     def _swap_temp_with_primary(self) -> None:
         """Swap primary data store with temporary data store."""
-        # Close the primary storage file object.
-        self._handle.close()
+        if self._temp_handle is not None:
+            # Close the primary storage file object.
+            self._handle.close()
 
-        # Copy auxiliary storage to primary location.
-        shutil.copy(self._temp_handle.name, self._path)
+            # Copy auxiliary storage to primary location.
+            shutil.copy(self._temp_handle.name, self._path)
 
-        # Init a new file object with the initial handle reference.
-        self._handle = open(
-            self._path, mode=self._mode, encoding=self._encoding
-        )
-
-        # Clean up auxiliary storage.
-        self._write([], temporary=True)
+            # Init a new file object with the initial handle reference.
+            self._handle = open(
+                self._path, mode=self._mode, encoding=self._encoding
+            )
 
         return
 
@@ -422,6 +408,7 @@ class CSVStorage(Storage):
             items: A list of items to write.
             temporary: Whether or not to write to temporary storage.
         """
+
         # Switch on temporary arg.
         handle = self._temp_handle if temporary else self._handle
 
@@ -469,7 +456,7 @@ class MemoryStorage(Storage):
         super().__init__()
         self._initially_empty = True
         self._memory = []
-        self._temp_memory = []
+        self._temp_memory: List[MemStorageItem] = []
 
     def __iter__(self) -> Iterator:
         """Return a generator to memory that can be iterated over."""
@@ -503,6 +490,23 @@ class MemoryStorage(Storage):
         """
         return super().read()
 
+    def reset(self) -> None:
+        """Reset the storage instance.
+
+        Removes all data.
+        """
+        self._write([])
+        self._write([], temporary=True)
+
+        return
+
+    def _cleanup_temp_storage(self) -> None:
+        """ """
+        del self._temp_memory
+        self._temp_memory = []
+
+        return
+
     def _deserialize_measurement(self, item: MemStorageItem) -> str:
         """Deserialize measurement from a point."""
         return item.measurement
@@ -515,6 +519,10 @@ class MemoryStorage(Storage):
         """Deserialize timestamp from a point."""
         return item.time
 
+    def _init_temp_storage(self) -> None:
+        """ """
+        self._temp_memory = []
+
     def _serialize_point(self, point: Point) -> MemStorageItem:
         """Serialize a point to an item for storage."""
         return point
@@ -522,7 +530,6 @@ class MemoryStorage(Storage):
     def _swap_temp_with_primary(self) -> None:
         """Swap primary data store with temporary data store."""
         self._memory = self._temp_memory
-        self._write([], temporary=True)
 
         return
 

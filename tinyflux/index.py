@@ -180,7 +180,7 @@ class Index:
         self._reset()
 
         # A buffer for the new timestamps and their storage positions.
-        timestamp_buffer: Tuple[datetime, int] = []
+        timestamp_buffer: List[Tuple[float, int]] = []
 
         for idx, point in enumerate(points):
             self._num_items += 1
@@ -330,7 +330,7 @@ class Index:
             Mapping of tag_keys to associated tag values as a set.
         """
         # Return set.
-        rst = {}
+        rst: Dict[str, Set[str]] = {}
 
         # 1. No measurement, no tag keys. Return all.
         if not measurement and not tag_keys:
