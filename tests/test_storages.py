@@ -243,7 +243,7 @@ def test_subclassing_storage():
             """Swap temp and primary storage."""
             ...
 
-        def _write(self, _):
+        def _write(self):
             """Write method."""
 
     # Make sure no exceptions are thrown.
@@ -626,3 +626,13 @@ def test_write(tmpdir):
 
     storage._write([storage._serialize_point(p1)])
     assert storage.read() == [p1]
+
+
+def test_temporary_storage(tmpdir):
+    """Test the temporary storage component of Storage class."""
+    path = os.path.join(tmpdir, "test.csv")
+    storage = CSVStorage(path)
+
+    # Exception should be thrown if temp storage not initialized.
+    with pytest.raises(IOError):
+        storage.append([], temporary=True)

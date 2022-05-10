@@ -16,7 +16,6 @@ Usage:
 from abc import ABC, abstractmethod
 import csv
 from datetime import datetime
-from io import IOBase
 import os
 from pathlib import Path
 import shutil
@@ -157,7 +156,7 @@ class Storage(ABC):  # pragma: no cover
         ...
 
     @abstractmethod
-    def _write(self, items: List[Any], temporary=False) -> None:
+    def _write(self, items: List[Any]) -> None:
         """Write to the store.
 
         This function should overwrite the entire file.
@@ -314,9 +313,6 @@ class CSVStorage(Storage):
         """
         self._handle.close()
 
-        if self._temp_handle:
-            self._temp_handle.close()
-
         return
 
     def read(self) -> List[Point]:
@@ -333,7 +329,6 @@ class CSVStorage(Storage):
         Removes all data.
         """
         self._write([])
-        self._write([], temporary=True)
 
         return
 
@@ -349,7 +344,7 @@ class CSVStorage(Storage):
         return
 
     def _cleanup_temp_storage(self) -> None:
-        """ """
+        """Clean up temporary storage."""
         if self._temp_handle is not None:
             self._temp_handle.close()
             self._temp_handle = None
@@ -369,7 +364,7 @@ class CSVStorage(Storage):
         return datetime.fromisoformat(row[self._timestamp_idx])
 
     def _init_temp_storage(self) -> None:
-        """ """
+        """Initialize temporary storage."""
         self._temp_handle = NamedTemporaryFile("w+t", newline="", delete=False)
 
         return
@@ -396,7 +391,7 @@ class CSVStorage(Storage):
 
         return
 
-    def _write(self, items: List[CSVStorageItem], temporary=False) -> None:
+    def _write(self, items: List[CSVStorageItem]) -> None:
         """Write Points to the CSV file.
 
         Checks each point to see if the index is intact.
@@ -408,12 +403,7 @@ class CSVStorage(Storage):
             items: A list of items to write.
             temporary: Whether or not to write to temporary storage.
         """
-
-        # Switch on temporary arg.
-        handle = self._temp_handle if temporary else self._handle
-
-        if not handle:
-            return
+        handle = self._handle
 
         # Dump the existing contents.
         handle.seek(0)
@@ -496,12 +486,11 @@ class MemoryStorage(Storage):
         Removes all data.
         """
         self._write([])
-        self._write([], temporary=True)
 
         return
 
     def _cleanup_temp_storage(self) -> None:
-        """ """
+        """Clean up temporary storage."""
         del self._temp_memory
         self._temp_memory = []
 
@@ -520,7 +509,7 @@ class MemoryStorage(Storage):
         return item.time
 
     def _init_temp_storage(self) -> None:
-        """ """
+        """Initialize temporary storage."""
         self._temp_memory = []
 
     def _serialize_point(self, point: Point) -> MemStorageItem:
@@ -533,7 +522,7 @@ class MemoryStorage(Storage):
 
         return
 
-    def _write(self, items: List[MemStorageItem], temporary=False) -> None:
+    def _write(self, items: List[MemStorageItem]) -> None:
         """Write Points to memory.
 
         Checks each point to see if the index is intact.
@@ -545,11 +534,7 @@ class MemoryStorage(Storage):
             items: A list of Point objects to serialize and write.
             temporary: Whether or not to write to temporary storage.
         """
-        if temporary:
-            del self._temp_memory
-            self._temp_memory = items
-        else:
-            del self._memory
-            self._memory = items
+        del self._memory
+        self._memory = items
 
         return

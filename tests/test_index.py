@@ -105,10 +105,6 @@ def test_empty_property():
     assert not index.empty
 
 
-def get_tag_values():
-    """ """
-
-
 def test_insert_time_method():
     """Test _insert_time helper of Index."""
     index = Index()

@@ -19,10 +19,10 @@ class CSVStorageWithCounters(CSVStorage):  # pragma: no cover
         self.append_count += 1
         return super().append(points)
 
-    def _write(self, points, is_sorted=False):
+    def _write(self, points):
         """Write with counter."""
         self.write_count += 1
-        return super()._write(points, is_sorted)
+        return super()._write(points)
 
 
 class MemoryStorageWithCounters(MemoryStorage):  # pragma: no cover
@@ -40,10 +40,10 @@ class MemoryStorageWithCounters(MemoryStorage):  # pragma: no cover
         self.append_count += 1
         return super().append(points)
 
-    def _write(self, points, is_sorted=False):
+    def _write(self, points):
         """Write with counter."""
         self.write_count += 1
-        return super()._write(points, is_sorted)
+        return super()._write(points)
 
 
 @pytest.fixture

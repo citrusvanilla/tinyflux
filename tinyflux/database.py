@@ -27,7 +27,10 @@ from .storages import CSVStorage, Storage
 
 
 def append_op(method):
-    """Decorate an append operation with assertion."""
+    """Decorate an append operation with assertion.
+
+    Ensures storage can be appended to before doing anything.
+    """
 
     def op(self, *args, **kwargs):
         """Decorate."""
@@ -38,7 +41,10 @@ def append_op(method):
 
 
 def read_op(method):
-    """Decorate a read operation with assertion."""
+    """Decorate a read operation with assertion.
+
+    Ensures storage can be read from before doing anything.
+    """
 
     def op(self, *args, **kwargs):
         """Decorate."""
@@ -53,7 +59,11 @@ def read_op(method):
 
 
 def temp_storage_op(method):
-    """Decorate a db operation that requires auxiliary storage."""
+    """Decorate a db operation that requires auxiliary storage.
+
+    Initializes temporary storage, invokes method, and cleans-up storage after
+    op has run.
+    """
 
     def op(self, *args, **kwargs):
         """Decorate."""
@@ -72,7 +82,10 @@ def temp_storage_op(method):
 
 
 def write_op(method):
-    """Decorate a write operation with assertion."""
+    """Decorate a write operation with assertion.
+
+    Ensures storage can be written to before doing anything.
+    """
 
     def op(self, *args, **kwargs):
         """Decorate."""
