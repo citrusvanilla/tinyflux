@@ -197,6 +197,20 @@ class Measurement:
         """
         return self._db.get_tag_values(tag_keys, self._name)
 
+    def get_timestamps(self) -> List[datetime]:
+        """Get all timestamps in the database.
+
+        Returns timestamps in order of insertion in the database, as time-aware
+        datetime objects with UTC timezone.
+
+        Args:
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            List of timestamps by insertion order.
+        """
+        return self._db.get_timestamps(self._name)
+
     def insert(self, point: Point) -> int:
         """Insert a Point into a measurement.
 

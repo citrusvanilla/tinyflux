@@ -391,6 +391,37 @@ class Index:
 
             return rst
 
+    def get_timestamps(self, measurement: Optional[str] = None) -> List[float]:
+        """Get timestamps from the index.
+
+        Args:
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            List of timestamps.
+        """
+        # No measurement specified.
+        if not measurement:
+            zipped = [
+                (i, j)
+                for i, j in zip(
+                    self._timestamps, self._storage_pos_sorted_by_ts
+                )
+            ]
+            return [i[0] for i in sorted(zipped, key=lambda x: x[1])]
+
+        # No measurement in the DB.
+        if measurement not in self._measurements:
+            return []
+
+        # If there is a measurement in the DB, we intersect.
+        zipped = [
+            (i, j)
+            for i, j in zip(self._timestamps, self._storage_pos_sorted_by_ts)
+            if j in set(self._measurements[measurement])
+        ]
+        return [i[0] for i in sorted(zipped, key=lambda x: x[1])]
+
     def insert(self, points: List[Point] = []) -> None:
         """Update index with new points.
 

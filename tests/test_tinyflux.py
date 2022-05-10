@@ -465,6 +465,35 @@ def test_get_tag_values():
     assert db.get_tag_values(["c", "d"]) == {"c": ["3"], "d": []}
 
 
+def test_get_timestamps():
+    """Test get timestamps."""
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert db.get_timestamps() == []
+
+    t1 = datetime.now(timezone.utc)
+    db.insert(Point(time=t1))
+    db.reindex()
+    assert db.get_timestamps() == [t1]
+
+    t2 = t1 + timedelta(days=1)
+    db.insert(Point(time=t2))
+    db.reindex()
+    assert db.get_timestamps() == [t1, t2]
+
+    t3 = t2 + timedelta(days=1)
+    db.insert(Point(time=t3))
+    db.reindex()
+    assert db.get_timestamps() == [t1, t2, t3]
+
+    # Invalidate index.
+    t4 = t1 - timedelta(days=1)
+    db.insert(Point(time=t4))
+    assert db.get_timestamps() == [t1, t2, t3, t4]
+
+
 def test_get_measurements():
     """Test measurements method."""
     # Empty DB.

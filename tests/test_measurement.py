@@ -404,6 +404,43 @@ def test_get_tag_values():
     assert m2.get_tag_values() == {"a": ["cow", "horse"], "b": ["bird"]}
 
 
+def test_get_timestamps():
+    """Test get timestamps."""
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+    m1 = db.measurement("_default")
+    m2 = db.measurement("other_measurement")
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert m1.get_timestamps() == []
+    assert m2.get_timestamps() == []
+
+    t1 = datetime.now(timezone.utc)
+    m1.insert(Point(time=t1))
+    db.reindex()
+    assert m1.get_timestamps() == [t1]
+    assert m2.get_timestamps() == []
+
+    t2 = t1 + timedelta(days=1)
+    m1.insert(Point(time=t2))
+    db.reindex()
+    assert m1.get_timestamps() == [t1, t2]
+    assert m2.get_timestamps() == []
+
+    t3 = t2 + timedelta(days=1)
+    m2.insert(Point(time=t3))
+    db.reindex()
+    assert m1.get_timestamps() == [t1, t2]
+    assert m2.get_timestamps() == [t3]
+
+    # Invalidate index.
+    t4 = t1 - timedelta(days=1)
+    db.insert(Point(time=t4))
+
+    assert m1.get_timestamps() == [t1, t2, t4]
+    assert m2.get_timestamps() == [t3]
+
+
 def test_insert():
     """Test the insert method of the Measurement class."""
     db = TinyFlux(storage=MemoryStorage)

@@ -613,6 +613,47 @@ class TinyFlux:
 
         return {i: sorted(j) for i, j in rst.items()}
 
+    @read_op
+    def get_timestamps(
+        self, measurement: Optional[str] = None
+    ) -> List[datetime]:
+        """Get all timestamps in the database.
+
+        Returns timestamps in order of insertion in the database, as time-aware
+        datetime objects with UTC timezone.
+
+        Args:
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            List of timestamps by insertion order.
+        """
+        # If index is valid, get timestamps.
+        if self._index.valid:
+            return [
+                datetime.fromtimestamp(i).astimezone(timezone.utc)
+                for i in self._index.get_timestamps(measurement)
+            ]
+
+        # Otherwise, go through storage.
+        rst: List[datetime] = []
+
+        for item in self._storage:
+
+            # Filter by measurement.
+            if (
+                measurement
+                and self._storage._deserialize_measurement(item) != measurement
+            ):
+                continue
+
+            # Match, add to results.
+            _time = self._storage._deserialize_timestamp(item)
+
+            rst.append(_time.replace(tzinfo=timezone.utc))
+
+        return rst
+
     @append_op
     def insert(self, point: Point, measurement: Optional[str] = None) -> int:
         """Insert a Point into the database.
