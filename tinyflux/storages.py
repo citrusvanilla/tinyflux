@@ -174,10 +174,6 @@ class CSVStorage(Storage):
     CSV provides append-only writes, which is efficient for high-frequency
     writes, common to time-series datasets.
 
-    Attributes:
-        index_intact: Data is stored according to the index sorter.
-        index_sorter: Function to sort data.
-
     Usage:
         >>> from tinyflux import CSVStorage
         >>> db = TinyFlux("my_csv_store.csv", storage=CSVStorage)

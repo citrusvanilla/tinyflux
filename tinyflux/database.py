@@ -1,6 +1,7 @@
 """The main module of the TinyFlux package, containing the TinyFlux class."""
 import copy
 from datetime import datetime, timezone
+from functools import wraps
 from typing import (
     Any,
     Callable,
@@ -32,6 +33,7 @@ def append_op(method):
     Ensures storage can be appended to before doing anything.
     """
 
+    @wraps(method)
     def op(self, *args, **kwargs):
         """Decorate."""
         assert self._storage.can_append
@@ -46,6 +48,7 @@ def read_op(method):
     Ensures storage can be read from before doing anything.
     """
 
+    @wraps(method)
     def op(self, *args, **kwargs):
         """Decorate."""
         assert self._storage.can_read
@@ -65,6 +68,7 @@ def temp_storage_op(method):
     op has run.
     """
 
+    @wraps(method)
     def op(self, *args, **kwargs):
         """Decorate."""
         # Init temp storage in the storage class.
@@ -87,6 +91,7 @@ def write_op(method):
     Ensures storage can be written to before doing anything.
     """
 
+    @wraps(method)
     def op(self, *args, **kwargs):
         """Decorate."""
         assert self._storage.can_write
@@ -304,7 +309,7 @@ class TinyFlux:
 
     @read_op
     def count(self, query: Query, measurement: Optional[str] = None) -> int:
-        """Count the documents matching a query in the database.
+        """Count the points matching a query in the database.
 
         Args:
             query: a Query.

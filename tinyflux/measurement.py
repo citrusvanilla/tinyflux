@@ -136,7 +136,7 @@ class Measurement:
         return self._db.contains(query, self._name)
 
     def count(self, query: SimpleQuery) -> int:
-        """Count the documents matching a query in this measurement.
+        """Count the points matching a query in this measurement.
 
         Args:
             query: a SimpleQuery.
