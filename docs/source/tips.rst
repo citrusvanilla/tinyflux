@@ -14,6 +14,10 @@ This utlimately means that the smaller the set of matches, the less I/O TinyFlux
     
     Queries that return smaller sets of matches perform best.
 
+.. warning:: 
+
+    Resist the urge to build your own time range query using the ``.map()`` query method.  This will result in slow queries.  Instead, use two ``TimeQuery`` instances combined with the ``&`` or ``|`` operator.
+
 
 Keeping your Index Intact
 ^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -5,7 +5,7 @@ Similar to updates, removal of data in time series datasets tends to occur much 
 
 .. note:: 
 
-    If you are a developer, or are otherwise interested in how TinyFlux performs deletes behind the scenes, see the :ref:`Design Principles` page.
+    If you are a developer, or are otherwise interested in how TinyFlux performs deletes behind the scenes, see the :doc:`design-principles` page.
 
 For the first example. lets remove all points with the measurement value of "US Metros":
 

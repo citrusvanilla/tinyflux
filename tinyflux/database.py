@@ -671,7 +671,7 @@ class TinyFlux:
             1 if success.
 
         Raises:
-        OSError if storage cannot be appendex to.
+            OSError if storage cannot be appendex to.
             TypeError if point is not a Point instance.
         """
         return self._insert_helper([point], measurement)

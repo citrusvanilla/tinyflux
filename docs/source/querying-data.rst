@@ -74,7 +74,7 @@ To query for a range of timestamps, it is most-performant to combine two ``TimeQ
 
 .. note::
 
-    Queries can be optimized for faster results.  See :doc:`Performance` for details on optimizing queries.
+    Queries can be optimized for faster results.  See :doc:`tips` for details on optimizing queries.
 
 
 Advanced Simple Queries
@@ -103,7 +103,7 @@ or:
 
 .. warning:: 
 
-    Resist the urge to build your own time range query using the ``.map()`` query method.  This will result in slow queries.  Instead, use two ``TimeQuery`` instances combined with the ``&`` or ``|`` operator (see :ref:`Performance` for more).
+    Resist the urge to build your own time range query using the ``.map()`` query method.  This will result in slow queries.  Instead, use two ``TimeQuery`` instances combined with the ``&`` or ``|`` operator.
 
 
 **.test(...) <--> Arbitrary Test Functions for All Query Types**

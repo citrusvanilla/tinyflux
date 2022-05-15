@@ -5,18 +5,18 @@ See :doc:`getting-started` to get TinyFlux up and running with writing and query
 
 Jump to an API section:
 
-* :ref:`TinyFlux Database`
-* :ref:`Point`
-* :ref:`Queries`
-* :ref:`Measurement`
-* :ref:`Index`
-* :ref:`Storages`
-* :ref:`Utils`
+* :ref:`TinyFlux Database API`
+* :ref:`Point API`
+* :ref:`Queries API`
+* :ref:`Measurement API`
+* :ref:`Index API`
+* :ref:`Storages API`
+* :ref:`Utils API`
 
 |hr|
 
-TinyFlux Database
------------------
+TinyFlux Database API
+---------------------
 
 .. automodule:: tinyflux.database
    :members:
@@ -25,8 +25,8 @@ TinyFlux Database
 
 |hr|
 
-Point
------
+Point API
+---------
 
 .. automodule:: tinyflux.point
    :members:
@@ -35,8 +35,8 @@ Point
 
 |hr|
 
-Queries
--------
+Queries API
+-----------
 
 .. automodule:: tinyflux.queries
    :members:
@@ -45,8 +45,8 @@ Queries
 
 |hr|
 
-Measurement
------------
+Measurement API
+---------------
 
 .. automodule:: tinyflux.measurement
    :members:
@@ -55,8 +55,8 @@ Measurement
 
 |hr|
 
-Index
------
+Index API
+---------
 
 .. automodule:: tinyflux.index
    :members:
@@ -65,8 +65,8 @@ Index
 
 |hr|
 
-Storages
---------
+Storages API
+------------
 
 .. automodule:: tinyflux.storages
    :members:
@@ -75,8 +75,8 @@ Storages
 
 |hr|
 
-Utils
------
+Utils API
+---------
 
 .. automodule:: tinyflux.utils
    :members:

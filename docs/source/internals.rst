@@ -67,7 +67,7 @@ You can also manually trigger a reindex should the need arise:
 >>> db.reindex()
 
 .. warning:: 
-    There is usually only one reason to turn off auto-indexing and that is when you are initializing the database instance and need to **immediately** start inserting points, as might be the case in IOT data-capture applications. In all other cases, particularly when reads will make up the majority of your workflow, you should leave ``auto-index`` set to ``True``.  See :doc:`Use-cases` for more information.
+    There is usually only one reason to turn off auto-indexing and that is when you are initializing the database instance and need to **immediately** start inserting points, as might be the case in IOT data-capture applications. In all other cases, particularly when reads will make up the majority of your workflow, you should leave ``auto-index`` set to ``True``.
 
 At some level of data, the building of the index will noticeably slow down your workflow.  For tips on how to address this, see "Performance".  In this vein, TinyFlux is not meant to handle unlimited amounts of data.  At some point, a database server is more appropriate.
 

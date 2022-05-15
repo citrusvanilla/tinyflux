@@ -5,7 +5,7 @@ Though updating time series data tends to occur much less frequently than with o
 
 .. note:: 
 
-    If you are a developer, or are otherwise interested in how TinyFlux performs updates behind the scenes, see the :ref:`Design Principles` page.
+    If you are a developer, or are otherwise interested in how TinyFlux performs updates behind the scenes, see the :doc:`design-principles` page.
 
 To update individual points in TinyFlux, first provide a query to the ``update()`` method, followed by one or more attributes to update and their values as keyword arguments.  For example, to update the measurement names in the database for all points whose measurement value is "cities" to "US Metros", we use a static value to the ``measurement`` keyword argument:
 

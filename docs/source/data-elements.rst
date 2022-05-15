@@ -80,7 +80,7 @@ On disk:
    2022-05-13T23:19:46.573233,cities
 
 
-See :doc:`measurement` for more details.
+See :doc:`measurements` for more details.
 
 
 Tag Set
