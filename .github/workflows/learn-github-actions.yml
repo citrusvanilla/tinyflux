@@ -11,6 +11,7 @@ jobs:
           python-version: 3.9
       - name: Install Balck
         run: pip install black
-      - name: Run black
+      - name: Run black on TinyFlux module
         run: black tinyflux/
+      - name: Run black on Tests
         run: black tests/
