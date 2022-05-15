@@ -1,0 +1,26 @@
+body {
+    font-family: "Arial", Helvetica, sans-serif;
+}
+
+
+.rst-content .toctree-wrapper>p.caption,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+legend {
+    margin-top: 0;
+    font-weight: 700;
+    font-family: "Arial", Helvetica, sans-serif !important
+}
+
+.blue {
+    color: #005e9b;
+    font-size: 4.5rem;
+}
+
+.wy-breadcrumbs {
+    display: none !important;
+}

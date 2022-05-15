@@ -9,3 +9,5 @@ performance_tests/**
 
 **.icloud
 .coverage
+
+docs/build/**
