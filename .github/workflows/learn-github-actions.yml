@@ -1,7 +1,7 @@
 name: code-conventions
 on: [push]
 jobs:
-  check-bats-version:
+  code-conventions:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -9,9 +9,11 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: 3.9
-      - name: Install Balck
-        run: pip install black
-      - name: Run black on TinyFlux module
-        run: black tinyflux/
-      - name: Run black on Tests
-        run: black tests/
+      - name: Install pip requirements
+        run: pip install -r requirements.txt 
+      - name: Check code formatting with black
+        run: black tinyflux/ tests/
+      - name: Check code style with flake8
+        run: flake8 tinyflux/ tests/
+      - name: Check static typing with mypy
+        run: mypy tinyflux/ tests/
