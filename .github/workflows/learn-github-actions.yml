@@ -1,12 +1,16 @@
-name: learn-github-actions
+name: code-conventions
 on: [push]
 jobs:
   check-bats-version:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v3
         with:
-          node-version: '14'
-      - run: npm install -g bats
-      - run: bats -v
+          python-version: 3.9
+      - name: Install Balck
+        run: pip install black
+      - name: Run black
+        run: black tinyflux/
+        run: black tests/
