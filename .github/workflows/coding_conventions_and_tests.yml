@@ -1,4 +1,4 @@
-name: code-conventions
+name: Coding convensions and tests
 on: [push]
 jobs:
   code-conventions:
@@ -17,3 +17,16 @@ jobs:
         run: flake8 tinyflux/ tests/
       - name: Check static typing with mypy
         run: mypy tinyflux/ tests/
+  
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
+      - name: Install pip requirements
+        run: pip install -r requirements.txt 
+      - name: Check tests
+        run: pytest
