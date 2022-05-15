@@ -1,7 +1,7 @@
-Exploring Your Data
-===================
+Exploring Data
+==============
 
-Now that you have an understanding of how queries in TinyFlux work, you can apply this to several database operations.
+An understanding of how queries in TinyFlux work can be applied to several database operations.
 
 Query-based Exploration
 -----------------------
@@ -42,7 +42,7 @@ This returns a Point instance, or ``None`` if no Points were found.
 
 **.search(query) <--> Get all the Points in the database matching a Query**
 
-This returns a list of Point instances.  We saw this db operation in heavy use in the sections above.
+This returns a list of Point instances, sorted by timestamp.  We saw this db operation in heavy use in the sections above.
 
 >>> # Get all Points in the DB for Los Angeles in 2022 in which the AQI was "hazardous".
 >>> from datetime import datetime
@@ -57,7 +57,7 @@ This returns a list of Point instances.  We saw this db operation in heavy use i
 Attribute-based Exploration
 ---------------------------
 
-You can also explore data in the database based on attributes, as opposed to queries.
+The database can also be explored based on attributes, as opposed to queries.
 
 
 **.get_measurements() <--> Get all the measurements in the database**
@@ -124,21 +124,24 @@ This returns all the timestamps in the database by insertion order.
 [datetime.datetime(2022, 1, 1, 8, 0, tzinfo=datetime.timezone.utc), datetime.datetime(1900, 1, 1, 8, 0, tzinfo=datetime.timezone.utc)]
 
 
-Just-Give-Me-All-the-Data Exploration
--------------------------------------
+Full Dataset Exploration
+------------------------
 
-Sometimes you just need access to all the data.  There are two methods for doing so- one that brings in all the database items into memory, and one that provides a generator that iterates over items one at a time.
+Sometimes access to all the data is needed.  There are two methods for doing so- one that brings in all the database items into memory, and one that provides a generator that iterates over items one at a time.
 
 **.all() <--> Get all of the points in the database**
 
-This returns all the points in the database by insertion order.  This will pull everything into memory, so beware.
+This returns all the points in the database by timestamp order.  To retrieve by insertion order, pass ``sorted=False`` argument.  This will bring all of the data into memory at once.
 
->>> db.all()
+>>> db.all() # Points returned sorted by timestamp.
 
+or
+
+>>> db.all(sorted=False) # Points returned by insertion order.
 
 **iter(db) <--> Iterate over all the points in the database**
 
-This returns a generator over which you can perform your logic.  This does NOT pull everything into memory.
+This returns a generator over which point-by-point logic can be applied.  This does not pull everything into memory.
 
 >>> iter(db)
 <generator object TinyFlux.__iter__ at 0x103e3d970>
@@ -174,7 +177,7 @@ Here is a list of all the data exploration methods we've covered above:
 +------------------------------------+------------------------------------------------------------------+
 | ``db.get_field_values()``          | Get all field values from the database                           |
 +------------------------------------+------------------------------------------------------------------+
-| **Just-Give-Me-All-the-Data Exploration**                                                             |
+| **Full Dataset Exploration**                                                                          |
 +------------------------------------+------------------------------------------------------------------+
 | ``db.all()``                       | Get all points in the database                                   |
 +------------------------------------+------------------------------------------------------------------+

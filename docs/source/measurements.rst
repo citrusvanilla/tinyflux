@@ -1,7 +1,7 @@
 Working with Measurements
 -------------------------
 
-TinyFlux supports working with multiple measurements. A measurement is akin to a "table" in traditional RDMS.  By accessing TinyFlux through a measurement, you are accessing the same API, but with a filter for the passed measurement.
+TinyFlux supports working with multiple measurements. A measurement is analagous to a "table" in traditional RDMS.  By accessing TinyFlux through a measurement, the same database API is utilized, but with a filter for the passed measurement.
 
 To access TinyFlux through a measurment, use ``db.measurement(name)``:
 
@@ -26,7 +26,7 @@ or
 
 >>> m.remove_all()
 
-Finally, you can get a list with the names of all measurements in your database:
+To get a list with the names of all measurements in the database:
 
 >>> db.get_measurements()
 ["my_measurement"]

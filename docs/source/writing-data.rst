@@ -1,9 +1,9 @@
 Writing Data
 ============
 
-A database is nothing without data.  Here we demonstrate how to write data to TinyFlux.
+Here we demonstrate how to write data to TinyFlux.
 
-The standard method for inserting a new data point is through the ``db.insert(...)`` method.  If you want to insert more than one Point at the same time, you may use the ``db.insert_multiple([...])`` method, which accepts a ``list`` of points.  This might be useful if you are creating a TinyFlux database from a CSV of existing observations.
+The standard method for inserting a new data point is through the ``db.insert(...)`` method.  To insert more than one Point at the same time, use the ``db.insert_multiple([...])`` method, which accepts a ``list`` of points.  This might be useful when creating a TinyFlux database from a CSV of existing observations.
 
 .. note:: 
 

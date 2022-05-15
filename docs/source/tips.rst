@@ -1,7 +1,7 @@
 Tips for TinyFlux
 =================
 
-Getting the most out of TinyFlux means understanding how it works.  Below are some tips to make your experience with TinyFlux seemless.
+Below are some tips to get the most out of TinyFlux.
 
 Optimizing Queries
 ^^^^^^^^^^^^^^^^^^
@@ -19,8 +19,8 @@ This utlimately means that the smaller the set of matches, the less I/O TinyFlux
     Resist the urge to build your own time range query using the ``.map()`` query method.  This will result in slow queries.  Instead, use two ``TimeQuery`` instances combined with the ``&`` or ``|`` operator.
 
 
-Keeping your Index Intact
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Keeping The Index Intact
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 TinyFlux must build an index when it is initialized as it currently does not save the index upon closing.  If the workflow for the session is read-only, then the index state will never be modified.  If, however, a TinyFlux session consists of a mix of writes and reads, then the index will become invalid if at any time, a Point is inserted out of time order.
 
@@ -45,7 +45,7 @@ If ``auto-index`` is set to ``True`` (the default setting), then the next read w
 Dealing with Growing Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-As concurrency is not a feature of TinyFlux, a growing database will incur increases in query and index-building times.  When queries start to slow down a workflow, it might be time to "shard" or denormalize your data, or simply upgrade to a database server like InfluxDB.
+As concurrency is not a feature of TinyFlux, a growing database will incur increases in query and index-building times.  When queries start to slow down a workflow, it might be time to "shard" or denormalize the data, or simply upgrade to a database server like InfluxDB.
 
 For example, if a TinyFlux database currently holds Points for two separate measurements, consider making two separate databases, one for each measurement:
 

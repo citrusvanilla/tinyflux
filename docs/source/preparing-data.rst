@@ -19,13 +19,13 @@ This term "Point" comes from InfluxDB. A well-formed Point consists of four attr
 - ``tags``: Text attributes of the observation as a Python ``dict`` of ``str|str`` key value pairs.
 - ``fields``: Numeric attributes of the observation as a Python ``dict`` of ``str|int`` or ``str|float`` key value pairs.
 
-None of the four attributes is required during initialization; you can also initialize an empty Point like the following:
+None of the four attributes is required during initialization; an empty Point can be initialized like the following:
 
 >>> from tinyflux import Point
 >>> Point()
 Point(time=None, measurement=_default)
 
-You'll notice that the ``time`` attribute is ``None``, and the ``measurement`` attribute has taken the value of ``_default``.  The point also has no tags or fields.  Tags and fields are not required, but from a user's perspective, such a data point has little meaning.
+Notice that the ``time`` attribute is ``None``, and the ``measurement`` attribute has taken the value of ``_default``.  The point also has no tags or fields.  Tags and fields are not required, but from a user's perspective, such a data point has little meaning.
 
 .. note::
 

@@ -45,7 +45,7 @@ To write to TinyFlux, simply:
 >>> db.insert(p1)
 >>> db.insert(p2)
 
-All points can be retriebved from the database with the following:
+All points can be retrieved from the database with the following:
 
 >>> db.all()
 [Point(time=2020-01-01T00:08:00-00:00, measurement=_default, tags=city:LA, fields=aqi:112), Point(time=2020-12-05T00:08:00-00:00, measurement=_default, tags=city:SF, fields=aqi:128)]
@@ -75,7 +75,7 @@ To query for Points, there are four query types- one for each of a Point's four 
 >>> db.count(Measurement == "_default")
 2
 
-Points can also be updated.
+Points can also be updated:
 
 >>> # Update the ``aqi`` field of the Los Angeles point.
 >>> db.update(tag.city == "LA", tags={"aqi": 118})
@@ -84,7 +84,7 @@ Points can also be updated.
 Point(time=2020-08-28T00:07:00-00:00, measurement=_default, tags=city:LA, fields=aqi:118)
 Point(time=2020-12-05T00:08:00-00:00, measurement=_default, tags=city:SF, fields=aqi:128)
 
-Points can also be removed.
+Points can also be removed:
 
 >>> db.remove(tag.city == "SF")
 1

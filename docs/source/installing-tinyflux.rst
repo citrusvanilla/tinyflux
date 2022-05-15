@@ -7,7 +7,7 @@ To install TinyFlux from PyPI, run:
 
    $ pip install tinyflux
 
-You can also grab the latest development version from GitHub_. After downloading and unpacking it, you can install it using:
+The latest development version is hosted on GitHub_. After downloading, install using:
 
 .. code-block:: bash
 

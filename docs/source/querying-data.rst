@@ -11,7 +11,11 @@ The query types are:
 - ``TagQuery`` for querying points by ``tags``.
 - ``FieldQuery`` for querying points by ``fields``.
 
-For the remainder of this section, we will be illustrating query examples with the ``.search()`` method of a TinyFlux database.  This is the most common way to query TinyFlux, and the method accepts a query and returns a ``list`` of ``Point`` objects matching the query.  In addition, there are a handful of other database methods that take queries as argument and perform some sort of search.  See the :ref:`Exploring Your Data` section for details.
+For the remainder of this section, we will be illustrating query examples with the ``.search()`` method of a TinyFlux database.  This is the most common way to query TinyFlux, and the method accepts a query and returns a ``list`` of ``Point`` objects matching the query.  In addition, there are a handful of other database methods that take queries as argument and perform some sort of search.  See the :doc:`exploring-data` section for details.
+
+.. note::
+
+    ``.search()`` will return Points in sorted time order by default.  To return points in insertion order, pass the ``sorted=False`` argument, like: ``db.search(query, sorted=False)``.
 
 
 Simple Queries
@@ -146,7 +150,7 @@ RegEx queries that apply to ``MeasurementQuery`` and ``TagQuery`` only.
 Compound Queries and Query Modifiers
 ....................................
 
-TinyFlux also allows you to use logical operations to modify and combine queries.  This is particularly useful for time queries when you need to specify a range.
+TinyFlux also allows supports compound queries through the use of logical operators.  This is particularly useful for time queries when a time range is needed.
 
 >>> from tinydb import TimeQuery
 >>> from datetime import datetime, timezone
