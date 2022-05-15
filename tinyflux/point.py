@@ -268,24 +268,23 @@ class Point:
         while i < row_len:
             f_key, f_value = row[i][7:], row[i + 1]
 
-            try:
+            # Value is an integer.
+            if f_value.isdigit() or (
+                f_value[0] == "-" and f_value[1:].isdigit()
+            ):
                 p_fields[f_key] = int(f_value)
                 i += 2
                 continue
-            except Exception:
-                pass
 
+            # Value is a float.
             try:
                 p_fields[f_key] = float(f_value)
-                i += 2
-                continue
+
+            # Value is None.
             except Exception:
-                pass
+                p_fields[f_key] = None
 
-            p_fields[f_key] = None
             i += 2
-
-            continue
 
         self._time = p_time
         self._measurement = p_measurement

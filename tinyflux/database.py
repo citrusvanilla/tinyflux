@@ -1,7 +1,7 @@
 """The main module of the TinyFlux package, containing the TinyFlux class."""
 import copy
 from datetime import datetime, timezone
-import gc
+from functools import wraps
 from typing import (
     Any,
     Callable,
@@ -11,7 +11,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Tuple,
     Union,
 )
 
@@ -26,6 +25,79 @@ from .queries import (
     Query,
 )
 from .storages import CSVStorage, Storage
+
+
+def append_op(method):
+    """Decorate an append operation with assertion.
+
+    Ensures storage can be appended to before doing anything.
+    """
+
+    @wraps(method)
+    def op(self, *args, **kwargs):
+        """Decorate."""
+        assert self._storage.can_append
+        return method(self, *args, **kwargs)
+
+    return op
+
+
+def read_op(method):
+    """Decorate a read operation with assertion.
+
+    Ensures storage can be read from before doing anything.
+    """
+
+    @wraps(method)
+    def op(self, *args, **kwargs):
+        """Decorate."""
+        assert self._storage.can_read
+
+        if self._auto_index and not self._index.valid:
+            self.reindex()
+
+        return method(self, *args, **kwargs)
+
+    return op
+
+
+def temp_storage_op(method):
+    """Decorate a db operation that requires auxiliary storage.
+
+    Initializes temporary storage, invokes method, and cleans-up storage after
+    op has run.
+    """
+
+    @wraps(method)
+    def op(self, *args, **kwargs):
+        """Decorate."""
+        # Init temp storage in the storage class.
+        self._storage._init_temp_storage()
+
+        # Invoke op.
+        rst = method(self, *args, **kwargs)
+
+        # Clean-up temp storage.
+        self._storage._cleanup_temp_storage()
+
+        return rst
+
+    return op
+
+
+def write_op(method):
+    """Decorate a write operation with assertion.
+
+    Ensures storage can be written to before doing anything.
+    """
+
+    @wraps(method)
+    def op(self, *args, **kwargs):
+        """Decorate."""
+        assert self._storage.can_write
+        return method(self, *args, **kwargs)
+
+    return op
 
 
 class TinyFlux:
@@ -163,6 +235,7 @@ class TinyFlux:
 
         return f'<{type(self).__name__} {", ".join(args)}>'
 
+    @read_op
     def all(self) -> List[Point]:
         """Get all data in the storage layer as Points."""
         return self._storage.read()
@@ -186,6 +259,7 @@ class TinyFlux:
 
         return
 
+    @read_op
     def contains(
         self, query: Query, measurement: Optional[str] = None
     ) -> bool:
@@ -233,8 +307,9 @@ class TinyFlux:
 
         return contains
 
+    @read_op
     def count(self, query: Query, measurement: Optional[str] = None) -> int:
-        """Count the documents matching a query in the database.
+        """Count the points matching a query in the database.
 
         Args:
             query: a Query.
@@ -274,6 +349,9 @@ class TinyFlux:
 
         return count
 
+    @read_op
+    @write_op
+    @temp_storage_op
     def drop_measurement(self, name: str) -> int:
         """Drop a specific measurement from the database.
 
@@ -289,29 +367,12 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
-
         if name in self._measurements:
             del self._measurements[name]
 
-        return self.remove(MeasurementQuery() == name, name)
+        return self._remove_helper(MeasurementQuery() == name, name)
 
-    def drop_measurements(self) -> None:
-        """Drop all measurements from the database.
-
-        This removes all Points from the database.
-
-        This is irreversible.
-
-        Raises:
-            OSError if storage cannot be written to.
-        """
-        assert self._storage.can_write
-
-        self._reset_database()
-
-        return
-
+    @read_op
     def get(
         self, query: Query, measurement: Optional[str] = None
     ) -> Optional[Point]:
@@ -386,6 +447,7 @@ class TinyFlux:
 
         return got_point
 
+    @read_op
     def get_field_keys(self, measurement: Optional[str] = None) -> List[str]:
         """Get all field keys in the database.
 
@@ -419,6 +481,7 @@ class TinyFlux:
 
         return sorted(rst)
 
+    @read_op
     def get_field_values(
         self, field_key: str, measurement: Optional[str] = None
     ) -> List[FieldValue]:
@@ -457,6 +520,7 @@ class TinyFlux:
 
         return rst
 
+    @read_op
     def get_measurements(self) -> List[str]:
         """Get the names of all measurements in the database.
 
@@ -476,6 +540,7 @@ class TinyFlux:
 
         return sorted(names)
 
+    @read_op
     def get_tag_keys(self, measurement: Optional[str] = None) -> List[str]:
         """Get all tag keys in the database.
 
@@ -509,6 +574,7 @@ class TinyFlux:
 
         return sorted(rst)
 
+    @read_op
     def get_tag_values(
         self,
         tag_keys: List[str] = [],
@@ -552,6 +618,48 @@ class TinyFlux:
 
         return {i: sorted(j) for i, j in rst.items()}
 
+    @read_op
+    def get_timestamps(
+        self, measurement: Optional[str] = None
+    ) -> List[datetime]:
+        """Get all timestamps in the database.
+
+        Returns timestamps in order of insertion in the database, as time-aware
+        datetime objects with UTC timezone.
+
+        Args:
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            List of timestamps by insertion order.
+        """
+        # If index is valid, get timestamps.
+        if self._index.valid:
+            return [
+                datetime.fromtimestamp(i).astimezone(timezone.utc)
+                for i in self._index.get_timestamps(measurement)
+            ]
+
+        # Otherwise, go through storage.
+        rst: List[datetime] = []
+
+        for item in self._storage:
+
+            # Filter by measurement.
+            if (
+                measurement
+                and self._storage._deserialize_measurement(item) != measurement
+            ):
+                continue
+
+            # Match, add to results.
+            _time = self._storage._deserialize_timestamp(item)
+
+            rst.append(_time.replace(tzinfo=timezone.utc))
+
+        return rst
+
+    @append_op
     def insert(self, point: Point, measurement: Optional[str] = None) -> int:
         """Insert a Point into the database.
 
@@ -566,10 +674,9 @@ class TinyFlux:
         OSError if storage cannot be appendex to.
             TypeError if point is not a Point instance.
         """
-        assert self._storage.can_append
-
         return self._insert_helper([point], measurement)
 
+    @append_op
     def insert_multiple(
         self, points: Iterable[Any], measurement: Optional[str] = None
     ) -> int:
@@ -586,8 +693,6 @@ class TinyFlux:
             OSError if storage cannot be appendex to.
             TypeError if point is not a Point instance.
         """
-        assert self._storage.can_append
-
         return self._insert_helper(points, measurement)
 
     def measurement(self, name: str, **kwargs) -> Measurement:
@@ -620,59 +725,28 @@ class TinyFlux:
         return measurement
 
     def reindex(self) -> None:
-        """Sort the storage layer and build a new in-memory index.
-
-        Reindexing the storage sorts storage items by timestamp. The Index
-        instance is then built while iterating over the storage items.
+        """Build a new in-memory index.
 
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
+        assert self._storage.can_read
 
         # Pass if the index is already valid.
         if self._index.valid:
             print("Index already valid.")
             return
 
-        # A container for storage items.
-        temp_memory = []
-
-        last_timestamp = None
-        storage_is_sorted = True
-
-        for item in self._storage:
-
-            # Check to see if storage is sorted.
-            if storage_is_sorted:
-                _time = self._storage._deserialize_timestamp(item)
-
-                if last_timestamp and _time < last_timestamp:
-                    storage_is_sorted = False
-                else:
-                    last_timestamp = _time
-
-            # Add item to temp memory.
-            temp_memory.append(item)
-
-        # If storage wasn't sorted, sort and overwrite it.
-        if not storage_is_sorted:
-            temp_memory.sort(
-                key=lambda x: self._storage._deserialize_timestamp(x)
-            )
-            self._storage._write(temp_memory, True)
-
         # Build the index.
         self._index.build(
-            self._storage._deserialize_storage_item(i) for i in temp_memory
+            self._storage._deserialize_storage_item(i) for i in self._storage
         )
-
-        # Clean up temp memory.
-        del temp_memory
-        gc.collect()
 
         return
 
+    @read_op
+    @write_op
+    @temp_storage_op
     def remove(self, query: Query, measurement: Optional[str] = None) -> int:
         """Remove Points from this database by query.
 
@@ -688,133 +762,9 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
+        return self._remove_helper(query, measurement)
 
-        use_index = self._index.valid
-
-        # If we are auto-indexing and the index is valid, check it.
-        if use_index:
-
-            if measurement:
-                mq = MeasurementQuery() == measurement
-                index_rst = self._index.search(mq & query)
-            else:
-                index_rst = self._index.search(query)
-
-            # No items from the index found for removal.
-            if not index_rst._items:
-                return 0
-
-            # Items, but it's all of them.
-            if len(index_rst.items) == len(self._index):
-                use_index = False
-
-        # A set of items marked for removal.
-        filtered_items = set({})
-
-        # A mapping of items' old positions to new ones after update.
-        updated_items: Dict[int, int] = {}
-
-        # A temporary container for storage items since we are to overwrite.
-        temp_memory = []
-
-        # A counter to keep track of a remaining item's position in storage.
-        new_index = 0
-
-        # Update with the help of the index.
-        if use_index:
-
-            j = 0
-
-            for i, item in enumerate(self._storage):
-
-                # No more items or item is not a candidate.
-                if j == len(index_rst._items) or i not in index_rst._items:
-                    temp_memory.append(item)
-
-                    # Add to updated_items if the item has a new position.
-                    if i != new_index:
-                        updated_items[i] = new_index
-
-                    new_index += 1
-                    continue
-
-                # Candidate and no further evaluation necessary.
-                filtered_items.add(i)
-
-                j += 1
-
-        # Update without the help of the index.
-        else:
-
-            for i, item in enumerate(self._storage):
-
-                # Filter by measurement.
-                if measurement:
-                    _measurement = self._storage._deserialize_measurement(item)
-
-                    # Not this measurement, keep.
-                    if _measurement != measurement:
-                        temp_memory.append(item)
-                        continue
-
-                # Match, filter.
-                if query(self._storage._deserialize_storage_item(item)):
-                    filtered_items.add(i)
-
-                # Not a match, keep.
-                else:
-                    temp_memory.append(item)
-
-                    # Update new index.
-                    if self._auto_index:
-
-                        # Add to updated_items if the item has a new position.
-                        if i != new_index:
-                            updated_items[i] = new_index
-
-                        new_index += 1
-
-        # No items removed, delete temporary memory and do not update storage.
-        if not len(filtered_items):
-            del temp_memory
-            gc.collect()
-
-            return 0
-
-        # No items remaining. Clear out storage, clear out index.
-        if not len(temp_memory):
-            self._reset_database()
-
-            return len(filtered_items)
-
-        # Index was invalid and we need to reindex.
-        if self._auto_index and not self._index.valid:
-            temp_memory.sort(
-                key=lambda x: self._storage._deserialize_timestamp(x)
-            )
-            self._storage._write(temp_memory, True)
-            self._index.build(
-                self._storage._deserialize_storage_item(i) for i in temp_memory
-            )
-
-        # We are auto_indexing but storage was already sorted, update index.
-        elif self._auto_index and self._index.valid:
-            self._storage._write(temp_memory, True)
-            self._index.remove(filtered_items)
-            self._index.update(updated_items)
-
-        # We aren't auto-indexing, invalidate the index.
-        else:
-            self._storage._write(temp_memory, self.index.valid)
-            self._index.invalidate()
-
-        # Clean up temp memory.
-        del temp_memory
-        gc.collect()
-
-        return len(filtered_items)
-
+    @write_op
     def remove_all(self) -> None:
         """Remove all Points from this database.
 
@@ -823,12 +773,11 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
-
         self._reset_database()
 
         return
 
+    @read_op
     def search(
         self, query: Query, measurement: Optional[str] = None
     ) -> List[Point]:
@@ -910,6 +859,9 @@ class TinyFlux:
 
         return found_points
 
+    @read_op
+    @write_op
+    @temp_storage_op
     def update(
         self,
         query: Query,
@@ -935,12 +887,13 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
-
         return self._update_helper(
             False, query, time, measurement, tags, fields, _measurement
         )
 
+    @read_op
+    @write_op
+    @temp_storage_op
     def update_all(
         self,
         time: Union[datetime, Callable[[datetime], datetime], None] = None,
@@ -962,8 +915,6 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be written to.
         """
-        assert self._storage.can_write
-
         return self._update_helper(
             True, TagQuery().noop(), time, measurement, tags, fields, None
         )
@@ -975,12 +926,12 @@ class TinyFlux:
         measurement: Union[str, Callable[[str], str], None] = None,
         tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
         fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
-    ) -> Callable[[Point], Tuple[bool, bool]]:
+    ) -> Callable[[Point], bool]:
         """Generate a routine that updates a Point with new attributes.
 
         Performs validation of attribute arguments.
 
-        The update function will also validate after update.  This makes this
+        The update function will also validate after update. This makes this
         routine quite slow.
 
         Args:
@@ -1020,7 +971,7 @@ class TinyFlux:
             validate_fields(fields)
 
         # Define the update function.
-        def perform_update(point: Point) -> Tuple[bool, bool]:
+        def perform_update(point: Point) -> bool:
             """Update points.
 
             Args:
@@ -1028,7 +979,6 @@ class TinyFlux:
 
             Returns:
                 {bool} Whether a Point was actually updated.
-                {bool} Whether a Point's time value was updated.
             """
             old_point = copy.deepcopy(point)
 
@@ -1075,7 +1025,7 @@ class TinyFlux:
                 else:
                     point.fields.update(fields)
 
-            return point != old_point, point.time != old_point.time
+            return point != old_point
 
         return perform_update
 
@@ -1109,7 +1059,7 @@ class TinyFlux:
                 point.time = t
 
             # Insert the points into storage.
-            self._storage.append([point])
+            self._storage.append([self._storage._serialize_point(point)])
 
             # Check index.
             if self._auto_index and self._index.valid:
@@ -1128,6 +1078,125 @@ class TinyFlux:
             self._index.invalidate()
 
         return count
+
+    def _remove_helper(
+        self, query: Query, measurement: Optional[str] = None
+    ) -> int:
+        """Remove Points from this database by query.
+
+        This is irreversible.
+
+        Args:
+            query: A query to remove Points by.
+            measurement: An optional measurement to filter by.
+
+        Returns:
+            The count of removed points.
+
+        Raises:
+            OSError if storage cannot be written to.
+        """
+        use_index = self._index.valid
+
+        # If we are auto-indexing and the index is valid, check it.
+        if use_index:
+
+            if measurement:
+                mq = MeasurementQuery() == measurement
+                index_rst = self._index.search(mq & query)
+            else:
+                index_rst = self._index.search(query)
+
+            # No items from the index found for removal.
+            if not index_rst._items:
+                return 0
+
+            # Items, but it's all of them.
+            if len(index_rst.items) == len(self._index):
+                self._reset_database()
+                return len(index_rst.items)
+
+        # A set of items marked for removal.
+        removed_items = set({})
+
+        # A mapping of items' old positions to new ones after update.
+        updated_items: Dict[int, int] = {}
+
+        # A counter to keep track of a remaining item's position in storage.
+        new_position = 0
+
+        # A counter of how many items were retained.
+        keep_count = 0
+
+        # Update with the help of the index.
+        if use_index:
+
+            j = 0
+
+            for i, item in enumerate(self._storage):
+
+                # No more items or item is not a candidate.
+                if j == len(index_rst._items) or i not in index_rst._items:
+                    self._storage.append([item], temporary=True)
+
+                    # Add to updated_items if the item has a new position.
+                    if i != new_position:
+                        updated_items[i] = new_position
+
+                    new_position += 1
+                    keep_count += 1
+                    continue
+
+                # Candidate and no further evaluation necessary.
+                removed_items.add(i)
+
+                j += 1
+
+        # Update without the help of the index.
+        else:
+
+            for i, item in enumerate(self._storage):
+
+                # Filter by measurement.
+                if measurement:
+                    _measurement = self._storage._deserialize_measurement(item)
+
+                    # Not this measurement, keep.
+                    if _measurement != measurement:
+                        self._storage.append([item], temporary=True)
+                        keep_count += 1
+                        continue
+
+                # Match, filter.
+                if query(self._storage._deserialize_storage_item(item)):
+                    removed_items.add(i)
+
+                # Not a match, keep.
+                else:
+                    self._storage.append([item], temporary=True)
+                    keep_count += 1
+
+        # No items removed, delete temporary memory and do not update storage.
+        if not len(removed_items):
+            return 0
+
+        # No items remaining. Clear out storage, clear out index.
+        if not keep_count:
+            self._reset_database()
+            return len(removed_items)
+
+        # Items were updated. Swap storages and clean up.
+        self._storage._swap_temp_with_primary()
+
+        # We are auto_indexing, update index. Otherwise, invalidate it.
+        if self._auto_index:
+            self._index.remove(removed_items)
+            self._index.update(updated_items)
+        else:
+            self._index.invalidate()
+
+        # Return number of updated items.
+        return len(removed_items)
 
     def _reset_database(self) -> None:
         """Reset TinyFlux and storage."""
@@ -1200,12 +1269,6 @@ class TinyFlux:
             if len(index_rst._items) == len(self._index):
                 use_index = False
 
-        # A temporary container for storage items.
-        temp_memory = []
-
-        # Whether or not updates to time attributes were made.
-        time_updates_performed = False
-
         # Update with the help of the index.
         if use_index:
 
@@ -1215,28 +1278,27 @@ class TinyFlux:
 
                 # Not a query match, pass item through.
                 if j == len(index_rst.items) or i not in index_rst._items:
-                    temp_memory.append(item)
+                    self._storage.append([item], temporary=True)
                     continue
 
                 _point = self._storage._deserialize_storage_item(item)
 
                 # Attempt update.
-                u, t = perform_update(_point)
+                u = perform_update(_point)
 
                 # Attributes changed. Serialize and add to memory.
                 if u:
+                    self._storage.append(
+                        [self._storage._serialize_point(_point)],
+                        temporary=True,
+                    )
+
                     update_count += 1
-                    temp_memory.append(self._storage._serialize_point(_point))
-
-                    # Time attribute changed.
-                    if t:
-                        time_updates_performed = True
-
                     continue
 
                 # Attributes unchanged.
                 else:
-                    temp_memory.append(item)
+                    self._storage.append([item], temporary=True)
 
                 j += 1
 
@@ -1251,7 +1313,7 @@ class TinyFlux:
                     and self._storage._deserialize_measurement(item)
                     != _measurement
                 ):
-                    temp_memory.append(item)
+                    self._storage.append([item], temporary=True)
                     continue
 
                 _point = self._storage._deserialize_storage_item(item)
@@ -1260,52 +1322,36 @@ class TinyFlux:
                 if update_all or query(_point):
 
                     # Attempt update.
-                    u, t = perform_update(_point)
+                    u = perform_update(_point)
 
                     # Attributes changed. Serialize and add to memory.
                     if u:
-                        update_count += 1
-                        temp_memory.append(
-                            self._storage._deserialize_storage_item(_point)
+                        self._storage.append(
+                            [self._storage._deserialize_storage_item(_point)],
+                            temporary=True,
                         )
 
-                        # Time attribute changed.
-                        if t:
-                            time_updates_performed = True
-
+                        update_count += 1
                         continue
 
                 # Not a query match or attributes unchanged.
-                temp_memory.append(item)
+                self._storage.append([item], temporary=True)
 
         # No updates performed. Delete temp memory and do not write.
         if not update_count:
-            del temp_memory
-            gc.collect()
-
             return 0
 
-        # Reindex storage layer only if necessary. We reindex only if time
-        # updates were performed or if the index was not previously intact.
-        if self._auto_index and (
-            time_updates_performed or not self._index.valid
-        ):
-            temp_memory.sort(
-                key=lambda x: self._storage._deserialize_timestamp(x)
-            )
-            self._storage._write(temp_memory, True)
-        else:
-            # Write memory to storage.
-            self._storage._write(temp_memory, self.index.valid)
+        # Items were updated. Swap storages and clean up.
+        self._storage._swap_temp_with_primary()
+
+        # Invalidate index.
+        self._index.invalidate()
 
         # If any item was updated, rebuild the in-memory index.
         if self._auto_index:
             self._index.build(
-                self._storage._deserialize_storage_item(i) for i in temp_memory
+                self._storage._deserialize_storage_item(i)
+                for i in self._storage
             )
-
-        # Clean up temp memory.
-        del temp_memory
-        gc.collect()
 
         return update_count

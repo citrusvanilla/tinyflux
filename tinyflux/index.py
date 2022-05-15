@@ -10,7 +10,7 @@ handling, usually as an input to a storage retrieval.
 """
 from datetime import datetime, timezone
 import operator
-from typing import Dict, Iterable, List, Optional, Set
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from tinyflux.queries import SimpleQuery, CompoundQuery, Query
 from .point import FieldValue, Point
@@ -113,6 +113,7 @@ class Index:
     _measurements: dict[str, list]
     _timestamps: List[float]
     _valid: bool
+    _storage_pos_sorted_by_ts: List[int]
 
     def __init__(self, valid: bool = True) -> None:
         """Initialize an Index.
@@ -128,6 +129,7 @@ class Index:
         self._measurements = {}
         self._timestamps = []
         self._valid = valid
+        self._storage_pos_sorted_by_ts = []
 
     @property
     def empty(self) -> bool:
@@ -177,12 +179,25 @@ class Index:
         """
         self._reset()
 
+        # A buffer for the new timestamps and their storage positions.
+        timestamp_buffer: List[Tuple[float, int]] = []
+
         for idx, point in enumerate(points):
             self._num_items += 1
-            self._insert_time(point.time)
+            self._insert_measurements(idx, point.measurement)
             self._insert_tags(idx, point.tags)
             self._insert_fields(idx, point.fields)
-            self._insert_measurements(idx, point.measurement)
+
+            timestamp_buffer.append((point.time.timestamp(), idx))
+
+        # Sort the timestamp buffer by timestamp.
+        timestamp_buffer.sort(key=lambda x: x[0])
+
+        # Split up the tuple into their own lists.
+        # We have to do this because the bisect library does not work on
+        # containers prior to py310.
+        self._timestamps = [i[0] for i in timestamp_buffer]
+        self._storage_pos_sorted_by_ts = [i[1] for i in timestamp_buffer]
 
         return
 
@@ -314,39 +329,98 @@ class Index:
         Returns:
             Mapping of tag_keys to associated tag values as a set.
         """
-        # These is the set of tags that actually exist in index from tag_keys.
-        relevant_tags = (
-            set(tag_keys).intersection(set(self._tags.keys()))
-            if tag_keys
-            else set(self._tags.keys())
-        )
+        # Return set.
+        rst: Dict[str, Set[str]] = {}
 
-        # Initalize a return value.
-        rst: Dict[str, Set[str]] = {
-            i: set({}) for i in sorted(set(tag_keys).union(relevant_tags))
-        }
+        # 1. No measurement, no tag keys. Return all.
+        if not measurement and not tag_keys:
 
-        # No measurement specified.
-        if not measurement:
-            for tag_key in relevant_tags:
-                for tag_value, items in self._tags[tag_key].items():
+            for tag_key, tag_values in self._tags.items():
+                rst[tag_key] = set({})
+
+                for tag_value in tag_values:
                     rst[tag_key].add(tag_value)
 
             return rst
 
-        # Measurement specified, no measurement in the DB.
+        # 2. Measurement, no tag keys.
+        elif measurement and not tag_keys:
+
+            if measurement in self._measurements:
+                measurement_items = set(self._measurements[measurement])
+            else:
+                return rst
+
+            for tag_key, tag_values in self._tags.items():
+                for tag_value, items in self._tags[tag_key].items():
+                    if measurement_items.intersection(set(items)):
+                        if tag_key not in rst:
+                            rst[tag_key] = set([tag_value])
+                        else:
+                            rst[tag_key].add(tag_value)
+
+            return rst
+
+        # 3. No measurement, tag keys.
+        elif not measurement and tag_keys:
+
+            rst = {i: set({}) for i in tag_keys}
+
+            for tag_key, tag_values in self._tags.items():
+                if tag_key in rst:
+                    for tag_value in tag_values:
+                        rst[tag_key].add(tag_value)
+
+            return rst
+
+        # 4. Measurement, tag keys.
+        else:
+            rst = {i: set({}) for i in tag_keys}
+
+            if measurement in self._measurements:
+                measurement_items = set(self._measurements[measurement])
+            else:
+                return rst
+
+            for tag_key, tag_values in self._tags.items():
+                for tag_value, items in self._tags[tag_key].items():
+                    if tag_key in rst and measurement_items.intersection(
+                        set(items)
+                    ):
+                        rst[tag_key].add(tag_value)
+
+            return rst
+
+    def get_timestamps(self, measurement: Optional[str] = None) -> List[float]:
+        """Get timestamps from the index.
+
+        Args:
+            measurement: Optional measurement to filter by.
+
+        Returns:
+            List of timestamps.
+        """
+        # No measurement specified.
+        if not measurement:
+            zipped = [
+                (i, j)
+                for i, j in zip(
+                    self._timestamps, self._storage_pos_sorted_by_ts
+                )
+            ]
+            return [i[0] for i in sorted(zipped, key=lambda x: x[1])]
+
+        # No measurement in the DB.
         if measurement not in self._measurements:
-            return {}
+            return []
 
         # If there is a measurement in the DB, we intersect.
-        measurement_items = set(self._measurements[measurement])
-
-        for tag_key in relevant_tags:
-            for tag_value, items in self._tags[tag_key].items():
-                if measurement_items.intersection(set(items)):
-                    rst[tag_key].add(tag_value)
-
-        return rst
+        zipped = [
+            (i, j)
+            for i, j in zip(self._timestamps, self._storage_pos_sorted_by_ts)
+            if j in set(self._measurements[measurement])
+        ]
+        return [i[0] for i in sorted(zipped, key=lambda x: x[1])]
 
     def insert(self, points: List[Point] = []) -> None:
         """Update index with new points.
@@ -486,6 +560,10 @@ class Index:
         Args:
             time: Time to index.
         """
+        # Add the new storage position.
+        self._storage_pos_sorted_by_ts.append(len(self._timestamps))
+
+        # Add the timestamp.
         self._timestamps.append(time.timestamp())
 
         return
@@ -651,19 +729,20 @@ class Index:
         # Exact timestamp match.
         if op == operator.eq:
 
+            # Find the exact match, or return empty set if None.
             match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
 
-            results = set([match])
-
+            # Find the other timestamps with same value.
+            results = set([self._storage_pos_sorted_by_ts[match]])
             match += 1
 
             while match < len(self._timestamps):
                 if self._timestamps[match] != rhs.timestamp():
                     break
 
-                results.add(match)
+                results.add(self._storage_pos_sorted_by_ts[match])
                 match += 1
 
             return results
@@ -671,64 +750,66 @@ class Index:
         # Anything except exact timestamp match.
         elif op == operator.ne:
 
+            # Find the exact match, or return full set if None.
             match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
-                return set(range(len(self._timestamps)))
+                return set(self._storage_pos_sorted_by_ts)
 
-            results = set([match])
-
+            # Find the other timestamps with same value.
+            results = set([self._storage_pos_sorted_by_ts[match]])
             match += 1
 
             while match < len(self._timestamps):
                 if self._timestamps[match] != rhs.timestamp():
                     break
 
-                results.add(match)
+                results.add(self._storage_pos_sorted_by_ts[match])
                 match += 1
 
-            return set(range(len(self._timestamps))).difference(results)
+            return set(self._storage_pos_sorted_by_ts).difference(results)
 
         # Everything less than rhs.
         elif op == operator.lt:
 
             match = find_lt(self._timestamps, rhs.timestamp())
-
             if match is None:
                 return set([])
 
-            return set(range(match + 1))
+            return set(self._storage_pos_sorted_by_ts[: match + 1])
 
         # Every less than or equal to rhs.
         elif op == operator.le:
-            match = find_le(self._timestamps, rhs.timestamp())
 
+            match = find_le(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
 
-            return set(range(match + 1))
+            return set(self._storage_pos_sorted_by_ts[: match + 1])
 
         # Everything greater than rhs.
         elif op == operator.gt:
-            match = find_gt(self._timestamps, rhs.timestamp())
 
+            match = find_gt(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
 
-            return set(range(match, len(self._timestamps)))
+            return set(self._storage_pos_sorted_by_ts[match:])
 
         # Everything greater than or equal to rhs.
         elif op == operator.ge:
-            match = find_ge(self._timestamps, rhs.timestamp())
 
+            match = find_ge(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
 
-            return set(range(match, len(self._timestamps)))
+            return set(self._storage_pos_sorted_by_ts[match:])
 
         # All other operators.
         else:
             items = set([])
-            for idx, timestamp in enumerate(self._timestamps):
+            for idx, timestamp in zip(
+                self._storage_pos_sorted_by_ts, self._timestamps
+            ):
                 if query._test(
                     query._path_resolver(
                         datetime.fromtimestamp(timestamp).astimezone(

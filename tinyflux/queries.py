@@ -405,13 +405,6 @@ class BaseQuery:
         Returns:
             A new BaseQuery instance.
         """
-        # We cannot call ``getattr(item)`` here as it would try to resolve
-        # the name as a method name first, only then call our ``__getattr__``
-        # method. By calling ``__getattr__`` directly, we make sure that
-        # calling e.g. ``Query()['test']`` will always generate a query for a
-        # document's ``test`` field instead of returning a reference to the
-        # ``Query.test`` method
-
         return self.__getattr__(item)
 
     def _generate_simple_query(

@@ -165,9 +165,6 @@ def test_all():
     """Test all method."""
     db = TinyFlux(storage=MemoryStorage)
 
-    # Drop all and add new points.
-    db.drop_measurements()
-
     for i in range(10):
         db.insert(
             Point(
@@ -300,31 +297,6 @@ def test_drop_measurement():
     assert db.drop_measurement("m1") == 1
     assert db.index.valid
     assert db.index.empty
-    assert not len(db)
-
-
-def test_drop_measurements():
-    """Test drop_measurement method."""
-    db = TinyFlux(storage=MemoryStorage)
-    db.insert(Point())
-    db.insert(Point(measurement="m"))
-    assert db.index.valid
-    assert len(db.get_measurements()) == 2
-
-    # Valid index, drop all measurements.
-    db.drop_measurements()
-    assert len(db.get_measurements()) == 0
-    assert db.index.valid
-    assert db.index.empty
-
-    # No auto-indexing. Populate and drop measurements.
-    db = TinyFlux(auto_index=False, storage=MemoryStorage)
-    db.insert(Point())
-    db.insert(Point(measurement="m"))
-    assert not db.index.valid
-    assert len(db.get_measurements()) == 2
-    assert db.drop_measurement("m") == 1
-    assert db.drop_measurement("_default") == 1
     assert not len(db)
 
 
@@ -493,6 +465,35 @@ def test_get_tag_values():
     assert db.get_tag_values(["c", "d"]) == {"c": ["3"], "d": []}
 
 
+def test_get_timestamps():
+    """Test get timestamps."""
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+    assert db.index.valid
+
+    # Valid index, nothing in storage/index.
+    assert db.get_timestamps() == []
+
+    t1 = datetime.now(timezone.utc)
+    db.insert(Point(time=t1))
+    db.reindex()
+    assert db.get_timestamps() == [t1]
+
+    t2 = t1 + timedelta(days=1)
+    db.insert(Point(time=t2))
+    db.reindex()
+    assert db.get_timestamps() == [t1, t2]
+
+    t3 = t2 + timedelta(days=1)
+    db.insert(Point(time=t3))
+    db.reindex()
+    assert db.get_timestamps() == [t1, t2, t3]
+
+    # Invalidate index.
+    t4 = t1 - timedelta(days=1)
+    db.insert(Point(time=t4))
+    assert db.get_timestamps() == [t1, t2, t3, t4]
+
+
 def test_get_measurements():
     """Test measurements method."""
     # Empty DB.
@@ -514,7 +515,7 @@ def test_get_measurements():
     )
     assert not db.index.valid
     assert db.get_measurements() == ["_default", "a"]
-    assert not db.index.valid
+    assert db.index.valid
 
 
 def test_insert():
@@ -666,6 +667,7 @@ def test_reindex(tmpdir, capsys):
     w.writerow(p2._serialize_to_list())
     w.writerow(p1._serialize_to_list())
     f.close()
+
     # Open up the DB with TinyFlux.
     db = TinyFlux(path, auto_index=False, storage=CSVStorage)
     assert not db.storage._initially_empty
@@ -676,19 +678,17 @@ def test_reindex(tmpdir, capsys):
     db.insert(p3)
     assert not db.index.valid
     assert db.index.empty
-    assert not db._storage._is_sorted()
 
     # Reindex.
     db.reindex()
 
-    # Check storage layer is sorted.
+    # Check storage layer.
     f = open(path, "r+")
     r = csv.reader(f)
-    for row, point in zip(r, [p1, p2, p3]):
+    for row, point in zip(r, [p2, p1, p3]):
         assert tuple(row) == point._serialize_to_list()
     f.close()
 
-    assert db._storage._is_sorted()
     assert not db._storage._initially_empty
 
     # Check new index.
@@ -706,17 +706,20 @@ def test_reindex(tmpdir, capsys):
     assert captured.out == "Index already valid.\n"
 
 
-def test_remove():
+def test_remove(tmpdir):
     """Test remove method."""
-    db = TinyFlux(storage=MemoryStorage)
+    path = os.path.join(tmpdir, "test.csv")
+    db = TinyFlux(path, auto_index=True, storage=CSVStorage)
+    # db = TinyFlux(storage=MemoryStorage)
     db.insert(Point(tags={"a": "A"}, fields={"a": 1}))
     db.insert(Point(tags={"a": "AA"}, fields={"a": 2}))
     db.insert(Point(tags={"b": "B"}, fields={"b": 2}))
+    assert db.index.valid
 
     # Valid index, no candidates.
     assert not db.remove(TagQuery().c == "C")
     assert db.index.valid
-    assert len(db.index) == 3
+    assert not db.index.empty
     assert len(db) == 3
 
     # Valid index, complete index query.
@@ -724,12 +727,14 @@ def test_remove():
     assert db.index.valid
     assert len(db.index) == 2
     assert len(db) == 2
+
     assert db.remove(FieldQuery().a == 1) == 1
     assert db.index.valid
-    assert len(db.index) == 1
+    assert not db.index.empty
     assert len(db) == 1
 
     # Insert a point out-of-order.
+    db.reindex()
     db.insert(
         Point(
             time=datetime.now(timezone.utc) - timedelta(days=1),
@@ -739,7 +744,6 @@ def test_remove():
     )
     assert not db.index.valid
     assert db.index.empty
-    assert len(db.index) == 0
     assert len(db) == 2
 
     # Invalid index. Remove 1 item. Deletes will reindex DB.
@@ -786,10 +790,11 @@ def test_remove_all():
 
 def test_search():
     """Test search method."""
-    db = TinyFlux(storage=MemoryStorage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
     t = datetime.now(timezone.utc)
     p1, p2 = Point(time=t, tags={"a": "A"}), Point(time=t, fields={"a": 1})
     db.insert_multiple([p1, p2])
+    db.reindex()
 
     # Valid index, no candidates.
     assert not db.search(TagQuery().b == "B")
@@ -812,12 +817,12 @@ def test_search():
     assert not db.index.empty
 
     # Search by measurement.
-    assert db.search(MeasurementQuery() == "_default") == [p3, p1, p2]
+    assert db.search(MeasurementQuery() == "_default") == [p1, p2, p3]
     assert not db.search(MeasurementQuery() != "_default")
 
     # Search by time.
     assert db.search(TimeQuery() < t) == [p3]
-    assert db.search(TimeQuery() <= t) == [p3, p1, p2]
+    assert db.search(TimeQuery() <= t) == [p1, p2, p3]
     assert db.search(TimeQuery() == t) == [p1, p2]
     assert db.search(TimeQuery() > t) == []
     assert db.search(TimeQuery() >= t) == [p1, p2]
@@ -829,7 +834,7 @@ def test_search():
 
 def test_update():
     """Test update method."""
-    db = TinyFlux(storage=MemoryStorage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
 
     # Insert some points.
     t1, t2 = datetime.now(timezone.utc), datetime.now(
@@ -906,6 +911,7 @@ def test_update():
         db.update(query=True, tags={"k": "v"})
 
     # Valid index, no index results.
+    db.reindex()
     assert not db.update(MeasurementQuery() == "m3", measurement="m4")
 
     # Valid index, complete search.
@@ -917,6 +923,7 @@ def test_update():
     assert p1.fields["fk1"] == 1
 
     # Valid index, no actual update performed.
+    db.reindex()
     assert db.update(MeasurementQuery() == "m1", measurement="m1") == 0
 
     # Invalidate the index.
@@ -933,9 +940,9 @@ def test_update():
     assert db.update(TagQuery().tk2 == "tv2", fields={"fk2": 2}) == 2
     assert db.count(FieldQuery().fk2.exists()) == 2
 
-    # Update should reindex the db.
-    assert db.index.valid
-    assert len(db.index) == 3
+    # Update should not reindex the db.
+    assert not db.index.valid
+    assert db.index.empty
 
     # Update with callables.
     rst = db.update(

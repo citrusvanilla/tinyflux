@@ -11,16 +11,21 @@ Author:
     Justin Fung (@citrusvanilla, citrusvanilla@gmail.com)
 
 Usage:
-    >>> from tinyflux import TinyFlux, Point, FieldQuery
-    >>> db = TinyFlux("my_new_tinyflux_db.csv")
+    >>> from tinyflux import TinyFlux, Point, FieldQuery, TimeQuery
+    >>> db = TinyFlux("my_tinyflux_db.csv")
     >>> p = Point(
-    ...     time=datetime.now(timezone.utc),
-    ...     measurement="cities",
-    ...     tags={"city": "Los Angeles"},
-    ...     fields={"temp_f": 70.0}
+    ...     measurement="california air quality",
+    ...     time=datetime.fromisoformat("2020-01-01T00:00:00-08:00"),
+    ...     tags={
+    ...         "city": "Los Angeles",
+    ...         "parameter": "PM2.5",
+    ...     },
+    ...     fields={"aqi": 112}
     ... )
     >>> db.insert(p)
-    >>> rst = db.search(FieldQuery().temp_f > 32.0)
+    >>> q1 = TimeQuery() >= datetime.fromisoformat("2020-01-01T00:00:00-00:00")
+    >>> q2 = FieldQuery().aqi > 100
+    >>> hazardous_days_in_LA_2020 = db.search(q1 & q2)
 """
 from .database import TinyFlux
 from .point import Point

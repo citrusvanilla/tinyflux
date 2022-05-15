@@ -15,13 +15,17 @@ Usage:
 """
 from abc import ABC, abstractmethod
 import csv
-from datetime import datetime, timezone
+from datetime import datetime
 import os
 from pathlib import Path
+import shutil
+from tempfile import NamedTemporaryFile
+
 from typing import (
     Any,
     Iterator,
     List,
+    Optional,
     Sequence,
     Union,
 )
@@ -75,6 +79,11 @@ class Storage(ABC):  # pragma: no cover
         return True
 
     @property
+    def can_read(self) -> bool:
+        """Can read the DB."""
+        return True
+
+    @property
     def can_write(self) -> bool:
         """Can write to DB."""
         return True
@@ -85,11 +94,12 @@ class Storage(ABC):  # pragma: no cover
         ...
 
     @abstractmethod
-    def append(self, points: List[Point]) -> None:
+    def append(self, points: List[Any], temporary: bool = False) -> None:
         """Append points to the store.
 
         Args:
             points: A list of Point objets.
+            temporary: Whether or not to append to temporary storage.
         """
         ...
 
@@ -112,14 +122,13 @@ class Storage(ABC):  # pragma: no cover
         """
         return list(self._deserialize_storage_item(i) for i in iter(self))
 
+    @abstractmethod
     def reset(self) -> None:
         """Reset the storage instance.
 
         Removes all data.
         """
-        self._write([], True)
-
-        return
+        ...
 
     @abstractmethod
     def _deserialize_measurement(self, item: Any) -> str:
@@ -137,37 +146,24 @@ class Storage(ABC):  # pragma: no cover
         ...
 
     @abstractmethod
-    def _is_sorted(self) -> bool:
-        """Check if the storage layer is sorted."""
-        # We're reading all data, start w/ an intact index & no latest time.
-        latest_time = None
-
-        # Iterate over all rows.
-        for item in self:
-            # Deserialize the Point.
-            timestamp = self._deserialize_timestamp(item)
-
-            if latest_time and timestamp < latest_time:
-                return False
-
-            latest_time = timestamp
-
-        return True
-
-    @abstractmethod
     def _serialize_point(self, point: Point) -> Any:
         """Serialize a point to an item for storage."""
         ...
 
     @abstractmethod
-    def _write(self, items: List[Any], is_sorted: bool) -> None:
+    def _swap_temp_with_primary(self) -> None:
+        """Swap primary data store with temporary data store."""
+        ...
+
+    @abstractmethod
+    def _write(self, items: List[Any]) -> None:
         """Write to the store.
 
         This function should overwrite the entire file.
 
         Args:
             points: A list of Point objects.
-            is_sorted: Input is sorted already.
+            temporary: Whether or not to write to temporary storage.
         """
         ...
 
@@ -177,10 +173,6 @@ class CSVStorage(Storage):
 
     CSV provides append-only writes, which is efficient for high-frequency
     writes, common to time-series datasets.
-
-    Attributes:
-        index_intact: Data is stored according to the index sorter.
-        index_sorter: Function to sort data.
 
     Usage:
         >>> from tinyflux import CSVStorage
@@ -212,10 +204,12 @@ class CSVStorage(Storage):
             access_mode: File access mode.
         """
         super().__init__()
+        self._encoding = encoding
         self._mode = access_mode
         self.kwargs = kwargs
         self._latest_time = None
         self._initially_empty = False
+        self._path = path
         self._flush_on_insert = flush_on_insert
 
         # Create the file if it doesn't exist and creating is allowed.
@@ -225,13 +219,16 @@ class CSVStorage(Storage):
         # Open the file for reading/writing
         self._handle = open(path, mode=self._mode, encoding=encoding)
 
+        # Open a tempfile.
+        self._temp_handle: Optional[Any] = None
+
         # Check if there is already data in the file.
         self._check_for_existing_data()
 
     @property
-    def can_write(self) -> bool:
-        """Return whether or not writes can occur."""
-        if self._mode not in ["r+", "w", "w+"]:
+    def can_append(self) -> bool:
+        """Return whether or not appends can occur."""
+        if self._mode not in ("r+", "w", "w+", "a", "a+"):
             raise IOError(
                 f'Cannot update the database. Access mode is "{self._mode}"'
             )
@@ -239,9 +236,19 @@ class CSVStorage(Storage):
         return True
 
     @property
-    def can_append(self) -> bool:
-        """Return whether or not appends can occur."""
-        if self._mode not in ["r+", "w", "w+", "a", "a+"]:
+    def can_read(self) -> bool:
+        """Return whether or not reads can occur."""
+        if self._mode not in ("r+", "r", "w+", "a+"):
+            raise IOError(
+                f'Cannot update the database. Access mode is "{self._mode}"'
+            )
+
+        return True
+
+    @property
+    def can_write(self) -> bool:
+        """Return whether or not writes can occur."""
+        if self._mode not in ("r+", "w", "w+"):
             raise IOError(
                 f'Cannot update the database. Access mode is "{self._mode}"'
             )
@@ -260,26 +267,38 @@ class CSVStorage(Storage):
 
         return sum(1 for _ in self._handle)
 
-    def append(self, points: List[Point]) -> None:
+    def append(self, items: List[CSVStorageItem], temporary=False) -> None:
         """Append points to the CSV store.
 
         Args:
-            points: A list of Point objects.
+            items: A list of objects.
+            temporary: Whether or not to append to temporary storage.
         """
-        csv_writer = csv.writer(self._handle, **self.kwargs)
+        # Switch on temporary arg.
+        if temporary:
+            if not self._temp_handle:
+                raise IOError
+            else:
+                handle = self._temp_handle
+        else:
+            handle = self._handle
+
+        handle.seek(0, os.SEEK_END)
+
+        csv_writer = csv.writer(handle, **self.kwargs)
 
         # Iterate over the points.
-        for point in points:
+        for item in items:
             # Write the row.
-            csv_writer.writerow(point._serialize_to_list())
+            csv_writer.writerow(item)
 
         if self._flush_on_insert:
             # Ensure the file has been written.
-            self._handle.flush()
-            os.fsync(self._handle.fileno())
+            handle.flush()
+            os.fsync(handle.fileno())
 
             # Remove data that is behind the new cursor.
-            self._handle.truncate()
+            handle.truncate()
 
         return
 
@@ -300,6 +319,15 @@ class CSVStorage(Storage):
         """
         return super().read()
 
+    def reset(self) -> None:
+        """Reset the storage instance.
+
+        Removes all data.
+        """
+        self._write([])
+
+        return
+
     def _check_for_existing_data(self) -> None:
         """Check the file for existing data, w/o reading data into memory."""
         self._handle.seek(0, os.SEEK_END)
@@ -308,6 +336,14 @@ class CSVStorage(Storage):
         # If the file is empty, flip index_intact to True.
         if not size:
             self._initially_empty = True
+
+        return
+
+    def _cleanup_temp_storage(self) -> None:
+        """Clean up temporary storage."""
+        if self._temp_handle is not None:
+            self._temp_handle.close()
+            self._temp_handle = None
 
         return
 
@@ -321,13 +357,13 @@ class CSVStorage(Storage):
 
     def _deserialize_timestamp(self, row: CSVStorageItem) -> datetime:
         """Deserialize timestamp from a row."""
-        return datetime.fromisoformat(row[self._timestamp_idx]).replace(
-            tzinfo=timezone.utc
-        )
+        return datetime.fromisoformat(row[self._timestamp_idx])
 
-    def _is_sorted(self) -> bool:
-        """Check if the storage layer is sorted."""
-        return super()._is_sorted()
+    def _init_temp_storage(self) -> None:
+        """Initialize temporary storage."""
+        self._temp_handle = NamedTemporaryFile("w+t", newline="", delete=False)
+
+        return
 
     def _serialize_point(
         self, point: Point
@@ -335,9 +371,23 @@ class CSVStorage(Storage):
         """Serialize a point to an item for storage."""
         return point._serialize_to_list()
 
-    def _write(
-        self, items: List[CSVStorageItem], is_sorted: bool = False
-    ) -> None:
+    def _swap_temp_with_primary(self) -> None:
+        """Swap primary data store with temporary data store."""
+        if self._temp_handle is not None:
+            # Close the primary storage file object.
+            self._handle.close()
+
+            # Copy auxiliary storage to primary location.
+            shutil.copy(self._temp_handle.name, self._path)
+
+            # Init a new file object with the initial handle reference.
+            self._handle = open(
+                self._path, mode=self._mode, encoding=self._encoding
+            )
+
+        return
+
+    def _write(self, items: List[CSVStorageItem]) -> None:
         """Write Points to the CSV file.
 
         Checks each point to see if the index is intact.
@@ -346,25 +396,28 @@ class CSVStorage(Storage):
         'append' method.
 
         Args:
-            points: A list of Point objects to serialize and write.
+            items: A list of items to write.
+            temporary: Whether or not to write to temporary storage.
         """
+        handle = self._handle
+
         # Dump the existing contents.
-        self._handle.seek(0)
-        self._handle.truncate()
+        handle.seek(0)
+        handle.truncate()
 
         if items:
 
             # Write the serialized data to the file
-            w = csv.writer(self._handle, **self.kwargs)
+            w = csv.writer(handle, **self.kwargs)
             w.writerows(items)
 
             # Ensure the file has been written.
-            self._handle.flush()
-            os.fsync(self._handle.fileno())
+            handle.flush()
+            os.fsync(handle.fileno())
 
             # Remove data that is behind the new cursor in case the file has
             # gotten shorter
-            self._handle.truncate()
+            handle.truncate()
 
         return
 
@@ -389,6 +442,7 @@ class MemoryStorage(Storage):
         super().__init__()
         self._initially_empty = True
         self._memory = []
+        self._temp_memory: List[MemStorageItem] = []
 
     def __iter__(self) -> Iterator:
         """Return a generator to memory that can be iterated over."""
@@ -399,14 +453,18 @@ class MemoryStorage(Storage):
         """Return the number of items."""
         return len(self._memory)
 
-    def append(self, points: List[Point]) -> None:
+    def append(self, items: List[MemStorageItem], temporary=False) -> None:
         """Append points to the memory.
 
         Args:
             points: A list of Point objects.
+            temporary: Whether or not to append to temporary storage.
         """
-        for point in points:
-            self._memory.append(point)
+        for item in items:
+            if temporary:
+                self._temp_memory.append(item)
+            else:
+                self._memory.append(item)
 
         return
 
@@ -417,6 +475,22 @@ class MemoryStorage(Storage):
             A list of Point objects.
         """
         return super().read()
+
+    def reset(self) -> None:
+        """Reset the storage instance.
+
+        Removes all data.
+        """
+        self._write([])
+
+        return
+
+    def _cleanup_temp_storage(self) -> None:
+        """Clean up temporary storage."""
+        del self._temp_memory
+        self._temp_memory = []
+
+        return
 
     def _deserialize_measurement(self, item: MemStorageItem) -> str:
         """Deserialize measurement from a point."""
@@ -430,15 +504,21 @@ class MemoryStorage(Storage):
         """Deserialize timestamp from a point."""
         return item.time
 
-    def _is_sorted(self) -> bool:
-        """Check if the storage layer is sorted."""
-        return super()._is_sorted()
+    def _init_temp_storage(self) -> None:
+        """Initialize temporary storage."""
+        self._temp_memory = []
 
     def _serialize_point(self, point: Point) -> MemStorageItem:
         """Serialize a point to an item for storage."""
         return point
 
-    def _write(self, items: List[MemStorageItem], is_sorted=False) -> None:
+    def _swap_temp_with_primary(self) -> None:
+        """Swap primary data store with temporary data store."""
+        self._memory = self._temp_memory
+
+        return
+
+    def _write(self, items: List[MemStorageItem]) -> None:
         """Write Points to memory.
 
         Checks each point to see if the index is intact.
@@ -448,6 +528,7 @@ class MemoryStorage(Storage):
 
         Args:
             items: A list of Point objects to serialize and write.
+            temporary: Whether or not to write to temporary storage.
         """
         del self._memory
         self._memory = items
