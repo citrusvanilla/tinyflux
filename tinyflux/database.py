@@ -236,9 +236,21 @@ class TinyFlux:
         return f'<{type(self).__name__} {", ".join(args)}>'
 
     @read_op
-    def all(self) -> List[Point]:
-        """Get all data in the storage layer as Points."""
-        return self._storage.read()
+    def all(self, sorted: bool = True) -> List[Point]:
+        """Get all data in the storage layer as Points.
+
+        Args:
+            sorted: Whether or not to return points sorted by time.
+
+        Returns:
+            A list of Points.
+        """
+        points = self._storage.read()
+
+        if sorted:
+            points.sort(key=lambda x: x.time)
+
+        return points
 
     def close(self) -> None:
         """Close the database.
@@ -779,7 +791,10 @@ class TinyFlux:
 
     @read_op
     def search(
-        self, query: Query, measurement: Optional[str] = None
+        self,
+        query: Query,
+        measurement: Optional[str] = None,
+        sorted: bool = True,
     ) -> List[Point]:
         """Get all points specified by a query.
 
@@ -788,6 +803,7 @@ class TinyFlux:
         Args:
             query: A Query.
             measurement: An optional measurement to filter by.
+            sorted: Whether or not to return the points sorted by time.
 
         Returns:
             A list of found Points.
@@ -856,6 +872,10 @@ class TinyFlux:
         # Put a timezone on it.
         for fp in found_points:
             fp.time.replace(tzinfo=timezone.utc)
+
+        # Sort.
+        if sorted:
+            found_points.sort(key=lambda x: x.time)
 
         return found_points
 

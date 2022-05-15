@@ -164,27 +164,21 @@ def test_repr(tmpdir: Path):
 def test_all():
     """Test all method."""
     db = TinyFlux(storage=MemoryStorage)
+    p1 = Point(tags={"a": "1"})
+    p2 = Point(tags={"a": "2"})
 
-    for i in range(10):
-        db.insert(
-            Point(
-                fields={"temperature": 60 + i},
-                tags={"location": "office"},
-            )
-        )
+    assert db.all() == []
 
-    for i in range(10):
-        db.insert(
-            Point(
-                measurement="new york",
-                fields={"temperature": 30 + i},
-                tags={"location": "office"},
-            )
-        )
+    db.insert(p1)
+    db.insert(p2)
+    assert db.all() == [p1, p2]
 
-    assert len(db.measurement("new york").all()) == 10
-    assert len(db.measurement("_default").all()) == 10
-    assert len(db.all()) == 20
+    p3 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    db.insert(p3)
+
+    # Test "sorted" argument.
+    assert db.all(sorted=False) == [p1, p2, p3]
+    assert db.all(sorted=True) == [p3, p1, p2]
 
 
 def test_contains():
@@ -816,16 +810,27 @@ def test_search():
     assert db.index.valid
     assert not db.index.empty
 
-    # Search by measurement.
-    assert db.search(MeasurementQuery() == "_default") == [p1, p2, p3]
+    # Search by measurement (not sorted).
+    assert db.search(MeasurementQuery() == "_default", sorted=False) == [
+        p1,
+        p2,
+        p3,
+    ]
+
+    # Search by measurement (sorted).
+    assert db.search(MeasurementQuery() == "_default", sorted=True) == [
+        p3,
+        p1,
+        p2,
+    ]
     assert not db.search(MeasurementQuery() != "_default")
 
     # Search by time.
     assert db.search(TimeQuery() < t) == [p3]
-    assert db.search(TimeQuery() <= t) == [p1, p2, p3]
-    assert db.search(TimeQuery() == t) == [p1, p2]
+    assert db.search(TimeQuery() <= t, sorted=False) == [p1, p2, p3]
+    assert db.search(TimeQuery() == t, sorted=False) == [p1, p2]
     assert db.search(TimeQuery() > t) == []
-    assert db.search(TimeQuery() >= t) == [p1, p2]
+    assert db.search(TimeQuery() >= t, sorted=False) == [p1, p2]
 
     # Search with a query that has a path.
     assert db.search(TagQuery().a.exists()) == [p1]

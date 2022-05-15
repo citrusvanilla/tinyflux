@@ -122,6 +122,13 @@ def test_all():
     m.insert(p2)
     assert m.all() == [p1, p2]
 
+    p3 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    m.insert(p3)
+
+    # Test "sorted" argument.
+    assert m.all(sorted=False) == [p1, p2, p3]
+    assert m.all(sorted=True) == [p3, p1, p2]
+
 
 def test_contains():
     """Test the contains method of the Measurement class."""
@@ -688,13 +695,14 @@ def test_search():
 
     # Search by time.
     assert m1.search(TimeQuery() < t) == [p3]
-    assert m1.search(TimeQuery() <= t) == [p1, p2, p3]
+    assert m1.search(TimeQuery() <= t, sorted=True) == [p3, p1, p2]
+    assert m1.search(TimeQuery() <= t, sorted=False) == [p1, p2, p3]
     assert m2.search(TimeQuery() == t) == [p4, p5]
     assert m2.search(TimeQuery() > t) == []
     assert m2.search(TimeQuery() >= t) == [p4, p5]
 
     # Search with a query that has a path.
-    assert m1.search(TagQuery().a.exists()) == [p1, p2, p3]
+    assert m1.search(TagQuery().a.exists()) == [p3, p1, p2]
     assert m2.search(FieldQuery().a.exists()) == [p4]
 
 

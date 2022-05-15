@@ -120,9 +120,21 @@ class Measurement:
 
         return f'<{type(self).__name__} {", ".join(args)}>'
 
-    def all(self) -> List[Point]:
-        """Get all points in this measurement."""
-        return list(iter(self))
+    def all(self, sorted: bool = True) -> List[Point]:
+        """Get all points in this measurement.
+
+        Args:
+            sorted: Whether or not to return points in sorted time order.
+
+        Returns:
+            A list of points.
+        """
+        points = list(iter(self))
+
+        if sorted:
+            points.sort(key=lambda x: x.time)
+
+        return points
 
     def contains(self, query: SimpleQuery) -> bool:
         """Check whether the measurement contains a point matching a query.
@@ -265,18 +277,19 @@ class Measurement:
         """
         return self._db.drop_measurement(self._name)
 
-    def search(self, query: SimpleQuery) -> List[Point]:
+    def search(self, query: SimpleQuery, sorted: bool = True) -> List[Point]:
         """Get all points specified by a query from this measurement.
 
         Order is not guaranteed. Returns empty list if no points are found.
 
         Args:
             query: A SimpleQuery.
+            sorted: Whether or not to return points sorted by timestamp.
 
         Returns:
             A list of found Points.
         """
-        return self._db.search(query, self._name)
+        return self._db.search(query, self._name, sorted=sorted)
 
     def update(
         self,
