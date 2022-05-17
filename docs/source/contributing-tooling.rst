@@ -1,7 +1,19 @@
-Basics
-======
+Tooling and Conventions
+=======================
 
-TinyFlux should be developed locally with the latest version of Python (3.10 as of this writing) on any platform.
+TinyFlux should be developed locally with the latest stable version of Python on any platform  (3.10 as of this writing).
+
+
+Versioning
+----------
+
+TinyFlux follows `semantic versioning`_ guidelines for releases.
+
+
+Workflow
+--------
+
+TinyFlux development follows the branch-based workflow known as "`GitHub flow`_".
 
 
 Continuous Integration and Deployment
@@ -13,7 +25,7 @@ TinyFlux uses `GitHub Actions`_ for its CI/CD workflow.
 Coding Conventions
 ------------------
 
-TinyFlux mostly conforms to `PEP 8`_ for style, and `Google Python Style Guide`_ for docstrings.  TinyFlux uses common developer tools to check and enforce this.  These checks should be performed locally before pushing to GitHub, as they will be enforced with GitHub Actions (see ``.github/workflows`` in the TinyFlux GitHub repository for details).
+TinyFlux conforms to `PEP 8`_ for style, and `Google Python Style Guide`_ for docstrings.  TinyFlux uses common developer tools to check and enforce this.  These checks should be performed locally before pushing to GitHub, as they will eventually be enforced with GitHub Actions (see ``.github/workflows`` in the TinyFlux GitHub repository for details).
 
 
 Formatting
@@ -44,7 +56,7 @@ TinyFlux uses Sphinx_ for documentation generation, with a customized `Read the 
 Testing
 -------
 
-TinyFlux aims for 100% code coverage.
+TinyFlux aims for 100% code coverage through unit testing.
 
 
 Test Framework
@@ -59,6 +71,8 @@ Coverage
 TinyFlux uses Coverage.py_ for measuring code coverage.
 
 
+
+
 .. _PEP 8: https://peps.python.org/pep-0008/
 .. _Google Python Style Guide: https://google.github.io/styleguide/pyguide.html
 .. _black: https://black.readthedocs.io/en/stable/
@@ -70,3 +84,5 @@ TinyFlux uses Coverage.py_ for measuring code coverage.
 .. _Coverage.py: https://coverage.readthedocs.io/en/6.3.3/
 .. _GitHub Actions: https://docs.github.com/en/actions
 .. _Read the Docs: https://readthedocs.org/
+.. _semantic versioning: https://semver.org/
+.. _GitHub flow: https://docs.github.com/en/get-started/quickstart/github-flow

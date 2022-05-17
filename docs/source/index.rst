@@ -40,7 +40,9 @@ Get started with |br| :blue:`TinyFlux`
    :hidden:
 
    contributing-philosophy
-   contributing-basics
+   contributing-guidelines
+   contributing-tooling
+   changelog
 
 
 .. toctree::
