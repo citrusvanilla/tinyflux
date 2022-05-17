@@ -276,7 +276,7 @@ class Index:
 
         return rst
 
-    def get_measurements(self) -> set[str]:
+    def get_measurements(self) -> Set[str]:
         """Get the names of all measurements in the Index.
 
         Returns:
