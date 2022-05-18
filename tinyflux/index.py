@@ -108,9 +108,9 @@ class Index:
     """
 
     _num_items: int
-    _tags: dict[str, dict[str, list]]
-    _fields: dict[str, list]
-    _measurements: dict[str, list]
+    _tags: Dict[str, Dict[str, list]]
+    _fields: Dict[str, list]
+    _measurements: Dict[str, list]
     _timestamps: List[float]
     _valid: bool
     _storage_pos_sorted_by_ts: List[int]
@@ -276,7 +276,7 @@ class Index:
 
         return rst
 
-    def get_measurements(self) -> set[str]:
+    def get_measurements(self) -> Set[str]:
         """Get the names of all measurements in the Index.
 
         Returns:
@@ -493,7 +493,7 @@ class Index:
         """
         return self._search_helper(query)
 
-    def update(self, u_items: dict[int, int]) -> None:
+    def update(self, u_items: Dict[int, int]) -> None:
         """Update the index.
 
         Args:
@@ -505,7 +505,7 @@ class Index:
 
         return
 
-    def _insert_fields(self, idx: int, fields: dict[str, str]) -> None:
+    def _insert_fields(self, idx: int, fields: Dict[str, str]) -> None:
         """Index a field value.
 
         Args:
@@ -535,7 +535,7 @@ class Index:
 
         return
 
-    def _insert_tags(self, idx: int, tags: dict[str, str]) -> None:
+    def _insert_tags(self, idx: int, tags: Dict[str, str]) -> None:
         """Index a tag value.
 
         Args:
@@ -895,7 +895,7 @@ class Index:
 
         return
 
-    def _update_fields(self, u_items: dict[int, int]) -> None:
+    def _update_fields(self, u_items: Dict[int, int]) -> None:
         """Update fields index.
 
         Args:
@@ -909,7 +909,7 @@ class Index:
 
         return
 
-    def _update_measurements(self, u_items: dict[int, int]) -> None:
+    def _update_measurements(self, u_items: Dict[int, int]) -> None:
         """Update measurements index.
 
         Args:
@@ -922,7 +922,7 @@ class Index:
 
         return
 
-    def _update_tags(self, u_items: dict[int, int]) -> None:
+    def _update_tags(self, u_items: Dict[int, int]) -> None:
         """Update tags index.
 
         Args:
