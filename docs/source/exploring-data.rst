@@ -100,7 +100,7 @@ This returns an alphabetically-sorted list of tag keys in the database.
 ["city", "company"]
 
 
-**.get_tag_values(field_key) <--> Get all the tag values in the database**
+**.get_tag_values([tag_key]) <--> Get all the tag values in the database**
 
 This returns all the values for a list of specified tag keys.
 
@@ -110,7 +110,7 @@ This returns all the values for a list of specified tag keys.
 {"city": ["Los Angeles"], "company": ["Amazon.com, Inc."]}
 
 
-**.get_timestamps(field_key) <--> Get all the timestamps in the database**
+**.get_timestamps() <--> Get all the timestamps in the database**
 
 This returns all the timestamps in the database by insertion order.
 
