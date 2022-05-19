@@ -7,18 +7,18 @@ Though updating time series data tends to occur much less frequently than with o
 
     If you are a developer, or are otherwise interested in how TinyFlux performs updates behind the scenes, see the :doc:`design-principles` page.
 
-To update individual points in TinyFlux, first provide a query to the ``update()`` method, followed by one or more attributes to update and their values as keyword arguments.  For example, to update the measurement names in the database for all points whose measurement value is "cities" to "US Metros", we use a static value to the ``measurement`` keyword argument:
+To update individual points in TinyFlux, first provide a query to the ``update()`` method, followed by one or more attributes to update and their values as keyword arguments.  For example, to update the measurement names in the database for all points whose measurement value is "cities" to "US Metros", use a static value to the ``measurement`` keyword argument:
 
 >>> Measurement = MeasurementQuery()
 >>> db.update(Measurement == "cities", measurement="US Metros")
 
-Say we want update all timestamps for the measurement "US Metros" to be shifted backwards in time by one year, we would use a callable as the ``time`` keyword argument instead of a static value.
+To update all timestamps for the measurement "US Metros" to be shifted backwards in time by one year, use a callable as the ``time`` keyword argument instead of a static value:
 
 >>> from datetime import timedelta
 >>> Measurement = MeasurementQuery()
 >>> db.update(Measurement == "US Metros", time=lambda x: x - timedelta(days=365))
 
-Now we want to change all instances of "CA" to "California" in a point's tag set for the "US Metros" measurement.
+To change all instances of "CA" to "California" in a point's tag set for the "US Metros" measurement:
 
 >>> Measurement = MeasurementQuery()
 >>> def california_updater(tags):
@@ -28,7 +28,7 @@ Now we want to change all instances of "CA" to "California" in a point's tag set
 ...         return tags
 >>> db.update(Measurement == "US Metros", tags=california_updater)
 
-Field updates occur much the same way as tags.  To update all items in the database, we use ``update_all()``.  For example, to convert all temperatures from Fahrenheit to Celcius if the field ``temp`` exists:
+Field updates occur much the same way as tags.  To update all items in the database, use ``update_all()``.  For example, to convert all temperatures from Fahrenheit to Celcius if the field ``temp`` exists:
 
 >>> def fahrenheit_to_celcius(fields):
 ...     if "temp" in fields:

@@ -11,6 +11,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Tuple,
     Union,
 )
 
@@ -798,8 +799,6 @@ class TinyFlux:
     ) -> List[Point]:
         """Get all points specified by a query.
 
-        Order is guaranteed only if index is valid.
-
         Args:
             query: A Query.
             measurement: An optional measurement to filter by.
@@ -878,6 +877,156 @@ class TinyFlux:
             found_points.sort(key=lambda x: x.time)
 
         return found_points
+
+    @read_op
+    def select(
+        self,
+        keys: Union[str, Iterable[str]],
+        query: Query,
+        measurement: Optional[str] = None,
+    ) -> List[Tuple[Any, ...]]:
+        """Get specified attributes from Points specified by a query.
+
+        'keys' should be an iterable of attributres including 'time',
+        'measurement', and tag keys and tag values.  Passing 'tags' or 'fields'
+        in the 'keys' iterable will not retrieve all tag and/or field values.
+        Tag and field keys must be specified individually.
+
+        Args:
+            keys: An iterable of Point attributes.
+            query: A Query.
+            measurement: An optional measurement to filter by.
+
+        Returns:
+            A list of tuples of Point attribute values.
+        """
+        # Validate bad keys.
+        if not hasattr(keys, "__iter__"):
+            raise ValueError("'keys' must be a string or iterable of strings.")
+
+        if isinstance(keys, str):
+            keys = [keys]
+
+        # Validate bad keys.
+        for key in keys:
+            if key == "time":
+                continue
+            elif key == "measurement":
+                continue
+            elif key.startswith("tags.") and len(key) > 5:
+                continue
+            elif key.startswith("fields.") and len(key) > 7:
+                continue
+            else:
+                raise ValueError(f"Invalid key `{key}`.")
+
+        use_index = self._index.valid
+
+        results = []
+
+        # If we are auto-indexing and the index is valid, check it.
+        if use_index:
+
+            if measurement:
+                mq = MeasurementQuery() == measurement
+                index_rst = self._index.search(mq & query)
+            else:
+                index_rst = self._index.search(query)
+
+            # No items from the index.
+            if not index_rst._items:
+                return []
+
+            j = 0
+
+            for i, item in enumerate(self._storage):
+
+                # Not in result set, skip.
+                if i not in index_rst._items:
+                    continue
+
+                _point = self._storage._deserialize_storage_item(item)
+
+                # Result set.
+                result = []
+
+                for key in keys:
+                    if key == "time":
+                        result.append(_point.time)
+                    elif key == "measurement":
+                        result.append(_point.measurement)
+                    elif key.startswith("tags."):
+                        tag_key = key[5:]
+
+                        if (
+                            tag_key in self._index._tags
+                            and tag_key in _point.tags
+                        ):
+                            result.append(_point.tags[tag_key])
+                        else:
+                            result.append(None)
+                    else:  # key.startswith("fields."):
+                        field_key = key[7:]
+
+                        if (
+                            field_key in self._index._fields
+                            and field_key in _point.fields
+                        ):
+                            result.append(_point.fields[field_key])
+                        else:
+                            result.append(None)
+
+                results.append(result)
+
+                j += 1
+
+                # If we are out of items, break.
+                if j == len(index_rst._items):
+                    break
+
+        # Select without index.
+        else:
+
+            for item in self._storage:
+
+                # Filter by measurement.
+                if (
+                    measurement
+                    and self._storage._deserialize_measurement(item)
+                    != measurement
+                ):
+                    continue
+
+                # Match, add to results.
+                _point = self._storage._deserialize_storage_item(item)
+
+                if query(_point):
+
+                    result = []
+
+                    for key in keys:
+                        if key == "time":
+                            result.append(_point.time)
+                        elif key == "measurement":
+                            result.append(_point.measurement)
+                        elif key.startswith("tags."):
+                            tag_key = key[5:]
+
+                            if tag_key in _point.tags:
+                                result.append(_point.tags[tag_key])
+                            else:
+                                result.append(None)
+                        else:  # key.startswith("fields."):
+                            field_key = key[7:]
+
+                            if field_key in _point.fields:
+                                result.append(_point.fields[field_key])
+                            else:
+                                result.append(None)
+
+                    results.append(result)
+
+        return [tuple(i) for i in results]
 
     @read_op
     @write_op

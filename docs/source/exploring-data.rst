@@ -6,7 +6,7 @@ An understanding of how queries in TinyFlux work can be applied to several datab
 Query-based Exploration
 -----------------------
 
-As we saw above, the most-likely scenario for query usage is through the ``.search(query)`` method.  The other useful search-types of database operations utilizing queries are:
+The primary method for query usage is through the ``.search(query)``.  Other useful search methods are below:
 
 **.contains(query) <--> Check if the database contains any Points matching a Query**
 
@@ -42,7 +42,7 @@ This returns a Point instance, or ``None`` if no Points were found.
 
 **.search(query) <--> Get all the Points in the database matching a Query**
 
-This returns a list of Point instances, sorted by timestamp.  We saw this db operation in heavy use in the sections above.
+This is the primary method for querying the database, and  returns a list of Point instances, sorted by timestamp.
 
 >>> # Get all Points in the DB for Los Angeles in 2022 in which the AQI was "hazardous".
 >>> from datetime import datetime
@@ -52,6 +52,15 @@ This returns a list of Point instances, sorted by timestamp.  We saw this db ope
 >>> q3 = TimeQuery() < datetime(2023, 1, 1, tzinfo = ZoneInfo("US/Pacific"))
 >>> q4 = FieldQuery().air_quality_index > 100 # hazardous is over 100
 >>> db.search(q1 & q2 & q3 & q4)
+
+**.select(attributes, query) <--> Get attributes from Points in the database matching a Query**
+
+This returns a list of attributes from Points matching the Query.  Similar to SQL "select".
+
+>>> # Get the time, city, and air-quality index ("AQI") for all Points with an AQI over 100.
+>>> q = FieldQuery().aqi > 100
+>>> db.select(("time", "city", "fields.aqi"), q)
+[(datetime.datetime(2020, 9, 15, 8, 0, tzinfo=datetime.timezone.utc), "Los Angeles", 132)]
 
 
 Attribute-based Exploration
@@ -150,7 +159,7 @@ This returns a generator over which point-by-point logic can be applied.  This d
 Point(time=2022-01-01T08:00:00+00:00, measurement=_default)
 Point(time=1900-01-01T08:00:00+00:00, measurement=_default)
 
-Here is a list of all the data exploration methods we've covered above:
+The list of all the data exploration methods covered above:
 
 +------------------------------------+------------------------------------------------------------------+
 | **Query-based Exploration**                                                                           |

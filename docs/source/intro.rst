@@ -47,9 +47,9 @@ You should not use TinyFlux if you need advanced database features like:
 - management of relationships between tables
 - access-control and users
 - `ACID guarantees <https://en.wikipedia.org/wiki/ACID>`_
-- High performance as the size of your dataset grows
+- high performance as the size of your dataset grows
 
-If you have a large amount of data, or you need advanced features and high performance, consider using databases like SQLite_ or InfluxDB_.
+If you have a large amount of data or you need advanced features and high performance, consider using databases like SQLite_ or InfluxDB_.
 
 
 What's the difference between TinyFlux and TinyDB?
@@ -59,7 +59,7 @@ At its core, TinyFlux is a *time series database* while TinyDB is a *document-or
 
 Let's break this down:
 
-**In TinyFlux, time is a "first-class citizen".**.
+**In TinyFlux, time is a "first-class citizen".**
 
 - In TinyDB, there is no special handling of time.
 
@@ -83,12 +83,12 @@ Let's break this down:
 Got it, so should I use TinyFlux or TinyDB?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- You should use **TinyFlux** if:
+**You should use TinyFlux if:**
     - Your data is naturally time series in nature. That is, you have many observations of some phenomenon over time with varying measurements. Examples include stock prices, daily temperatures, or the accelerometer readings on a running watch.
     - You will be writing to the database at a regular, high frequency.
 
-- You should use **TinyDB** if:
-    - Your data has no time dimension. Examples include a database acting as a phonebook for Chicago, the catalogue of Beatles music, or configuration values for your dashboard app.
+**You should use TinyDB if:**
+    - Your data has no time dimension. Examples include a database acting as a phonebook for Chicago, the catalogue of Beatles music, or configuration values for your dashboard app.    
     - You will be writing to the database infrequently.
 
 

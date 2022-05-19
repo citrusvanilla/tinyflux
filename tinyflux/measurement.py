@@ -19,6 +19,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Tuple,
     Union,
 )
 
@@ -290,6 +291,27 @@ class Measurement:
             A list of found Points.
         """
         return self._db.search(query, self._name, sorted=sorted)
+
+    def select(
+        self,
+        keys: Union[str, Iterable[str]],
+        query: Query,
+    ) -> List[Tuple[Union[datetime, str, int, float, None]]]:
+        """Get specified attributes from Points specified by a query.
+
+        'keys' should be an iterable of attributres including 'time',
+        'measurement', and tag keys and tag values.  Passing 'tags' or 'fields'
+        in the 'keys' iterable will not retrieve all tag and/or field values.
+        Tag and field keys must be specified individually.
+
+        Args:
+            keys: An iterable of Point attributes.
+            query: A Query.
+
+        Returns:
+            A list of tuples of Point attribute values.
+        """
+        return self._db.select(keys, query, self._name)
 
     def update(
         self,
