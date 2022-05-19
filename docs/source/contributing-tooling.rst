@@ -33,18 +33,34 @@ Formatting
 
 TinyFlux uses standard configuration black_ for code formatting, with an enforced line-length of 79 characters.
 
+After installing the project requirements:
+
+.. code-block:: bash
+
+   /tinyflux $ black .
+
 
 Style
 ^^^^^
 
 TinyFlux uses standard configuration flake8_ for style enforcement, with an enforced line-length of 79 characters.
 
+After installing the project requirements:
+
+.. code-block:: bash
+
+   /tinyflux $ flake8 .
 
 Typing
 ^^^^^^
 
 TinyFlux uses standard configuration mypy_ for static type checking.
 
+After installing the project requirements:
+
+.. code-block:: bash
+
+   /tinyflux $ mypy .
 
 Documentation
 ^^^^^^^^^^^^^
@@ -52,6 +68,15 @@ Documentation
 TinyFlux hosts documentation on `Read The Docs`_.
 
 TinyFlux uses Sphinx_ for documentation generation, with a customized `Read the Docs Sphinx Theme`_, enabled for "Google-style" docstrings.
+
+After installing the project requirements:
+
+.. code-block:: bash
+
+   /tinyflux $ cd docs
+   /docs $ make html
+   /docs $ open build/html/index.html
+
 
 Testing
 -------
@@ -64,12 +89,21 @@ Test Framework
 
 TinyFlux uses pytest_ as its testing framework.
 
+After installing the project requirements:
+
+.. code-block:: bash
+
+   /tinyflux $ pytest
 
 Coverage
 ^^^^^^^^
 
 TinyFlux uses Coverage.py_ for measuring code coverage.
 
+.. code-block:: bash
+
+   /tinyflux $ coverage run -m pytest
+   /tinyflux $ coverage report -m
 
 
 
