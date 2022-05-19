@@ -1,11 +1,11 @@
-.. image:: 
+<!-- .. image:: 
     :scale: 100%
     :height: 150px
 
 ![Fancy logo](https://raw.githubusercontent.com/citrusvanilla/tinyflux/master/artwork/logo.png#gh-dark-mode-only)
 ![Fancy logo](./light.png#gh-light-mode-only)
 
-
+ -->
 
 |Build Status| |Coverage| |Version|
 
