@@ -2,7 +2,7 @@
 Querying Data
 =============
 
-TinyFlux's query syntax will be familiar to users of popular ORM tools.  It is similar to that of  TinyDB, but TinyFlux contains four different query types, one for each of a point's four attributes.
+TinyFlux's query syntax will be familiar to users of popular ORM tools.  It is similar to that of TinyDB, but TinyFlux contains four different query types, one for each of a point's four attributes.
 
 The query types are:
 
@@ -11,7 +11,7 @@ The query types are:
 - ``TagQuery`` for querying points by ``tags``.
 - ``FieldQuery`` for querying points by ``fields``.
 
-For the remainder of this section, we will be illustrating query examples with the ``.search()`` method of a TinyFlux database.  This is the most common way to query TinyFlux, and the method accepts a query and returns a ``list`` of ``Point`` objects matching the query.  In addition, there are a handful of other database methods that take queries as argument and perform some sort of search.  See the :doc:`exploring-data` section for details.
+For the remainder of this section, query examples will be illustrated with the ``.search()`` method of a TinyFlux database.  This is the most common way to query TinyFlux, and the method accepts a query and returns a ``list`` of ``Point`` objects matching the query.  In addition, there are a handful of other database methods that take queries as argument and perform some sort of search.  See the :doc:`exploring-data` section for details.
 
 .. note::
 
@@ -197,7 +197,7 @@ Logical NOT ("~")
     You **cannot** use ``and`` as a substitue for ``&``, ``or`` as a subsititue for ``|``, or ``not`` as a substitute for ``~``.  The ``and``, ``or``, and ``not`` keywords are reserved in Python and cannot be overridden, as the ``&``, ``|``, and ``~`` operators have been for TinyFlux queries.
 
 
-To wrap, here are the queries and search operations we've learned:
+The query and search operations covered above:
 
 +-------------------------------------------------+------------------------------------------------------------------+
 | **Simple Queries**                                                                                                 |

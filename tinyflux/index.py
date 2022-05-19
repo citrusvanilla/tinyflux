@@ -102,7 +102,7 @@ class Index:
     Provides efficient data structures and searches for TinyFlux data. An Index
     instance is created and its lifetime is handled by a TinyFlux instance.
 
-    Arritributes:
+    Attributes:
         empty: Index contains no items (used in testing).
         valid: Index represents current state of TinyFlux.
     """

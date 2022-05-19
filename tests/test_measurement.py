@@ -706,6 +706,61 @@ def test_search():
     assert m2.search(FieldQuery().a.exists()) == [p4]
 
 
+def test_select():
+    """Test select method."""
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+    m1 = db.measurement("m1")
+
+    t = datetime.now(timezone.utc)
+
+    p1 = Point(time=t, tags={"a": "A"}, fields={"a": 1})
+    p2 = Point(time=t, tags={"a": "A"}, fields={"b": 2})
+
+    m1.insert(p1)
+    m1.insert(p2)
+
+    db.reindex()
+
+    # Valid index.
+    rst = m1.select(
+        ("measurement", "time", "tags.a", "fields.a"),
+        MeasurementQuery().noop(),
+    )
+
+    assert rst == [("m1", t, "A", 1), ("m1", t, "A", None)]
+
+    # Invalidate index.
+    t2 = t - timedelta(hours=1)
+
+    m1.insert(Point(measurement="m1", time=t2, tags={"b": "B"}))
+
+    rst = db.select(
+        ("measurement", "time", "tags.b", "fields.a"),
+        MeasurementQuery().noop(),
+    )
+
+    assert rst == [
+        ("m1", t, None, 1),
+        ("m1", t, None, None),
+        ("m1", t2, "B", None),
+    ]
+
+    assert (
+        db.measurement("m2").select("measurement", MeasurementQuery() == "m2")
+        == []
+    )
+
+    # Bad select args.
+    with pytest.raises(ValueError):
+        db.select(("timestamp"), TagQuery().noop())
+
+    with pytest.raises(ValueError):
+        db.select(("tags."), TagQuery().noop())
+
+    with pytest.raises(ValueError):
+        db.select(("fields."), TagQuery().noop())
+
+
 def test_update():
     """Test the update method of the Measurement class."""
     # Open up the DB with TinyFlux.
