@@ -29,12 +29,11 @@ from typing import (
     Sequence,
     Union,
 )
-from typing_extensions import TypeAlias
 
 from .point import Point
 
-MemStorageItem: TypeAlias = Point
-CSVStorageItem: TypeAlias = Sequence[str]
+MemStorageItem = Point
+CSVStorageItem = Sequence[str]
 
 
 def create_file(path: Union[str, Path], create_dirs: bool) -> None:

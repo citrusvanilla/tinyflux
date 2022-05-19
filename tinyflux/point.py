@@ -23,11 +23,10 @@ Usage:
 
 from datetime import datetime, timezone
 from typing import Any, Dict, Mapping, Optional, Sequence, Union
-from typing_extensions import TypeAlias
 
-TagSet: TypeAlias = Dict[str, Optional[str]]
-FieldValue: TypeAlias = Union[int, float, None]
-FieldSet: TypeAlias = Dict[str, FieldValue]
+TagSet = Dict[str, Optional[str]]
+FieldValue = Union[int, float, None]
+FieldSet = Dict[str, FieldValue]
 
 
 def validate_tags(tags: Any) -> None:

@@ -25,12 +25,11 @@ from typing import (
     Tuple,
     Union,
 )
-from typing_extensions import TypeAlias
 
 from .point import Point
 
 
-Query: TypeAlias = Union["SimpleQuery", "CompoundQuery"]
+Query = Union["SimpleQuery", "CompoundQuery"]
 
 
 class CompoundQuery:
