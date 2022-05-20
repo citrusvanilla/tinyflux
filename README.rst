@@ -1,4 +1,4 @@
-.. image:: https://raw.githubusercontent.com/citrusvanilla/tinyflux/master/artwork/logo-dark.png#gh-light-mode-only
+.. image:: https://raw.githubusercontent.com/citrusvanilla/tinyflux/master/artwork/logo-dark.png#gh-dark-mode-only
     :scale: 100%
 
 |Build Status| |Coverage| |Version|
