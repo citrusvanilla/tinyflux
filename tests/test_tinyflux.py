@@ -856,7 +856,7 @@ def test_select():
     # Valid index, partial result.
     rst = db.select("fields.a", FieldQuery().a == 1)
 
-    assert rst == [(1,)]
+    assert rst == [1]
 
     # Valid index.
     rst = db.select(

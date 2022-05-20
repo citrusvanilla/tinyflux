@@ -59,6 +59,8 @@ This returns a list of attributes from Points matching the Query.  Similar to SQ
 
 >>> # Get the time, city, and air-quality index ("AQI") for all Points with an AQI over 100.
 >>> q = FieldQuery().aqi > 100
+>>> db.select("fields.aqi", q)
+[132]
 >>> db.select(("time", "city", "fields.aqi"), q)
 [(datetime.datetime(2020, 9, 15, 8, 0, tzinfo=datetime.timezone.utc), "Los Angeles", 132)]
 
@@ -171,6 +173,8 @@ The list of all the data exploration methods covered above:
 | ``db.get(query)``                  | Get one point from the database matching a query                 |
 +------------------------------------+------------------------------------------------------------------+
 | ``db.search(query)``               | Get all points from the database matching a query                |
++------------------------------------+------------------------------------------------------------------+
+| ``db.select(attrributes, query)``  | Get attributes froms points matching a query                     |
 +------------------------------------+------------------------------------------------------------------+
 | **Attribute-based Exploration**                                                                       |
 +------------------------------------+------------------------------------------------------------------+

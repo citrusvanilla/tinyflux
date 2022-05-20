@@ -893,7 +893,7 @@ class TinyFlux:
         Tag and field keys must be specified individually.
 
         Args:
-            keys: An iterable of Point attributes.
+            keys: A Point attribute or iterable of Point attributes.
             query: A Query.
             measurement: An optional measurement to filter by.
 
@@ -1026,7 +1026,7 @@ class TinyFlux:
 
                     results.append(result)
 
-        return [tuple(i) for i in results]
+        return [i[0] if len(keys) == 1 else tuple(i) for i in results]
 
     @read_op
     @write_op
