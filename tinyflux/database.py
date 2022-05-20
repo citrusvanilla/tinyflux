@@ -881,31 +881,34 @@ class TinyFlux:
     @read_op
     def select(
         self,
-        keys: Union[str, Iterable[str]],
+        select_keys: Union[str, Iterable[str]],
         query: Query,
         measurement: Optional[str] = None,
-    ) -> List[Tuple[Any, ...]]:
+    ) -> List[Union[Any, Tuple[Any, ...]]]:
         """Get specified attributes from Points specified by a query.
 
-        'keys' should be an iterable of attributres including 'time',
+        'select_keys' should be an iterable of attributres including 'time',
         'measurement', and tag keys and tag values.  Passing 'tags' or 'fields'
-        in the 'keys' iterable will not retrieve all tag and/or field values.
-        Tag and field keys must be specified individually.
+        in the 'select_keys' iterable will not retrieve all tag and/or field
+        values.  Tag and field keys must be specified individually.
 
         Args:
-            keys: A Point attribute or iterable of Point attributes.
+            select_keys: A Point attribute or iterable of Point attributes.
             query: A Query.
             measurement: An optional measurement to filter by.
 
         Returns:
-            A list of tuples of Point attribute values.
+            A list of Point attribute values.
         """
         # Validate bad keys.
-        if not hasattr(keys, "__iter__"):
+        if not hasattr(select_keys, "__iter__"):
             raise ValueError("'keys' must be a string or iterable of strings.")
 
-        if isinstance(keys, str):
-            keys = [keys]
+        keys: List[Any] = (
+            [select_keys]
+            if isinstance(select_keys, str)
+            else list(select_keys)
+        )
 
         # Validate bad keys.
         for key in keys:
