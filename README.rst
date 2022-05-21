@@ -17,7 +17,9 @@ Quick Links
 Introduction
 ************
 
-TinyFlux is a lightweight time series database optimized for your happiness :)  It's a time-centic version of TinyDB, written in pure Python, and has no external dependencies. It's target is small analytics workflows and at-home IOT data stores.
+TinyFlux is a lightweight time series database optimized for your happiness :)
+
+TinyFlux is the time series version of [TinyDB](https://tinydb.readthedocs.io/en/latest/index.html) that is also written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.
 
 TinyFlux is:
 
