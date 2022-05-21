@@ -84,35 +84,12 @@ Querying TinyFlux
     [Point(time=2019-05-01T16:00:00+00:00, measurement=_default, tags=room:bedroom; scale:fahrenheit, fields=temp:72.0)]
 
     >>> # Search for a time value.
-    >>> # This demonstrates combining two queries with logical-AND.
     >>> Time = TimeQuery()
     >>> time_start = Time >= datetime(2019, 1, 1, tzinfo = timezone.utc)
     >>> time_end = Time < datetime(2020, 1, 1, tzinfo = timezone.utc)
     >>> db.count(time_start & time_end)
     1
 
-    >>> # Combine two queries with logical-OR.
-    >>> Bedroom = TagQuery().room == "bedroom"
-    >>> Kitchen = TagQuery().room == "kitchen"
-    >>> db.select("tags.room", Bedroom | Kitchen)
-    [("bedroom",)]
-
-Measurements
-============
-
-Measurements are like tables from relational databases:
-
-.. code-block:: python
-
-    >>> stock_prices = db.measurement('stock prices')
-    >>> p = Point(
-    ...     time=datetime.now(timezone.utc),
-    ...     tags={"company": "Amazon.com, Inc.", "symbol": "AMZN"},
-    ...     fields={"price": 2142.25}
-    ... )
-    >>> stock_prices.insert(p)
-    >>> len(stock_prices)
-    1
 
 
 Contributing
