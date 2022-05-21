@@ -1,5 +1,5 @@
 *.pyc
-*.ipynb
+/**.ipynb
 .vscode*
 .python-version
 *.csv

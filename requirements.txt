@@ -4,3 +4,6 @@ flake8-docstrings
 mypy
 pytest
 pytest-cov
+sphinx
+sphinx_autodoc_typehints
+sphinx_rtd_theme
