@@ -59,8 +59,8 @@ Writing to TinyFlux
     >>> db = TinyFlux('/path/to/db.csv')
 
     >>> p = Point(
-    ...     time=datetime(2019, 5, 1, 16, 0, tzinfo = timezone.utc),
-    ...     tags={"room": "bedroom", "scale": "fahrenheit"},
+    ...     time=datetime(2022, 5, 1, 16, 0, tzinfo = timezone.utc),
+    ...     tags={"room": "bedroom"},
     ...     fields={"temp": 72.0}
     ... )
     >>> db.insert(p)
@@ -74,19 +74,19 @@ Querying TinyFlux
     >>> from tinyflux import FieldQuery, TagQuery, TimeQuery
 
     >>> # Search for a tag value.
-    >>> Room = TagQuery().room
-    >>> db.search(Room == 'bedroom')
-    [Point(time=2019-05-01T16:00:00+00:00, measurement=_default, tags=room:bedroom; scale:fahrenheit, fields=temp:72.0)]
+    >>> Tag = TagQuery()
+    >>> db.search(Tag.room == 'bedroom')
+    [Point(time=2022-05-01T16:00:00+00:00, measurement=_default, tags=room:bedroom, fields=temp_f:72.0)]
 
     >>> # Search for a field value
-    >>> Temp = FieldQuery().temp
-    >>> db.search(Temp > 60.0)
-    [Point(time=2019-05-01T16:00:00+00:00, measurement=_default, tags=room:bedroom; scale:fahrenheit, fields=temp:72.0)]
+    >>> Field = FieldQuery()
+    >>> db.search(Field.temp_f > 60.0)
+    [Point(time=2019-05-01T16:00:00+00:00, measurement=_default, tags=room:bedroom, fields=temp:72.0)]
 
     >>> # Search for a time value.
     >>> Time = TimeQuery()
     >>> time_start = Time >= datetime(2019, 1, 1, tzinfo = timezone.utc)
-    >>> time_end = Time < datetime(2020, 1, 1, tzinfo = timezone.utc)
+    >>> time_end = Time < datetime(2023, 1, 1, tzinfo = timezone.utc)
     >>> db.count(time_start & time_end)
     1
 
