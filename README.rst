@@ -17,9 +17,9 @@ Quick Links
 Introduction
 ************
 
-TinyFlux is a lightweight time series database optimized for your happiness :)
+TinyFlux is the lightweight time series database optimized for your happiness :)
 
-TinyFlux is the time series version of [TinyDB](https://tinydb.readthedocs.io/en/latest/index.html) that is also written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.
+TinyFlux is a time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`_ that is also written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.
 
 TinyFlux is:
 
@@ -38,7 +38,7 @@ TinyFlux is:
 
 - **100% test coverage:** No explanation needed.
 
-To dive straight into all the details, head over to the `TinyFlux docs <https://tinyflux.readthedocs.io/>`_. You can also discuss everything related to TinyFlux like general development, extensions or showcase your TinyFlux-based projects on the ` GitHub discussion forum <https://github.com/citrusvanilla/tinyflux/discussions>.`_.
+To get started, head over to the `TinyFlux docs <https://tinyflux.readthedocs.io/>`_.  Examples can be found in the `examples directory <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_.  You can also discuss topics related to TinyFlux including general development, extensions, or showcase your TinyFlux-based projects on the `GitHub discussion forum <https://github.com/citrusvanilla/tinyflux/discussions>`_.
 
 Supported Python Versions
 *************************
@@ -120,8 +120,8 @@ Contributing
 
 New ideas, improvements, bugfixes, and new developer tools are always welcome.  Follow these guidelines before getting started:
 
-1. Make sure to read [Getting Started](https://tinyflux.readthedocs.io/en/latest/getting-started.html) and the ["Contributing"](https://tinyflux.readthedocs.io/en/latest/contributing-philosophy.html) section of the documentation.
-2. Check GitHub for [existing open issues](https://github.com/citrusvanilla/tinyflux/issues), or [open a new issue](https://github.com/citrusvanilla/tinyflux/issues/new) or [start a new discussion](https://github.com/citrusvanilla/tinyflux/discussions/new).
+1. Make sure to read `Getting Started <https://tinyflux.readthedocs.io/en/latest/getting-started.html>`_ and the `Contributing <https://tinyflux.readthedocs.io/en/latest/contributing-philosophy.html>`_ section of the documentation.
+2. Check GitHub for `existing open issues <https://github.com/citrusvanilla/tinyflux/issues>`_, `open a new issue <https://github.com/citrusvanilla/tinyflux/issues/new>`_ or `start a new discussion <https://github.com/citrusvanilla/tinyflux/discussions/new>`_.
 3. To get started on a pull request, fork the repository on GitHub, create a new branch, and make updates.
 4. Write unit tests, ensure the code is 100% covered, update documentation where necessary, and format and style the code correctly.
 5. Send a pull request.
