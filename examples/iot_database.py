@@ -1,8 +1,35 @@
-"""An example of using TinyFlux as an IOT datastore.
+"""An example of using TinyFlux as an IOT datastore for MQTT messages.
 
-Based off of "Logging MQTT Sensor Data to SQLite DataBase With Python", at
-steves-internet-guide.com/logging-mqtt-sensor-data-to-sql-database-with-python/
-by Steve Cope (steve@steves-internet-guide.com).
+To test this script, you must be able to publish to the test Mosquitto MQTT
+broker, which is a free broker running at test.mosquitto.org.
+
+Port 1883 is unencrypted and unauthenticated, so it should only be used for
+test purposes.
+
+To download a Linux MQTT command line client for easy publishing, use brew:
+
+    $ brew install mosquitto
+
+In one terminal window/process, start this script:
+
+    $ python iot_database.py
+
+You should see "Connecting to test.mosquitto.org... success.".
+
+In a second terminal window/process, copy and paste the following, which
+publishes a sample message to the test MQTT broker:
+
+    $ mosquitto_pub \
+        -h test.mosquitto.org \
+        -t tinyflux_test_topic \
+        -m "{\"device\":\"thermostat\",\"value\":70.0}"
+
+This multi-threaded approach to logging MQTT messages comes from Steve Cope's
+"Logging MQTT Sensor Data to SQLite DataBase With Python", available at
+http://www.steves-internet-guide.com.
+
+Author:
+    Justin Fung (@citrusvanilla)
 """
 from datetime import datetime, timezone
 from queue import Queue
@@ -19,7 +46,7 @@ MQTT_PORT = 1883
 MQTT_KEEPALIVE = 60
 MQTT_TOPIC = "tinyflux_test_topic"
 
-TINYFLUX_DB = "test.csv"
+TINYFLUX_DB = "iot_test.csv"
 
 # TinyFlux DB.
 db = TinyFlux(TINYFLUX_DB)
@@ -27,16 +54,20 @@ db = TinyFlux(TINYFLUX_DB)
 # Interthread queue.
 q = Queue()
 
-# Exit threading event for graceful exit.
+# Init but do not set a threading exit event for graceful exit.
 exit_event = threading.Event()
 
 
 def on_message(_, __, msg):
-    """"""
+    """Define callback for new message event.
+
+    Unmarshalls the message and writes new data to the interthread queue.
+    """
     # Unmarshall the message.
     topic = msg.topic
     payload = json.loads(msg.payload.decode("utf-8"))
 
+    # Log.
     print(f'• Message received for topic "{topic}"... ', flush=True, end="")
 
     # Put the message data on the queue.
@@ -46,22 +77,23 @@ def on_message(_, __, msg):
 
 
 def run_tinyflux_worker():
-    """runs in own thread to log data"""
+    """Define the TinyFlux worker thread.
+
+    Loops until the exit event is set.  Pops from the interthread queue
+    and writes to TinyFlux.
+    """
+    # Loop until exit_event is set by main thread.
     while True:
 
         # Check the queue for new packets.
         if not q.empty():
 
+            # Unpack MQTT packet.
             data = q.get()
-
-            if data is None:
-                continue
+            topic = data["topic"]
+            payload = data["payload"]
 
             try:
-                # Unpack MQTT packet.
-                topic = data["topic"]
-                payload = data["payload"]
-
                 device = payload["device"]
                 value = payload["value"]
 
@@ -88,18 +120,33 @@ def run_tinyflux_worker():
 
 
 def on_connect(client, *args):
-    """"""
+    """Define the on_connect callback.
+
+    Subscribes to the default topic after connection has been made.
+    """
+    # Log.
     print("success.\n")
 
+    # Subscribe to the topic of interest.
     client.subscribe(MQTT_TOPIC)
 
+    # Log.
     print(f"Subscribed to '{MQTT_TOPIC}' and waiting for messages.\n")
 
     return
 
 
 def initialize_mqtt_client(host, port, keep_alive):
-    """"""
+    """Initialize and return the MQTT client.
+
+    Args:
+        host: The MQTT broker hostname.
+        port: The port of the MQTT broker.
+        keep_alive: Keep alive time in seconds for the connection.
+
+    Returns:
+        A Paho MQTT Client object.
+    """
     # Initialize the client.
     client = mqtt.Client(host, port, keep_alive)
 
@@ -111,7 +158,8 @@ def initialize_mqtt_client(host, port, keep_alive):
 
 
 def main():
-    """ """
+    """Define main."""
+    # Log.
     print(f"Connecting to {MQTT_HOST}... ", flush=True, end="")
 
     # Initialize TinyFlux worker thread.
