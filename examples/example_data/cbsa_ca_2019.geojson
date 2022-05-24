@@ -1,0 +1,822 @@
+{
+    "type": "FeatureCollection",
+    "name": "cbsa_ca_2019",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "12540",
+                "GEOID": "12540",
+                "NAME": "Bakersfield, CA",
+                "NAMELSAD": "Bakersfield, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 21062540828,
+                "AWATER": 78680980,
+                "INTPTLAT": "+35.3466288",
+                "INTPTLON": "-118.7295064"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -118.72990042,
+                    35.34284737
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "13860",
+                "GEOID": "13860",
+                "NAME": "Bishop, CA",
+                "NAMELSAD": "Bishop, CA Micro Area",
+                "LSAD": "M2",
+                "MEMI": "2",
+                "MTFCC": "G3110",
+                "ALAND": 11761615584,
+                "AWATER": 463426056,
+                "INTPTLAT": "+37.367524",
+                "INTPTLON": "-118.395779"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -118.395779,
+                    37.367524
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "17340",
+                "GEOID": "17340",
+                "NAME": "Clearlake, CA",
+                "NAMELSAD": "Clearlake, CA Micro Area",
+                "LSAD": "M2",
+                "MEMI": "2",
+                "MTFCC": "G3110",
+                "ALAND": 3254349190,
+                "AWATER": 188851723,
+                "INTPTLAT": "+39.0948019",
+                "INTPTLON": "-122.7467569"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -122.75318391,
+                    39.09964534
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "18860",
+                "GEOID": "18860",
+                "NAME": "Crescent City, CA",
+                "NAMELSAD": "Crescent City, CA Micro Area",
+                "LSAD": "M2",
+                "MEMI": "2",
+                "MTFCC": "G3110",
+                "ALAND": 2606117982,
+                "AWATER": 578742642,
+                "INTPTLAT": "+41.7639580",
+                "INTPTLON": "-124.0036140"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -123.95780136,
+                    41.74494237
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "260",
+                "CBSAFP": "23420",
+                "GEOID": "23420",
+                "NAME": "Fresno, CA",
+                "NAMELSAD": "Fresno, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 15432139300,
+                "AWATER": 136609898,
+                "INTPTLAT": "+36.7610058",
+                "INTPTLON": "-119.6550193"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -119.64932263,
+                    36.75818013
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "20940",
+                "GEOID": "20940",
+                "NAME": "El Centro, CA",
+                "NAMELSAD": "El Centro, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 10814594615,
+                "AWATER": 790217372,
+                "INTPTLAT": "+33.0408143",
+                "INTPTLON": "-115.3554001"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -115.36533696,
+                    33.03959043
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "21700",
+                "GEOID": "21700",
+                "NAME": "Eureka-Arcata-Fortuna, CA",
+                "NAMELSAD": "Eureka-Arcata, CA Micro Area",
+                "LSAD": "M2",
+                "MEMI": "2",
+                "MTFCC": "G3110",
+                "ALAND": 9241426488,
+                "AWATER": 1253864712,
+                "INTPTLAT": "+40.7066554",
+                "INTPTLON": "-123.9261757"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -123.91581945,
+                    40.70500908
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "17020",
+                "GEOID": "17020",
+                "NAME": "Chico, CA",
+                "NAMELSAD": "Chico, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 4238488156,
+                "AWATER": 105261063,
+                "INTPTLAT": "+39.6659588",
+                "INTPTLON": "-121.6019188"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -121.60067174,
+                    39.66692936
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "472",
+                "CBSAFP": "49700",
+                "GEOID": "49700",
+                "NAME": "Yuba City, CA",
+                "NAMELSAD": "Yuba City, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 3197460373,
+                "AWATER": 46298586,
+                "INTPTLAT": "+39.1609692",
+                "INTPTLON": "-121.5118327"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -121.51789265,
+                    39.15530697
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "260",
+                "CBSAFP": "25260",
+                "GEOID": "25260",
+                "NAME": "Hanford-Corcoran, CA",
+                "NAMELSAD": "Hanford-Corcoran, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 3600883803,
+                "AWATER": 3162664,
+                "INTPTLAT": "+36.0724780",
+                "INTPTLON": "-119.8155301"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -119.81550271,
+                    36.07536045
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "348",
+                "CBSAFP": "31080",
+                "GEOID": "31080",
+                "NAME": "Los Angeles-Long Beach-Anaheim, CA",
+                "NAMELSAD": "Los Angeles-Long Beach-Anaheim, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 12565229275,
+                "AWATER": 2195417329,
+                "INTPTLAT": "+34.1087033",
+                "INTPTLON": "-118.1827533"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -118.18076517,
+                    34.11175568
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "260",
+                "CBSAFP": "31460",
+                "GEOID": "31460",
+                "NAME": "Madera, CA",
+                "NAMELSAD": "Madera, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 5534617472,
+                "AWATER": 42245931,
+                "INTPTLAT": "+37.2098213",
+                "INTPTLON": "-119.7498023"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -119.76264451,
+                    37.21804406
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "488",
+                "CBSAFP": "32900",
+                "GEOID": "32900",
+                "NAME": "Merced, CA",
+                "NAMELSAD": "Merced, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 5014506620,
+                "AWATER": 110178168,
+                "INTPTLAT": "+37.1948063",
+                "INTPTLON": "-120.7228019"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.717688,
+                    37.19187047
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "488",
+                "CBSAFP": "33700",
+                "GEOID": "33700",
+                "NAME": "Modesto, CA",
+                "NAMELSAD": "Modesto, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 3874667416,
+                "AWATER": 46351766,
+                "INTPTLAT": "+37.5623162",
+                "INTPTLON": "-121.0028311"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.99768289,
+                    37.55913744
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "488",
+                "CBSAFP": "34900",
+                "GEOID": "34900",
+                "NAME": "Napa, CA",
+                "NAMELSAD": "Napa, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 1937986794,
+                "AWATER": 104295181,
+                "INTPTLAT": "+38.5070999",
+                "INTPTLON": "-122.3259045"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -122.33053846,
+                    38.50649644
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "348",
+                "CBSAFP": "37100",
+                "GEOID": "37100",
+                "NAME": "Oxnard-Thousand Oaks-Ventura, CA",
+                "NAMELSAD": "Oxnard-Thousand Oaks-Ventura, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 4771987962,
+                "AWATER": 947345370,
+                "INTPTLAT": "+34.3587415",
+                "INTPTLON": "-119.1331432"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -119.12602719,
+                    34.35752852
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "454",
+                "CBSAFP": "39780",
+                "GEOID": "39780",
+                "NAME": "Red Bluff, CA",
+                "NAMELSAD": "Red Bluff, CA Micro Area",
+                "LSAD": "M2",
+                "MEMI": "2",
+                "MTFCC": "G3110",
+                "ALAND": 7638228749,
+                "AWATER": 33767783,
+                "INTPTLAT": "+40.1261573",
+                "INTPTLON": "-122.2322737"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -122.23388485,
+                    40.12573618
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "454",
+                "CBSAFP": "39820",
+                "GEOID": "39820",
+                "NAME": "Redding, CA",
+                "NAMELSAD": "Redding, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 9778407493,
+                "AWATER": 186302040,
+                "INTPTLAT": "+40.7605142",
+                "INTPTLON": "-122.0435556"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -122.04052153,
+                    40.7637666
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "348",
+                "CBSAFP": "40140",
+                "GEOID": "40140",
+                "NAME": "Riverside-San Bernardino-Ontario, CA",
+                "NAMELSAD": "Riverside-San Bernardino-Ontario, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 70646788920,
+                "AWATER": 340297621,
+                "INTPTLAT": "+34.5384763",
+                "INTPTLON": "-116.1345414"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -116.12973175,
+                    34.55168227
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "472",
+                "CBSAFP": "40900",
+                "GEOID": "40900",
+                "NAME": "Sacramento-Roseville-Arden-Arcade, CA",
+                "NAMELSAD": "Sacramento-Roseville-Arden-Arcade, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 13195734333,
+                "AWATER": 548112798,
+                "INTPTLAT": "+38.7896779",
+                "INTPTLON": "-121.0057504"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.99764158,
+                    38.78046267
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "41500",
+                "GEOID": "41500",
+                "NAME": "Salinas, CA",
+                "NAMELSAD": "Salinas, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 8499616876,
+                "AWATER": 1267800137,
+                "INTPTLAT": "+36.2401070",
+                "INTPTLON": "-121.3155723"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -121.30890155,
+                    36.2397744
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "41740",
+                "GEOID": "41740",
+                "NAME": "San Diego-Carlsbad, CA",
+                "NAMELSAD": "San Diego-Chula Vista-Carlsbad, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 10904373558,
+                "AWATER": 817404622,
+                "INTPTLAT": "+33.0236041",
+                "INTPTLON": "-116.7761174"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -116.77020466,
+                    33.02818639
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "488",
+                "CBSAFP": "41860",
+                "GEOID": "41860",
+                "NAME": "San Francisco-Oakland-Hayward, CA",
+                "NAMELSAD": "San Francisco-Oakland-Berkeley, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 6398229497,
+                "AWATER": 2475477450,
+                "INTPTLAT": "+37.7737185",
+                "INTPTLON": "-122.2744317"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -122.27410916,
+                    37.77410931
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "488",
+                "CBSAFP": "41940",
+                "GEOID": "41940",
+                "NAME": "San Jose-Sunnyvale-Santa Clara, CA",
+                "NAMELSAD": "San Jose-Sunnyvale-Santa Clara, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 6940482016,
+                "AWATER": 38314684,
+                "INTPTLAT": "+36.9084718",
+                "INTPTLON": "-121.3713721"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -121.37692756,
+                    36.91030831
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "42020",
+                "GEOID": "42020",
+                "NAME": "San Luis Obispo-Paso Robles-Arroyo Grande, CA",
+                "NAMELSAD": "San Luis Obispo-Paso Robles, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 8548557892,
+                "AWATER": 815573121,
+                "INTPTLAT": "+35.3852242",
+                "INTPTLON": "-120.4475445"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.45219695,
+                    35.38741848
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "488",
+                "CBSAFP": "42100",
+                "GEOID": "42100",
+                "NAME": "Santa Cruz-Watsonville, CA",
+                "NAMELSAD": "Santa Cruz-Watsonville, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 1152794691,
+                "AWATER": 419743117,
+                "INTPTLAT": "+37.0124883",
+                "INTPTLON": "-122.0072050"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -122.0097874,
+                    37.02160591
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "488",
+                "CBSAFP": "42220",
+                "GEOID": "42220",
+                "NAME": "Santa Rosa, CA",
+                "NAMELSAD": "Santa Rosa-Petaluma, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 4080764059,
+                "AWATER": 498182342,
+                "INTPTLAT": "+38.5251824",
+                "INTPTLON": "-122.9261095"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -122.92254466,
+                    38.52529257
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "42200",
+                "GEOID": "42200",
+                "NAME": "Santa Maria-Santa Barbara, CA",
+                "NAMELSAD": "Santa Maria-Santa Barbara, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 7084063392,
+                "AWATER": 2729751706,
+                "INTPTLAT": "+34.5370572",
+                "INTPTLON": "-120.0399729"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.03078618,
+                    34.53834409
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "43760",
+                "GEOID": "43760",
+                "NAME": "Sonora, CA",
+                "NAMELSAD": "Sonora, CA Micro Area",
+                "LSAD": "M2",
+                "MEMI": "2",
+                "MTFCC": "G3110",
+                "ALAND": 5752029633,
+                "AWATER": 138772442,
+                "INTPTLAT": "+38.0214344",
+                "INTPTLON": "-119.9647335"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -119.95475358,
+                    38.0276014
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "488",
+                "CBSAFP": "44700",
+                "GEOID": "44700",
+                "NAME": "Stockton-Lodi, CA",
+                "NAMELSAD": "Stockton, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 3606127799,
+                "AWATER": 89109687,
+                "INTPTLAT": "+37.9349815",
+                "INTPTLON": "-121.2722440"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -121.27140323,
+                    37.93474597
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "472",
+                "CBSAFP": "46020",
+                "GEOID": "46020",
+                "NAME": "Truckee-Grass Valley, CA",
+                "NAMELSAD": "Truckee-Grass Valley, CA Micro Area",
+                "LSAD": "M2",
+                "MEMI": "2",
+                "MTFCC": "G3110",
+                "ALAND": 2480587338,
+                "AWATER": 41531993,
+                "INTPTLAT": "+39.2975082",
+                "INTPTLON": "-120.7713429"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.76875211,
+                    39.30136958
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "46380",
+                "GEOID": "46380",
+                "NAME": "Ukiah, CA",
+                "NAMELSAD": "Ukiah, CA Micro Area",
+                "LSAD": "M2",
+                "MEMI": "2",
+                "MTFCC": "G3110",
+                "ALAND": 9081426663,
+                "AWATER": 962946206,
+                "INTPTLAT": "+39.4323876",
+                "INTPTLON": "-123.4428811"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -123.43155391,
+                    39.43362382
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": "488",
+                "CBSAFP": "46700",
+                "GEOID": "46700",
+                "NAME": "Vallejo-Fairfield, CA",
+                "NAMELSAD": "Vallejo, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 2128488719,
+                "AWATER": 218671901,
+                "INTPTLAT": "+38.2672255",
+                "INTPTLON": "-121.9395940"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -121.94002442,
+                    38.26691279
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CSAFP": null,
+                "CBSAFP": "47300",
+                "GEOID": "47300",
+                "NAME": "Visalia-Porterville, CA",
+                "NAMELSAD": "Visalia, CA Metro Area",
+                "LSAD": "M1",
+                "MEMI": "1",
+                "MTFCC": "G3110",
+                "ALAND": 12494889125,
+                "AWATER": 37207487,
+                "INTPTLAT": "+36.2288339",
+                "INTPTLON": "-118.7810551"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -118.80047248,
+                    36.22015666
+                ]
+            }
+        }
+    ]
+}
