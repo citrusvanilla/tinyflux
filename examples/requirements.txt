@@ -1,2 +1,4 @@
-jupyter
+notebook
+paho-mqtt
 plotly
+tinyflux
