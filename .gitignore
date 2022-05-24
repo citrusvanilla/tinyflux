@@ -2,9 +2,8 @@
 /**.ipynb
 .vscode*
 .python-version
-*.csv
 **.DS_Store
-
+/**.csv
 performance_tests/**
 
 **.icloud
