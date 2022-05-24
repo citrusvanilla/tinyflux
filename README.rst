@@ -9,10 +9,27 @@
 Quick Links
 ***********
 
-- `Example Code`_
+- `Example Code Snippets`_
+- `Full Example Notebooks and Scrips <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_
 - `Documentation <http://tinyflux.readthedocs.org/>`_
 - `Changelog <https://tinyflux.readthedocs.io/en/latest/changelog.html>`_
 - `Contributing`_
+
+
+Installation
+************
+
+.. code-block:: bash
+
+    $ pip install tinyflux
+
+Or, download this repository, and:
+
+.. code-block:: bash
+
+    $ cd tinyflux/
+    tinyflux/ $ pip install .
+
 
 Introduction
 ************
@@ -23,7 +40,7 @@ TinyFlux is a time series version of `TinyDB <https://tinydb.readthedocs.io/en/l
 
 TinyFlux is:
 
-- **time-centric:** Python datetime objects are first-class citizens and time queries are optimized, above all else.
+- **time-centric:** Python datetime objects are first-class citizens and queries are optimized for time, above all else.
 
 - **optimized for your happiness:** TinyFlux is designed to be simple and
   fun to use by providing a simple and clean API that can be learned in 5 minutes.
@@ -33,8 +50,7 @@ TinyFlux is:
 
 - **written in pure Python:** TinyFlux needs neither an external server nor any dependencies.
 
-- **works on Python 3.7+ and PyPy-3.9:** TinyFlux works on all modern versions of Python
-  and PyPy.
+- **works on Python 3.7+ and PyPy-3.9:** TinyFlux works on all modern versions of Python and PyPy.
 
 - **100% test coverage:** No explanation needed.
 
@@ -45,8 +61,8 @@ Supported Python Versions
 
 TinyFlux has been tested with Python 3.7 - 3.10 and PyPy-3.9.
 
-Example Code
-************
+Example Code Snippets
+*********************
 
 Writing to TinyFlux
 ===================
@@ -76,12 +92,12 @@ Querying TinyFlux
     >>> # Search for a tag value.
     >>> Tag = TagQuery()
     >>> db.search(Tag.room == 'bedroom')
-    [Point(time=2022-05-01T16:00:00+00:00, measurement=_default, tags=room:bedroom, fields=temp_f:72.0)]
-
-    >>> # Search for a field value
-    >>> Field = FieldQuery()
-    >>> db.search(Field.temp_f > 60.0)
     [Point(time=2022-05-01T16:00:00+00:00, measurement=_default, tags=room:bedroom, fields=temp:72.0)]
+
+    >>> # Search for a field value.
+    >>> Field = FieldQuery()
+    >>> db.select("tag.room", Field.temp > 60.0)
+    ["bedroom"]
 
     >>> # Search for a time value.
     >>> Time = TimeQuery()
@@ -91,11 +107,20 @@ Querying TinyFlux
     1
 
 
+Full Example Notebooks and Workflows
+************************************
+
+The `examples <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_ directory of this repository contains three common uses cases for TinyFlux and the associated boilerplate to get you started:
+
+1. `Loading a TinyFlux DB from a CSV <https://github.com/citrusvanilla/tinyflux/blob/master/examples/1_initializing_and_loading_new_db.ipynb>`_
+2. `Local Analytics Workflow with a TinyFlux Database <https://github.com/citrusvanilla/tinyflux/blob/master/examples/2_analytics_workflow.ipynb>`_
+3. `TinyFlux as a MQTT Datastore for IOT Devices <https://github.com/citrusvanilla/tinyflux/blob/master/examples/3_iot_datastore_with_mqtt.py>`_
+
 
 Contributing
 ************
 
-New ideas, improvements, bugfixes, and new developer tools are always welcome.  Follow these guidelines before getting started:
+New ideas, new developer tools, improvements, and bugfixes are always welcome.  Follow these guidelines before getting started:
 
 1. Make sure to read `Getting Started <https://tinyflux.readthedocs.io/en/latest/getting-started.html>`_ and the `Contributing <https://tinyflux.readthedocs.io/en/latest/contributing-philosophy.html>`_ section of the documentation.
 2. Check GitHub for `existing open issues <https://github.com/citrusvanilla/tinyflux/issues>`_, `open a new issue <https://github.com/citrusvanilla/tinyflux/issues/new>`_ or `start a new discussion <https://github.com/citrusvanilla/tinyflux/discussions/new>`_.
