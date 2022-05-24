@@ -96,7 +96,7 @@ def on_message(_, __, msg):
     print(f'• Message received for topic "{topic}"... ', flush=True, end="")
 
     # Put the message data on the queue.
-    q.put({"topic": msg.topic, "payload": payload})
+    q.put({"topic": topic, "payload": payload})
 
     return
 
