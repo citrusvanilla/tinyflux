@@ -75,7 +75,7 @@ Writing to TinyFlux
     >>> db = TinyFlux('/path/to/db.csv')
 
     >>> p = Point(
-    ...     time=datetime(2022, 5, 1, 16, 0, tzinfo = timezone.utc),
+    ...     time=datetime(2022, 5, 1, 16, 0, tzinfo=timezone.utc),
     ...     tags={"room": "bedroom"},
     ...     fields={"temp": 72.0}
     ... )
@@ -101,8 +101,8 @@ Querying TinyFlux
 
     >>> # Search for a time value.
     >>> Time = TimeQuery()
-    >>> time_start = Time >= datetime(2019, 1, 1, tzinfo = timezone.utc)
-    >>> time_end = Time < datetime(2023, 1, 1, tzinfo = timezone.utc)
+    >>> time_start = Time >= datetime(2019, 1, 1, tzinfo=timezone.utc)
+    >>> time_end = Time < datetime(2023, 1, 1, tzinfo=timezone.utc)
     >>> db.count(time_start & time_end)
     1
 
