@@ -81,7 +81,7 @@ Querying TinyFlux
     >>> # Search for a field value
     >>> Field = FieldQuery()
     >>> db.search(Field.temp_f > 60.0)
-    [Point(time=2019-05-01T16:00:00+00:00, measurement=_default, tags=room:bedroom, fields=temp:72.0)]
+    [Point(time=2022-05-01T16:00:00+00:00, measurement=_default, tags=room:bedroom, fields=temp:72.0)]
 
     >>> # Search for a time value.
     >>> Time = TimeQuery()
