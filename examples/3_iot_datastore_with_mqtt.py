@@ -1,4 +1,4 @@
-"""An example of using TinyFlux as an IOT datastore for MQTT messages.
+r"""An example of using TinyFlux as an IOT datastore for MQTT messages.
 
 To test this script, you must be able to publish to the test Mosquitto MQTT
 broker, which is a free broker running at test.mosquitto.org.

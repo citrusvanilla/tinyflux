@@ -1,8 +1,8 @@
 .. image:: https://github.com/citrusvanilla/tinyflux/blob/master/artwork/tinyfluxdb-light.png?raw=true#gh-dark-mode-only
-    :width: 500
+    :width: 500px
    
 .. image:: https://github.com/citrusvanilla/tinyflux/blob/master/artwork/tinyfluxdb-dark.png?raw=true#gh-light-mode-only
-    :width: 500
+    :width: 500px
 
 |Build Status| |Coverage| |Version|
 
@@ -34,7 +34,7 @@ Or, download this repository, and:
 Introduction
 ************
 
-TinyFlux is the lightweight time series database optimized for your happiness :)
+TinyFlux is the tiny time series database optimized for your happiness :)
 
 TinyFlux is a time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`_ that is also written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.
 
