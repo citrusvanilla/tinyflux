@@ -23,12 +23,11 @@ Installation
 
     $ pip install tinyflux
 
-Or, download this repository, and:
+Or, download this repository, ``cd`` into it, and:
 
 .. code-block:: bash
 
-    $ cd tinyflux/
-    tinyflux/ $ pip install .
+    $ pip install .
 
 
 Introduction
