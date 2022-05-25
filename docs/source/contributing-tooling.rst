@@ -77,6 +77,7 @@ After installing the project requirements:
    /docs $ make html
    /docs $ open build/html/index.html
 
+Documentation is deployed to ReadTheDocs through third-party integration with GitHub. Commits to the ``master`` branch trigger builds and deployment with RTD.
 
 Testing
 -------
