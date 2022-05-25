@@ -1,7 +1,11 @@
-Get started with |br| :blue:`TinyFlux`
-======================================
+Get started with
+================
 
-**The tiny time series database, optimized for your happiness.**
+.. image:: https://github.com/citrusvanilla/tinyflux/blob/master/artwork/tinyfluxdb-dark.png?raw=true#gh-light-mode-only
+    :width: 500px
+
+   
+The tiny time series database, optimized for your happiness.
 
 
 .. toctree::
@@ -51,7 +55,7 @@ Get started with |br| :blue:`TinyFlux`
    :hidden:
 
    GitHub <https://github.com/citrusvanilla/tinyflux>
-
+   Examples <https://github.com/citrusvanilla/tinyflux/tree/master/examples>
 
 
 .. |br| raw:: html
