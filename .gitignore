@@ -3,6 +3,7 @@
 
 # Jupyter Notebooks
 /**.ipynb
+**checkpoint.ipynb
 
 # VSCode
 .vscode*
