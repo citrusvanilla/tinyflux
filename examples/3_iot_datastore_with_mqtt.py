@@ -31,7 +31,7 @@ This multi-threaded approach to logging MQTT messages comes from Steve Cope's
 http://www.steves-internet-guide.com.
 
 Author:
-    Justin Fung (@citrusvanilla)
+    Justin Fung (justincaseyfung@gmail.com)
 """
 from datetime import datetime, timezone
 from queue import Queue
@@ -48,7 +48,7 @@ MQTT_PORT = 1883
 MQTT_KEEPALIVE = 60
 MQTT_TOPIC = "tinyflux_test_topic"
 
-TINYFLUX_DB = "iot_test.csv"
+TINYFLUX_DB = "my_tinyflux_mqtt_database.db"
 
 # TinyFlux DB.
 db = TinyFlux(TINYFLUX_DB)
@@ -154,7 +154,7 @@ def run_tinyflux_worker():
                 # Insert the Point into the DB.
                 db.insert(p)
 
-                print("write to TinyFlux successful!")
+                print(f'write to "{TINYFLUX_DB}" successful!')
             except Exception as e:
                 print(f"\n  **Problem attempting to write: {e}")
 
