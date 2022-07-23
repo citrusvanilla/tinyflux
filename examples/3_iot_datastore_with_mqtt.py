@@ -14,7 +14,7 @@ To download a Linux MQTT command line client to publish messages, use brew:
 
 In one terminal window/process, start this script:
 
-    $ python iot_database.py
+    $ python 3_iot_datastore_with_mqtt.py
 
 You should see "Connecting to test.mosquitto.org... success.".
 
