@@ -24,7 +24,7 @@ publishes a sample JSON encoded message to the test MQTT broker:
     $ mosquitto_pub \
         -h test.mosquitto.org \
         -t tinyflux_test_topic \
-        -m "{\"device\":\"thermostat\",\"value\":70.0}"
+        -m "{\"device\":\"thermostat\",\"temperature\":70.0,\"humidity\":0.25}"
 
 This multi-threaded approach to logging MQTT messages comes from Steve Cope's
 "Logging MQTT Sensor Data to SQLite DataBase With Python", available at
@@ -69,13 +69,31 @@ def on_connect(client, *args):
         client: A Paho MQTT client instance.
     """
     # Log.
-    print("success.\n")
+    print("Connection success.\n")
 
     # Subscribe to the topic of interest.
     client.subscribe(MQTT_TOPIC)
 
     # Log.
     print(f"Subscribed to '{MQTT_TOPIC}' and waiting for messages.\n")
+
+    return
+
+
+def on_disconnect(_, __, rc):
+    """Define the on_disconnect callback.
+
+    See http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718035
+    for return codes descriptions.
+
+    Args:
+        rc: the disconnection result
+    """
+    # Log.
+    if rc == 0:
+        print("Disconnected .\n")
+    else:
+        print(f"Unexpected disconnection, return code {rc}.\n")
 
     return
 
@@ -101,23 +119,19 @@ def on_message(_, __, msg):
     return
 
 
-def initialize_mqtt_client(host, port, keep_alive):
+def initialize_mqtt_client():
     """Initialize and return the MQTT client.
-
-    Args:
-        host: The MQTT broker hostname.
-        port: The port of the MQTT broker.
-        keep_alive: Keep alive time in seconds for the connection.
 
     Returns:
         A Paho MQTT Client object.
     """
     # Initialize the client.
-    client = mqtt.Client(host, port, keep_alive)
+    client = mqtt.Client()
 
     # Register callbacks.
     client.on_connect = on_connect
     client.on_message = on_message
+    client.on_disconnect = on_disconnect
 
     return client
 
@@ -141,14 +155,15 @@ def run_tinyflux_worker():
 
             try:
                 device = payload["device"]
-                value = payload["value"]
+                temperature = payload["temperature"]
+                humidity = payload["humidity"]
 
                 # Initialize a TinyFlux Point.
                 p = Point(
                     time=datetime.now(timezone.utc),
                     measurement=topic,
                     tags={"device": device},
-                    fields={"value": value},
+                    fields={"temperature": temperature, "humidity": humidity},
                 )
 
                 # Insert the Point into the DB.
@@ -177,7 +192,7 @@ def main():
     t.start()
 
     # Initialise MQTT CLIENT.
-    client = initialize_mqtt_client(MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE)
+    client = initialize_mqtt_client()
 
     # Start MQTT network loop in a threaded interface to unblock main thread.
     client.loop_start()
