@@ -116,12 +116,13 @@ The `examples <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_
 3. `TinyFlux as a MQTT Datastore for IOT Devices <https://github.com/citrusvanilla/tinyflux/blob/master/examples/3_iot_datastore_with_mqtt.py>`_
 
 
-TinyFlux in the Wild
-********************
+TinyFlux Across the Internet
+****************************
 
 Articles, tutorials, and other instances of TinyFlux.
 
-- `"Introducing TinyFlux: The Tiny Time Series Database for Python-based IoT & Analytics Applications" <https://citrusvanilla.medium.com/introducing-tinyflux-the-tiny-time-series-database-for-python-based-iot-analytics-applications-c3ef3c3bedf>`_, A Medium.com article announcing the release of TinyFlux
+- `"Introducing TinyFlux: The Tiny Time Series Database for Python-based IoT & Analytics Applications" <https://citrusvanilla.medium.com/introducing-tinyflux-the-tiny-time-series-database-for-python-based-iot-analytics-applications-c3ef3c3bedf>`_: A Medium.com article announcing the release of TinyFlux
+- `"Storing Time Series Data in Python Using TinyFluxDB" <http://www.steves-internet-guide.com/storing-time-series-data-python-using-tinyflux-db/>`_: A tutorial from `Steve's Internet Guide <http://www.steves-internet-guide.com/>`_, a portal for learning MQTT and IoT development for Python
 
 
 Contributing
