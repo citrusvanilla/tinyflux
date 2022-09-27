@@ -233,7 +233,7 @@ class Index:
     def get_field_values(
         self, field_key: str, measurement: Optional[str] = None
     ) -> List[FieldValue]:
-        """Get field values from this index, optionally filtered by measurement.
+        """Get field values from this index, optionally filter by measurement.
 
         Args:
             field_key: Field key to get field values for.

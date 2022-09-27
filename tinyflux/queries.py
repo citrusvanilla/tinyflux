@@ -700,7 +700,7 @@ class BaseQuery:
         )
 
     def search(self, regex: str, flags: int = 0) -> SimpleQuery:
-        r"""Run a regex test against a value (only substring string has to match).
+        r"""Run a regex test against a value (only substring has to match).
 
         >>> TagQuery().f1.search(r'^\\w+$')
 
