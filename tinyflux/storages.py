@@ -188,6 +188,7 @@ class CSVStorage(Storage):
         encoding: Optional[str] = None,
         access_mode: str = "r+",
         flush_on_insert: bool = True,
+        newline: str = "",
         **kwargs,
     ) -> None:
         """Init a CSVStorage instance.
@@ -201,6 +202,7 @@ class CSVStorage(Storage):
             create_dirs: Create parent subdirectories.
             encoding: File encoding.
             access_mode: File access mode.
+            newline: If newline='' is not specified, newlines embedded inside quoted fields will not be interpreted correctly.
         """
         super().__init__()
         self._encoding = encoding
@@ -216,7 +218,7 @@ class CSVStorage(Storage):
             create_file(path, create_dirs=create_dirs)
 
         # Open the file for reading/writing
-        self._handle = open(path, mode=self._mode, encoding=encoding)
+        self._handle = open(path, mode=self._mode, encoding=encoding, newline=newline)
 
         # Open a tempfile.
         self._temp_handle: Optional[Any] = None
