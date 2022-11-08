@@ -185,7 +185,7 @@ class CSVStorage(Storage):
         self,
         path: Union[str, Path],
         create_dirs: bool = False,
-        encoding: str = None,
+        encoding: Optional[str] = None,
         access_mode: str = "r+",
         flush_on_insert: bool = True,
         **kwargs,
