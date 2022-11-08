@@ -6,10 +6,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        platform: [ubuntu-latest, windows-latest]
         python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "pypy-3.9"]
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }} on platform ${{ matrix.platform }}
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
