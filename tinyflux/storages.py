@@ -212,6 +212,7 @@ class CSVStorage(Storage):
         self._initially_empty = False
         self._path = path
         self._flush_on_insert = flush_on_insert
+        self._newline = newline
 
         # Create the file if it doesn't exist and creating is allowed.
         if any(i in self._mode for i in ("+", "w", "a")):
@@ -219,7 +220,7 @@ class CSVStorage(Storage):
 
         # Open the file for reading/writing
         self._handle = open(
-            path, mode=self._mode, encoding=encoding, newline=newline
+            path, mode=self._mode, encoding=encoding, newline=self._newline
         )
 
         # Open a tempfile.
@@ -385,7 +386,10 @@ class CSVStorage(Storage):
 
             # Init a new file object with the initial handle reference.
             self._handle = open(
-                self._path, mode=self._mode, encoding=self._encoding
+                self._path,
+                mode=self._mode,
+                encoding=self._encoding,
+                newline=self._newline,
             )
 
         return
