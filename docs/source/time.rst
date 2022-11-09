@@ -95,6 +95,6 @@ datetime.datetime(2022, 11, 9, 18, 0, 0, tzinfo=datetime.timezone.utc)
 >>> p.time
 datetime.datetime(2022, 11, 9, 18, 0, 0, tzinfo=datetime.timezone.utc)
 >>> # To cast back to local time in Los Angeles:
->>> la_timezone = p.tags["timezone"]
+>>> la_timezone = ZoneInfo(p.tags["timezone"])
 >>> p.time.astimezone(la_timezone)
 datetime.datetime(2022, 11, 9, 10, 0, tzinfo=zoneinfo.ZoneInfo(key='America/Los_Angeles'))
