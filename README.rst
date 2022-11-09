@@ -45,7 +45,7 @@ TinyFlux is:
   fun to use by providing a simple and clean API that can be learned in 5 minutes.
 
 - **tiny:** The current source code has 4,000 lines of code (with about 50%
-  documentation) and 4,000 lines tests.  TinyFlux is about 150kb, unzipped.
+  documentation) and 4,000 lines of tests.  TinyFlux is about 150kb, unzipped.
 
 - **written in pure Python:** TinyFlux needs neither an external server nor any dependencies.
 
@@ -113,13 +113,13 @@ The `examples <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_
 
 1. `Loading a TinyFlux DB from a CSV <https://github.com/citrusvanilla/tinyflux/blob/master/examples/1_initializing_and_loading_new_db.ipynb>`_
 2. `Local Analytics Workflow with a TinyFlux Database <https://github.com/citrusvanilla/tinyflux/blob/master/examples/2_analytics_workflow.ipynb>`_
-3. `TinyFlux as a MQTT Datastore for IOT Devices <https://github.com/citrusvanilla/tinyflux/blob/master/examples/3_iot_datastore_with_mqtt.py>`_
+3. `TinyFlux as a MQTT Datastore for IoT Devices <https://github.com/citrusvanilla/tinyflux/blob/master/examples/3_iot_datastore_with_mqtt.py>`_
 
 
 TinyFlux Across the Internet
 ****************************
 
-Articles, tutorials, and other instances of TinyFlux.
+Articles, tutorials, and other instances of TinyFlux:
 
 - `"Introducing TinyFlux: The Tiny Time Series Database for Python-based IoT & Analytics Applications" <https://citrusvanilla.medium.com/introducing-tinyflux-the-tiny-time-series-database-for-python-based-iot-analytics-applications-c3ef3c3bedf>`_: A Medium.com article announcing the release of TinyFlux
 - `"Storing Time Series Data in Python Using TinyFluxDB" <http://www.steves-internet-guide.com/storing-time-series-data-python-using-tinyflux-db/>`_: A tutorial from `Steve's Internet Guide <http://www.steves-internet-guide.com/>`_, a portal for learning MQTT and IoT development for Python
