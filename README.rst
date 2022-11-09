@@ -10,7 +10,7 @@ Quick Links
 ***********
 
 - `Example Code Snippets`_
-- `Full Example Notebooks and Scrips <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_
+- `Full Example Notebooks and Scripts <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_
 - `Documentation <http://tinyflux.readthedocs.org/>`_
 - `Changelog <https://tinyflux.readthedocs.io/en/latest/changelog.html>`_
 - `Contributing`_
