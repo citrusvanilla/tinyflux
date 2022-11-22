@@ -58,7 +58,7 @@ To get started, head over to the `TinyFlux docs <https://tinyflux.readthedocs.io
 Supported Python Versions
 *************************
 
-TinyFlux has been tested with Python 3.7 - 3.11 and PyPy-3.9.
+TinyFlux has been tested with Python 3.7 - 3.11 and PyPy-3.9 on Linux and Windows platforms.
 
 Example Code Snippets
 *********************
