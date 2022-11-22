@@ -304,7 +304,7 @@ def test_serialize_point():
         "_tag_city",
         "nyc",
         "_field_temp_f",
-        30.1,
+        "30.1",
     )
 
     p_tuple_expected2 = (
@@ -313,9 +313,9 @@ def test_serialize_point():
         "_tag_city",
         "la",
         "_field_temp_f",
-        75.1,
+        "75.1",
         "_field_population",
-        15000000,
+        "15000000.0",
     )
 
     assert p_tuple1 == p_tuple_expected1
@@ -395,3 +395,22 @@ def test_deserialize_invalid_point():
         match="Invalid isoformat string: 'ASDF'",
     ):
         Point()._deserialize_from_list(p_list)
+
+
+def test_serialize_zero_values():
+    """Test (de)serialization of zero values.
+
+    Resolves issue 23.
+    """
+    p = Point(fields={"a": 0, "b": 0.0, "c": None})
+    s = p._serialize_to_list()
+
+    assert s[3] == "0.0" and s[5] == "0.0" and s[7] == p._none_str
+
+    new_p = Point()._deserialize_from_list(s)
+
+    assert (
+        new_p.fields["a"] == 0
+        and new_p.fields["b"] == 0.0
+        and new_p.fields["c"] is None
+    )

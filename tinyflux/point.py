@@ -292,7 +292,7 @@ class Point:
 
         return self
 
-    def _serialize_to_list(self) -> Sequence[Union[str, float, int]]:
+    def _serialize_to_list(self) -> Sequence[str]:
         """Serialize a Point to a tuple of strings.
 
         Returns:
@@ -312,7 +312,7 @@ class Point:
             for k, v in self._tags.items()
         )
         fields = (
-            (f"_field_{k}", v or self._none_str)
+            (f"_field_{k}", self._none_str if v is None else str(float(v)))
             for k, v in self._fields.items()
         )
 
