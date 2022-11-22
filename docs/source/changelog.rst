@@ -1,6 +1,12 @@
 Changelog
 =========
 
+v0.2.1 (2022-11-22)
+^^^^^^^^^^^^^^^^^^^
+
+* Fix bug that caused values of 0.0 to be serialized as None/null rather than "0.0".
+
+
 v0.2.0 (2022-11-09)
 ^^^^^^^^^^^^^^^^^^^
 
