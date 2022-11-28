@@ -42,7 +42,7 @@ This returns a Point instance, or ``None`` if no Points were found.
 
 **.search(query) <--> Get all the Points in the database matching a Query**
 
-This is the primary method for querying the database, and  returns a list of Point instances, sorted by timestamp.
+This is the primary method for querying the database, and returns a list of Point instances, sorted by timestamp.
 
 >>> # Get all Points in the DB for Los Angeles in 2022 in which the AQI was "hazardous".
 >>> from datetime import datetime

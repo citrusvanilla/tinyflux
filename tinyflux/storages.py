@@ -194,7 +194,7 @@ class CSVStorage(Storage):
         """Init a CSVStorage instance.
 
         This will init a file object to the specified filepath. No reads are
-        performed by default, so we don't know if the data is sorted and
+        performed by default, so we don't know if data is present and
         therefore, the _initially_empty attribute is set to False.
 
         Args:
@@ -202,6 +202,7 @@ class CSVStorage(Storage):
             create_dirs: Create parent subdirectories.
             encoding: File encoding.
             access_mode: File access mode.
+            flush_on_insert: Whether or not to flush IO buffer immediately.
             newline: Determines how to parse newline characters from the stream
         """
         super().__init__()
@@ -435,14 +436,18 @@ class MemoryStorage(Storage):
     Memory is cleaned up along with the parent process.
 
     Attributes:
-        index_intact: Data is stored according to the index sorter.
+        _initially_empty: No data in the storage instance.
+        _memory: List of Points.
+        _temp_memory: List of Points.
 
     Usage:
         >>> from tinyflux import MemoryStorage
         >>> db = TinyFlux(storage=MemoryStorage)
     """
 
+    _initially_empty: bool
     _memory: List[MemStorageItem]
+    _temp_memory: List[MemStorageItem]
 
     def __init__(self) -> None:
         """Init a MemoryStorage instance."""

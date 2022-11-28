@@ -107,9 +107,9 @@ class TinyFlux:
     A facade singleton for the TinyFlux program.  Manages the lifecycles of
     Storage, Index, and Measurement instances.  Handles Points and Queries.
 
-    TinyFlux will reindex data in memory and at the storage layer by default.
-    To turn off this feature, set the value of 'auto_index' to false in the
-    constructor keyword arguments.
+    TinyFlux will reindex data in memory by default. To turn off this feature,
+    set the value of 'auto_index' to false in the constructor keyword
+    arguments.
 
     TinyFlux will use the CSV store by default.  To use a different store, pass
     a derived Storage subclass to the 'storage' keyword argument of the
@@ -149,9 +149,8 @@ class TinyFlux:
     def __init__(self, *args, auto_index: bool = True, **kwargs):
         """Initialize a new instance of TinyFlux.
 
-        If 'auto_index' is set to True, TinyFlux will check the storage layer
-        for sortedness, and re-sort if necessary. An index will then be built
-        in-memory for efficient querying.
+        If 'auto_index' is set to True, an index will be built in-memory for
+        efficient querying.
 
         Please note, this operation can take some time.  If you need to insert
         into TinyFlux immediately after initializing the DB, set
@@ -368,8 +367,7 @@ class TinyFlux:
     def drop_measurement(self, name: str) -> int:
         """Drop a specific measurement from the database.
 
-        If 'auto-index' is True, the storage layer will be sorted after
-        this function is run, and a new index will be built.
+        If 'auto-index' is True, a new index will be built.
 
         Args:
             name: The name of the measurement.
