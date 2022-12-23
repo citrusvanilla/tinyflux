@@ -185,7 +185,7 @@ class Point:
         validate_fields(value)
         self._fields = value
 
-    def __eq__(self, other: Any):
+    def __eq__(self, other: Any) -> bool:
         """Define __eq__.
 
         Args:
