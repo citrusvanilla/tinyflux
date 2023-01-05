@@ -15,15 +15,14 @@ from typing import (
     Callable,
     Dict,
     Iterable,
-    Generator,
+    Iterator,
     List,
-    Mapping,
     Optional,
     Tuple,
     Union,
 )
 
-from .point import FieldValue, Point
+from .point import FieldSet, FieldValue, Point, TagSet
 from .queries import MeasurementQuery, Query, SimpleQuery
 from .index import Index
 from .storages import Storage
@@ -75,7 +74,7 @@ class Measurement:
         """Get the measurement storage instance."""
         return self._db._storage
 
-    def __iter__(self) -> Generator:
+    def __iter__(self) -> Iterator[Point]:
         """Define the iterator for this class."""
         for item in self._db._storage:
             _measurement = self._db._storage._deserialize_measurement(item)
@@ -133,7 +132,7 @@ class Measurement:
         points = list(iter(self))
 
         if sorted:
-            points.sort(key=lambda x: x.time)
+            points.sort(key=lambda x: (x is None, x.time))
 
         return points
 
@@ -318,8 +317,8 @@ class Measurement:
         query: Query,
         time: Union[datetime, Callable[[datetime], datetime], None] = None,
         measurement: Union[str, Callable[[str], str], None] = None,
-        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
-        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        tags: Union[TagSet, Callable[[TagSet], TagSet], None] = None,
+        fields: Union[FieldSet, Callable[[FieldSet], FieldSet], None] = None,
     ) -> int:
         """Update all matching Points in this measurement with new attributes.
 
@@ -341,8 +340,8 @@ class Measurement:
         self,
         time: Union[datetime, Callable[[datetime], datetime], None] = None,
         measurement: Union[str, Callable[[str], str], None] = None,
-        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
-        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        tags: Union[TagSet, Callable[[TagSet], TagSet], None] = None,
+        fields: Union[FieldSet, Callable[[FieldSet], FieldSet], None] = None,
     ) -> int:
         """Update all matching Points in this measurement with new attributes.
 

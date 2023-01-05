@@ -56,8 +56,8 @@ class CompoundQuery:
         self,
         query1: Query,
         query2: Optional[Query],
-        operator: Callable[..., Any],
-        hashval: Optional[Tuple],
+        operator: Callable[..., bool],
+        hashval: Any,
     ) -> None:
         """Initialize an CompoundQuery.
 
@@ -120,7 +120,7 @@ class CompoundQuery:
             and self._hash
             and other._hash
         ):
-            return self._hash == other._hash
+            return bool(self._hash == other._hash)
         else:
             return False
 
@@ -204,8 +204,8 @@ class SimpleQuery:
         operator: Callable[..., Any],
         rhs: Any,
         test: Callable[..., bool],
-        path_resolver: Callable[..., Union[int, float, str, None]],
-        hashval: Optional[Tuple],
+        path_resolver: Callable[..., Any],
+        hashval: Any,
     ) -> None:
         """Initialize an SimpleQuery.
 
@@ -266,7 +266,7 @@ class SimpleQuery:
     def __eq__(self, other: object) -> bool:
         """Test equality of this SimpleQuery and another object."""
         if isinstance(other, SimpleQuery) and self._hash and other._hash:
-            return self._hash == other._hash
+            return bool(self._hash == other._hash)
         else:
             return False
 
@@ -354,11 +354,11 @@ class BaseQuery:
             path_required: This query requires a key.
         """
         self._point_attr: Optional[str] = None
-        self._path: Tuple[Union[str, Callable], ...] = ()
+        self._path: Tuple[Union[str, Callable[..., bool]], ...] = ()
         self._path_required = False
-        self._hash: Optional[Tuple] = None
+        self._hash: Any = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return printable representation of BaseQuery."""
         return f"{type(self).__name__}()"
 
@@ -408,11 +408,11 @@ class BaseQuery:
 
     def _generate_simple_query(
         self,
-        operator: Callable[..., Any],
+        operator: Callable[..., bool],
         test_against_rhs: bool,
         rhs: Any,
         args: Any,
-        hashval: Tuple,
+        hashval: Any,
     ) -> SimpleQuery:
         """Generate a SimpleQuery and its components.
 
@@ -647,7 +647,9 @@ class BaseQuery:
         """
         raise RuntimeError("Cannot logical-NOT an empty query.")
 
-    def test(self, func: Callable[[Mapping], bool], *args) -> SimpleQuery:
+    def test(
+        self, func: Callable[[Mapping[Any, Any]], bool], *args: Any
+    ) -> SimpleQuery:
         """Run a user-defined test function against a value.
 
         >>> def test_func(val):

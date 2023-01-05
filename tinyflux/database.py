@@ -17,7 +17,14 @@ from typing import (
 
 from .index import Index
 from .measurement import Measurement
-from .point import FieldValue, Point, validate_fields, validate_tags
+from .point import (
+    FieldValue,
+    FieldSet,
+    Point,
+    TagSet,
+    validate_fields,
+    validate_tags,
+)
 from .queries import (
     CompoundQuery,
     MeasurementQuery,
@@ -28,14 +35,14 @@ from .queries import (
 from .storages import CSVStorage, Storage
 
 
-def append_op(method):
+def append_op(method: Callable[..., Any]) -> Callable[..., Any]:
     """Decorate an append operation with assertion.
 
     Ensures storage can be appended to before doing anything.
     """
 
     @wraps(method)
-    def op(self, *args, **kwargs):
+    def op(self: Any, *args: Any, **kwargs: Any) -> Any:
         """Decorate."""
         assert self._storage.can_append
         return method(self, *args, **kwargs)
@@ -43,14 +50,14 @@ def append_op(method):
     return op
 
 
-def read_op(method):
+def read_op(method: Callable[..., Any]) -> Callable[..., Any]:
     """Decorate a read operation with assertion.
 
     Ensures storage can be read from before doing anything.
     """
 
     @wraps(method)
-    def op(self, *args, **kwargs):
+    def op(self: Any, *args: Any, **kwargs: Any) -> Any:
         """Decorate."""
         assert self._storage.can_read
 
@@ -62,7 +69,7 @@ def read_op(method):
     return op
 
 
-def temp_storage_op(method):
+def temp_storage_op(method: Callable[..., Any]) -> Callable[..., Any]:
     """Decorate a db operation that requires auxiliary storage.
 
     Initializes temporary storage, invokes method, and cleans-up storage after
@@ -70,7 +77,7 @@ def temp_storage_op(method):
     """
 
     @wraps(method)
-    def op(self, *args, **kwargs):
+    def op(self: Any, *args: Any, **kwargs: Any) -> Any:
         """Decorate."""
         # Init temp storage in the storage class.
         self._storage._init_temp_storage()
@@ -86,14 +93,14 @@ def temp_storage_op(method):
     return op
 
 
-def write_op(method):
+def write_op(method: Callable[..., Any]) -> Callable[..., Any]:
     """Decorate a write operation with assertion.
 
     Ensures storage can be written to before doing anything.
     """
 
     @wraps(method)
-    def op(self, *args, **kwargs):
+    def op(self: Any, *args: Any, **kwargs: Any) -> Any:
         """Decorate."""
         assert self._storage.can_write
         return method(self, *args, **kwargs)
@@ -146,7 +153,9 @@ class TinyFlux:
     _measurements: Dict[str, Measurement]
     _open: bool
 
-    def __init__(self, *args, auto_index: bool = True, **kwargs):
+    def __init__(
+        self: Any, *args: Any, auto_index: bool = True, **kwargs: Any
+    ):
         """Initialize a new instance of TinyFlux.
 
         If 'auto_index' is set to True, an index will be built in-memory for
@@ -189,7 +198,7 @@ class TinyFlux:
         """Get a reference to the index instance."""
         return self._index
 
-    def __enter__(self):
+    def __enter__(self) -> "TinyFlux":
         """Use the database as a context manager.
 
         Using the database as a context manager ensures that the
@@ -198,7 +207,7 @@ class TinyFlux:
         """
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         """Close the storage instance when leaving a context."""
         if self._open:
             self.close()
@@ -210,7 +219,7 @@ class TinyFlux:
         for item in self._storage:
             yield self._storage._deserialize_storage_item(item)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Get the number of Points in the storage layer."""
         # If the index is valid, check it.
         if self._auto_index and self._index.valid:
@@ -219,7 +228,7 @@ class TinyFlux:
         # Otherwise, we get it from storage class.
         return len(self._storage)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Get a printable representation of the TinyFlux instance."""
         if self._auto_index and self._index.valid:
             args = [
@@ -248,7 +257,7 @@ class TinyFlux:
         points = self._storage.read()
 
         if sorted:
-            points.sort(key=lambda x: x.time)
+            points.sort(key=lambda x: (x is None, x.time))
 
         return points
 
@@ -454,6 +463,9 @@ class TinyFlux:
 
         # Put a timezone on it.
         if got_point:
+            if not got_point.time:  # pragma: no cover
+                raise ValueError
+
             got_point.time.replace(tzinfo=timezone.utc)
 
         return got_point
@@ -590,7 +602,7 @@ class TinyFlux:
         self,
         tag_keys: List[str] = [],
         measurement: Optional[str] = None,
-    ) -> Dict[str, List[str]]:
+    ) -> Dict[str, List[Optional[str]]]:
         """Get all tag values in the database.
 
         Args:
@@ -603,7 +615,10 @@ class TinyFlux:
         # If index is valid, get tag values.
         if self._index.valid:
             rst = self._index.get_tag_values(tag_keys, measurement)
-            return {i: sorted(j) for i, j in rst.items()}
+            return {
+                i: sorted(j, key=lambda x: (x is None, x))
+                for i, j in rst.items()
+            }
 
         # Otherwise, go through storage.
         relevant_tags = set(tag_keys)
@@ -627,7 +642,9 @@ class TinyFlux:
 
                 rst[tk] = rst[tk].union({tv}) if tk in rst else set([tv])
 
-        return {i: sorted(j) for i, j in rst.items()}
+        return {
+            i: sorted(j, key=lambda x: (x is None, x)) for i, j in rst.items()
+        }
 
     @read_op
     def get_timestamps(
@@ -706,7 +723,7 @@ class TinyFlux:
         """
         return self._insert_helper(points, measurement)
 
-    def measurement(self, name: str, **kwargs) -> Measurement:
+    def measurement(self, name: str, **kwargs: Any) -> Measurement:
         """Return a reference to a measurement in this database.
 
         Chained methods will be handled by the Measurement class, and operate
@@ -868,11 +885,14 @@ class TinyFlux:
 
         # Put a timezone on it.
         for fp in found_points:
+            if not fp.time:  # pragma: no cover
+                raise ValueError
+
             fp.time.replace(tzinfo=timezone.utc)
 
         # Sort.
         if sorted:
-            found_points.sort(key=lambda x: x.time)
+            found_points.sort(key=lambda x: (x.time is None, x.time))
 
         return found_points
 
@@ -949,7 +969,7 @@ class TinyFlux:
                 _point = self._storage._deserialize_storage_item(item)
 
                 # Result set.
-                result = []
+                result: List[Any] = []
 
                 for key in keys:
                     if key == "time":
@@ -1037,8 +1057,8 @@ class TinyFlux:
         query: Query,
         time: Union[datetime, Callable[[datetime], datetime], None] = None,
         measurement: Union[str, Callable[[str], str], None] = None,
-        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
-        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        tags: Union[TagSet, Callable[[TagSet], TagSet], None] = None,
+        fields: Union[FieldSet, Callable[[FieldSet], FieldSet], None] = None,
         _measurement: Optional[str] = None,
     ) -> int:
         """Update all matching Points in the database with new attributes.
@@ -1066,10 +1086,16 @@ class TinyFlux:
     @temp_storage_op
     def update_all(
         self,
-        time: Union[datetime, Callable[[datetime], datetime], None] = None,
-        measurement: Union[str, Callable[[str], str], None] = None,
-        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
-        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        time: Union[
+            datetime, Callable[[Optional[datetime]], datetime], None
+        ] = None,
+        measurement: Union[str, Callable[[Optional[str]], str], None] = None,
+        tags: Union[
+            TagSet, Callable[[Mapping[Any, Any]], TagSet], None
+        ] = None,
+        fields: Union[
+            FieldSet, Callable[[Mapping[Any, Any]], FieldSet], None
+        ] = None,
     ) -> int:
         """Update all points in the database with new attributes.
 
@@ -1094,8 +1120,8 @@ class TinyFlux:
         query: Query,
         time: Union[datetime, Callable[[datetime], datetime], None] = None,
         measurement: Union[str, Callable[[str], str], None] = None,
-        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
-        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        tags: Union[TagSet, Callable[[TagSet], TagSet], None] = None,
+        fields: Union[FieldSet, Callable[[FieldSet], FieldSet], None] = None,
     ) -> Callable[[Point], bool]:
         """Generate a routine that updates a Point with new attributes.
 
@@ -1155,6 +1181,7 @@ class TinyFlux:
             if time:
                 if callable(time):
                     try:
+                        assert point.time
                         point.time = time(point.time)
                     except ValueError:
                         raise ValueError(
@@ -1390,8 +1417,8 @@ class TinyFlux:
         query: Query,
         time: Union[datetime, Callable[[datetime], datetime], None] = None,
         measurement: Union[str, Callable[[str], str], None] = None,
-        tags: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
-        fields: Union[Mapping, Callable[[Mapping], Mapping], None] = None,
+        tags: Union[TagSet, Callable[[TagSet], TagSet], None] = None,
+        fields: Union[FieldSet, Callable[[FieldSet], FieldSet], None] = None,
         _measurement: Optional[str] = None,
     ) -> int:
         """Update all matching Points in the database with new attributes.

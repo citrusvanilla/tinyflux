@@ -1,6 +1,6 @@
 """Defintion of TinyFlux utils."""
 import bisect
-from typing import List, Optional
+from typing import Any, List, Optional
 
 
 class FrozenDict(dict):
@@ -14,12 +14,12 @@ class FrozenDict(dict):
     From TinyDB.
     """
 
-    def __hash__(self):
+    def __hash__(self) -> int:  # type: ignore
         """Hash the value of a FrozenDict instance."""
         # Calculate the has by hashing a tuple of all dict items
         return hash(tuple(sorted(self.items())))
 
-    def _immutable(self, *args, **kws):
+    def _immutable(self, *args: Any, **kwargs: Any) -> None:
         """Raise a TypeError for a given dict method."""
         raise TypeError("object is immutable")
 
@@ -27,13 +27,13 @@ class FrozenDict(dict):
     __setitem__ = _immutable
     __delitem__ = _immutable
     clear = _immutable
-    popitem = _immutable
+    popitem = _immutable  # type: ignore
 
-    def update(self, e=None, **f):
+    def update(self, *args: Any, **kwargs: Any) -> None:
         """Raise TypeError for update."""
         raise TypeError("object is immutable")
 
-    def pop(self, k, d=None):
+    def pop(self, k: Any, d: Optional[Any] = None) -> None:
         """Raise TypeError for pop."""
         raise TypeError("object is immutable")
 
@@ -57,7 +57,7 @@ def freeze(obj: object) -> object:
         return obj
 
 
-def find_eq(sorted_list: List, x: int) -> Optional[int]:
+def find_eq(sorted_list: List[Any], x: Any) -> Optional[int]:
     """Locate the leftmost value exactly equal to x.
 
     Args:
@@ -75,7 +75,7 @@ def find_eq(sorted_list: List, x: int) -> Optional[int]:
     return None
 
 
-def find_lt(sorted_list: List, x: int) -> Optional[int]:
+def find_lt(sorted_list: List[Any], x: Any) -> Optional[int]:
     """Find rightmost value less than x.
 
     Args:
@@ -93,7 +93,7 @@ def find_lt(sorted_list: List, x: int) -> Optional[int]:
     return None
 
 
-def find_le(sorted_list: List, x: int) -> Optional[int]:
+def find_le(sorted_list: List[Any], x: Any) -> Optional[int]:
     """Find rightmost value less than or equal to x.
 
     Args:
@@ -111,7 +111,7 @@ def find_le(sorted_list: List, x: int) -> Optional[int]:
     return None
 
 
-def find_gt(sorted_list: List, x: int) -> Optional[int]:
+def find_gt(sorted_list: List[Any], x: Any) -> Optional[int]:
     """Find leftmost value greater than x.
 
     Args:
@@ -129,7 +129,7 @@ def find_gt(sorted_list: List, x: int) -> Optional[int]:
     return None
 
 
-def find_ge(sorted_list: List, x: int) -> Optional[int]:
+def find_ge(sorted_list: List[Any], x: Any) -> Optional[int]:
     """Find leftmost item greater than or equal to x.
 
     Args:

@@ -100,15 +100,11 @@ class Point:
     __slots__ = ("_time", "_measurement", "_tags", "_fields")
 
     _time: Optional[datetime]
-    _measurement: Optional[str]
+    _measurement: str
     _tags: TagSet
     _fields: FieldSet
 
-    def __init__(
-        self,
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Init a Point.
 
         Attributes:
@@ -140,47 +136,47 @@ class Point:
             self._fields = {}
 
     @property
-    def time(self):
+    def time(self) -> Optional[datetime]:
         """Get time."""
         return self._time
 
     @time.setter
-    def time(self, value: Any):
+    def time(self, value: Any) -> None:
         """Set time."""
         if not isinstance(value, datetime):
             raise ValueError("Time must be datetime object.")
         self._time = value
 
     @property
-    def measurement(self):
+    def measurement(self) -> str:
         """Get measurement."""
         return self._measurement
 
     @measurement.setter
-    def measurement(self, value: Any):
+    def measurement(self, value: Any) -> None:
         """Set measurement."""
         if not isinstance(value, str):
             raise ValueError("Measurement must be a string.")
         self._measurement = value
 
     @property
-    def tags(self):
+    def tags(self) -> TagSet:
         """Get tags."""
         return self._tags
 
     @tags.setter
-    def tags(self, value: Any):
+    def tags(self, value: Any) -> None:
         """Set tags."""
         validate_tags(value)
         self._tags = value
 
     @property
-    def fields(self):
+    def fields(self) -> FieldSet:
         """Get fields."""
         return self._fields
 
     @fields.setter
-    def fields(self, value: Any):
+    def fields(self, value: Any) -> None:
         """Get fields."""
         validate_fields(value)
         self._fields = value
@@ -249,7 +245,7 @@ class Point:
             RuntimeError: Deserializing encounters an unexpected column.
         """
         p_time = datetime.fromisoformat(row[0]).replace(tzinfo=timezone.utc)
-        p_measurement = None if row[1] == self._none_str else row[1]
+        p_measurement = row[1]
 
         p_tags: TagSet = {}
         p_fields: FieldSet = {}
@@ -326,7 +322,7 @@ class Point:
 
         return row
 
-    def _validate_kwargs(self, kwargs) -> None:
+    def _validate_kwargs(self, kwargs: Any) -> None:
         """Validate args and kwargs.
 
         Helper function validates types of 'time' and 'measurement' arguments.
