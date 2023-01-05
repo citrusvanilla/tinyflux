@@ -648,15 +648,13 @@ def test_path_required():
         RuntimeError,
         match="Query has no path. Provide tag or field key to query.",
     ):
-        t = TagQuery() == "my tag"
-        t(Point)
+        TagQuery() == "my tag"
 
     with pytest.raises(
         RuntimeError,
         match="Query has no path. Provide tag or field key to query.",
     ):
-        t = FieldQuery() == 10.0
-        t(Point)
+        FieldQuery() == 10.0
 
 
 def test_path_not_required():

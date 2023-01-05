@@ -214,6 +214,9 @@ def test_subclassing_storage():
         def __iter__(self):
             """Iterate."""
 
+        def __len__(self):
+            """Len method."""
+
         def append(self, _):
             """Append method."""
 

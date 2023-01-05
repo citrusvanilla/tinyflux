@@ -21,14 +21,8 @@ from pathlib import Path
 import shutil
 from tempfile import NamedTemporaryFile
 
-from typing import (
-    Any,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Union,
-)
+from typing import Any, Iterator, List, Optional, Sequence, Union
+import _csv
 
 from .point import Point
 
@@ -88,8 +82,13 @@ class Storage(ABC):  # pragma: no cover
         return True
 
     @abstractmethod
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Union[MemStorageItem, CSVStorageItem]]:
         """Return a generator for items in storage."""
+        ...
+
+    @abstractmethod
+    def __len__(self) -> int:
+        """Return the number of items."""
         ...
 
     @abstractmethod
@@ -189,7 +188,7 @@ class CSVStorage(Storage):
         access_mode: str = "r+",
         flush_on_insert: bool = True,
         newline: Optional[str] = "",
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Init a CSVStorage instance.
 
@@ -260,7 +259,7 @@ class CSVStorage(Storage):
 
         return True
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> _csv.reader:  # type: ignore
         """Return a CSV reader object that can be iterated over."""
         self._handle.seek(0)
 
@@ -272,7 +271,9 @@ class CSVStorage(Storage):
 
         return sum(1 for _ in self._handle)
 
-    def append(self, items: List[CSVStorageItem], temporary=False) -> None:
+    def append(
+        self, items: List[CSVStorageItem], temporary: bool = False
+    ) -> None:
         """Append points to the CSV store.
 
         Args:
@@ -456,7 +457,7 @@ class MemoryStorage(Storage):
         self._memory = []
         self._temp_memory: List[MemStorageItem] = []
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Point]:
         """Return a generator to memory that can be iterated over."""
         for point in self._memory:
             yield point
@@ -465,7 +466,9 @@ class MemoryStorage(Storage):
         """Return the number of items."""
         return len(self._memory)
 
-    def append(self, items: List[MemStorageItem], temporary=False) -> None:
+    def append(
+        self, items: List[MemStorageItem], temporary: bool = False
+    ) -> None:
         """Append points to the memory.
 
         Args:
@@ -514,6 +517,9 @@ class MemoryStorage(Storage):
 
     def _deserialize_timestamp(self, item: MemStorageItem) -> datetime:
         """Deserialize timestamp from a point."""
+        if not item.time:  # pragma: no cover
+            raise ValueError
+
         return item.time
 
     def _init_temp_storage(self) -> None:

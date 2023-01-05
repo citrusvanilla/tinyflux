@@ -10,10 +10,10 @@ handling, usually as an input to a storage retrieval.
 """
 from datetime import datetime, timezone
 import operator
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from tinyflux.queries import SimpleQuery, CompoundQuery, Query
-from .point import FieldValue, Point
+from .point import FieldSet, FieldValue, Point, TagSet
 from .utils import find_eq, find_lt, find_le, find_gt, find_ge
 
 
@@ -108,9 +108,9 @@ class Index:
     """
 
     _num_items: int
-    _tags: Dict[str, Dict[str, list]]
-    _fields: Dict[str, list]
-    _measurements: Dict[str, list]
+    _tags: Dict[str, Dict[Union[None, str], List[int]]]
+    _fields: Dict[str, List[Tuple[int, Optional[float]]]]
+    _measurements: Dict[str, List[int]]
     _timestamps: List[float]
     _valid: bool
     _storage_pos_sorted_by_ts: List[int]
@@ -168,7 +168,7 @@ class Index:
 
         return f'<{type(self).__name__} {", ".join(args)}>'
 
-    def build(self, points: Iterable) -> None:
+    def build(self, points: Iterable[Point]) -> None:
         """Build the index from scratch.
 
         Args:
@@ -187,6 +187,9 @@ class Index:
             self._insert_measurements(idx, point.measurement)
             self._insert_tags(idx, point.tags)
             self._insert_fields(idx, point.fields)
+
+            if not point.time:  # pragma: no cover
+                raise ValueError
 
             timestamp_buffer.append((point.time.timestamp(), idx))
 
@@ -319,7 +322,7 @@ class Index:
 
     def get_tag_values(
         self, tag_keys: List[str] = [], measurement: Optional[str] = None
-    ) -> Dict[str, Set[str]]:
+    ) -> Dict[str, Set[Optional[str]]]:
         """Get all tag values from the index.
 
         Args:
@@ -330,7 +333,7 @@ class Index:
             Mapping of tag_keys to associated tag values as a set.
         """
         # Return set.
-        rst: Dict[str, Set[str]] = {}
+        rst: Dict[str, Set[Optional[str]]] = {}
 
         # 1. No measurement, no tag keys. Return all.
         if not measurement and not tag_keys:
@@ -440,6 +443,10 @@ class Index:
             new_idx = start_idx + idx
 
             self._num_items += 1
+
+            if not point.time:  # pragma: no cover
+                raise ValueError
+
             self._insert_time(point.time)
             self._insert_tags(new_idx, point.tags)
             self._insert_fields(new_idx, point.fields)
@@ -505,7 +512,7 @@ class Index:
 
         return
 
-    def _insert_fields(self, idx: int, fields: Dict[str, str]) -> None:
+    def _insert_fields(self, idx: int, fields: FieldSet) -> None:
         """Index a field value.
 
         Args:
@@ -535,7 +542,7 @@ class Index:
 
         return
 
-    def _insert_tags(self, idx: int, tags: Dict[str, str]) -> None:
+    def _insert_tags(self, idx: int, tags: TagSet) -> None:
         """Index a tag value.
 
         Args:
