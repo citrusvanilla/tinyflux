@@ -1,6 +1,12 @@
 Changelog
 =========
 
+v0.2.4 (2023-2-15)
+^^^^^^^^^^^^^^^^^^
+
+* Fix bug that prevents updating Points when using a CSVStorage instance.
+
+
 v0.2.1 (2022-11-22)
 ^^^^^^^^^^^^^^^^^^^
 

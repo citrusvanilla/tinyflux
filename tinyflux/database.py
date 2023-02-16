@@ -1524,7 +1524,7 @@ class TinyFlux:
                     # Attributes changed. Serialize and add to memory.
                     if u:
                         self._storage.append(
-                            [self._storage._deserialize_storage_item(_point)],
+                            [self._storage._serialize_point(_point)],
                             temporary=True,
                         )
 
