@@ -537,7 +537,7 @@ def test_regex():
 
 def test_custom_function():
     """Test custom function in the test method."""
-    # Test an arbitrary function with no additional args.
+
     def is_los_angeles(value):
         """Return value is los angeles."""
         return value == "los angeles"

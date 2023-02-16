@@ -491,7 +491,6 @@ class BaseQuery:
             try:
                 # Resolve path for mappings.
                 for part in self._path:
-
                     # Normal key/val traversal.
                     if isinstance(part, str):
                         value = value[part]

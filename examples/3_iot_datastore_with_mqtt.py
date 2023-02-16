@@ -83,7 +83,8 @@ def on_connect(client, *args):
 def on_disconnect(_, __, rc):
     """Define the on_disconnect callback.
 
-    See http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718035
+    See http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/
+        mqtt-v3.1.1-os.html#_Toc398718035
     for return codes descriptions.
 
     Args:
@@ -144,10 +145,8 @@ def run_tinyflux_worker():
     """
     # Loop until exit_event is set by main thread.
     while True:
-
         # Check the queue for new packets.
         if not q.empty():
-
             # Unpack MQTT packet.
             data = q.get()
             topic = data["topic"]
