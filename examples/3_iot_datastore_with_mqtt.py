@@ -83,7 +83,8 @@ def on_connect(client, *args):
 def on_disconnect(_, __, rc):
     """Define the on_disconnect callback.
 
-    See http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718035
+    See http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/
+        mqtt-v3.1.1-os.html#_Toc398718035
     for return codes descriptions.
 
     Args:

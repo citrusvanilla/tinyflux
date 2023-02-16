@@ -27,7 +27,7 @@ jobs:
       - name: Check static typing
         run: mypy tinyflux/ tests/
       - name: Run tests
-        run: coverage run -m pytest && coverage report -m
+        run: coverage run --source tinyflux/ -m pytest && coverage report -m
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v2
         with:

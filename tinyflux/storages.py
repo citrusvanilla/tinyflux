@@ -415,7 +415,6 @@ class CSVStorage(Storage):
         handle.truncate()
 
         if items:
-
             # Write the serialized data to the file
             w = csv.writer(handle, **self.kwargs)
             w.writerows(items)

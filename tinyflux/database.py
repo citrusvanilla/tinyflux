@@ -298,7 +298,6 @@ class TinyFlux:
         """
         # If the index is valid, check it.
         if self._index.valid:
-
             if measurement:
                 mq = MeasurementQuery() == measurement
                 index_rst = self._index.search(mq & query)
@@ -313,7 +312,6 @@ class TinyFlux:
 
         # Search without help of the index.
         for item in self._storage:
-
             # Filter by measurement.
             if (
                 measurement
@@ -341,7 +339,6 @@ class TinyFlux:
         """
         # If the index is valid, check it.
         if self._index.valid:
-
             if measurement:
                 mq = MeasurementQuery() == measurement
                 index_rst = self._index.search(mq & query)
@@ -356,7 +353,6 @@ class TinyFlux:
 
         # Search without help of the index.
         for item in self._storage:
-
             # Filter by measurement.
             if (
                 measurement
@@ -411,7 +407,6 @@ class TinyFlux:
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
-
             if measurement:
                 mq = MeasurementQuery() == measurement
                 index_rst = self._index.search(mq & query)
@@ -431,9 +426,7 @@ class TinyFlux:
 
         # Search with help of the index.
         if use_index:
-
             for i, item in enumerate(self._storage):
-
                 # Not a candidate.
                 if i not in index_rst._items:
                     continue
@@ -443,10 +436,8 @@ class TinyFlux:
                 break
 
         else:
-
             # Evaluate all points until match.
             for item in self._storage:
-
                 # Filter by measurement.
                 if (
                     measurement
@@ -488,7 +479,6 @@ class TinyFlux:
         rst = set({})
 
         for item in self._storage:
-
             # Filter by measurement.
             if (
                 measurement
@@ -525,7 +515,6 @@ class TinyFlux:
         rst = []
 
         for item in self._storage:
-
             # Filter by measurement.
             if (
                 measurement
@@ -581,7 +570,6 @@ class TinyFlux:
         rst = set({})
 
         for item in self._storage:
-
             # Filter by measurement.
             if (
                 measurement
@@ -625,7 +613,6 @@ class TinyFlux:
         rst = {i: set({}) for i in sorted(relevant_tags)}
 
         for item in self._storage:
-
             # Filter by measurement.
             if (
                 measurement
@@ -672,7 +659,6 @@ class TinyFlux:
         rst: List[datetime] = []
 
         for item in self._storage:
-
             # Filter by measurement.
             if (
                 measurement
@@ -826,7 +812,6 @@ class TinyFlux:
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
-
             if measurement:
                 mq = MeasurementQuery() == measurement
                 index_rst = self._index.search(mq & query)
@@ -849,7 +834,6 @@ class TinyFlux:
             j = 0
 
             for i, item in enumerate(self._storage):
-
                 # Not a candidate, skip.
                 if i not in index_rst._items:
                     continue
@@ -867,9 +851,7 @@ class TinyFlux:
 
         # Search without index.
         else:
-
             for item in self._storage:
-
                 # Filter by measurement.
                 if (
                     measurement
@@ -947,7 +929,6 @@ class TinyFlux:
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
-
             if measurement:
                 mq = MeasurementQuery() == measurement
                 index_rst = self._index.search(mq & query)
@@ -961,7 +942,6 @@ class TinyFlux:
             j = 0
 
             for i, item in enumerate(self._storage):
-
                 # Not in result set, skip.
                 if i not in index_rst._items:
                     continue
@@ -1007,9 +987,7 @@ class TinyFlux:
 
         # Select without index.
         else:
-
             for item in self._storage:
-
                 # Filter by measurement.
                 if (
                     measurement
@@ -1022,7 +1000,6 @@ class TinyFlux:
                 _point = self._storage._deserialize_storage_item(item)
 
                 if query(_point):
-
                     result = []
 
                     for key in keys:
@@ -1297,7 +1274,6 @@ class TinyFlux:
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
-
             if measurement:
                 mq = MeasurementQuery() == measurement
                 index_rst = self._index.search(mq & query)
@@ -1327,11 +1303,9 @@ class TinyFlux:
 
         # Update with the help of the index.
         if use_index:
-
             j = 0
 
             for i, item in enumerate(self._storage):
-
                 # No more items or item is not a candidate.
                 if j == len(index_rst._items) or i not in index_rst._items:
                     self._storage.append([item], temporary=True)
@@ -1351,9 +1325,7 @@ class TinyFlux:
 
         # Update without the help of the index.
         else:
-
             for i, item in enumerate(self._storage):
-
                 # Filter by measurement.
                 if measurement:
                     _measurement = self._storage._deserialize_measurement(item)
@@ -1451,7 +1423,6 @@ class TinyFlux:
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
-
             if _measurement:
                 mq = MeasurementQuery() == _measurement
                 index_rst = self._index.search(mq & query)
@@ -1468,11 +1439,9 @@ class TinyFlux:
 
         # Update with the help of the index.
         if use_index:
-
             j = 0
 
             for i, item in enumerate(self._storage):
-
                 # Not a query match, pass item through.
                 if j == len(index_rst.items) or i not in index_rst._items:
                     self._storage.append([item], temporary=True)
@@ -1501,9 +1470,7 @@ class TinyFlux:
 
         # Update without the help of the index.
         else:
-
             for item in self._storage:
-
                 # Filter by measurement.
                 if (
                     _measurement
@@ -1517,7 +1484,6 @@ class TinyFlux:
 
                 # No query specified, or query match.
                 if update_all or query(_point):
-
                     # Attempt update.
                     u = perform_update(_point)
 

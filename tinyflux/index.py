@@ -264,7 +264,6 @@ class Index:
         measurement_items = set(self._measurements[measurement])
 
         for fk, items in self._fields.items():
-
             # Not a matching field key.
             if fk != field_key:
                 continue
@@ -337,7 +336,6 @@ class Index:
 
         # 1. No measurement, no tag keys. Return all.
         if not measurement and not tag_keys:
-
             for tag_key, tag_values in self._tags.items():
                 rst[tag_key] = set({})
 
@@ -348,7 +346,6 @@ class Index:
 
         # 2. Measurement, no tag keys.
         elif measurement and not tag_keys:
-
             if measurement in self._measurements:
                 measurement_items = set(self._measurements[measurement])
             else:
@@ -366,7 +363,6 @@ class Index:
 
         # 3. No measurement, tag keys.
         elif not measurement and tag_keys:
-
             rst = {i: set({}) for i in tag_keys}
 
             for tag_key, tag_values in self._tags.items():
@@ -520,7 +516,6 @@ class Index:
             fields: Dict of Field key/vals.
         """
         for field_key, field_value in fields.items():
-
             if field_key not in self._fields:
                 self._fields[field_key] = [(idx, field_value)]
             else:
@@ -550,7 +545,6 @@ class Index:
             tags: Dict of Tag key/vals.
         """
         for tag_key, tag_value in tags.items():
-
             if tag_key not in self._tags:
                 self._tags[tag_key] = {}
 
@@ -602,7 +596,6 @@ class Index:
         rst_items: Set[int] = set([])
 
         for field_key, items in self._fields.items():
-
             # Transform the key. We're only concerned with whether or not a
             # storage item has a relevant field key before testing its value.
             # It if does, then we the values, and add these items to results.
@@ -735,7 +728,6 @@ class Index:
 
         # Exact timestamp match.
         if op == operator.eq:
-
             # Find the exact match, or return empty set if None.
             match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
@@ -756,7 +748,6 @@ class Index:
 
         # Anything except exact timestamp match.
         elif op == operator.ne:
-
             # Find the exact match, or return full set if None.
             match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
@@ -777,7 +768,6 @@ class Index:
 
         # Everything less than rhs.
         elif op == operator.lt:
-
             match = find_lt(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
@@ -786,7 +776,6 @@ class Index:
 
         # Every less than or equal to rhs.
         elif op == operator.le:
-
             match = find_le(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
@@ -795,7 +784,6 @@ class Index:
 
         # Everything greater than rhs.
         elif op == operator.gt:
-
             match = find_gt(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
@@ -804,7 +792,6 @@ class Index:
 
         # Everything greater than or equal to rhs.
         elif op == operator.ge:
-
             match = find_ge(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
