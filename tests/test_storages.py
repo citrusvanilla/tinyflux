@@ -201,7 +201,7 @@ def test_in_memory_close():
 
 def test_subclassing_storage():
     """Test subclassing ABC Storage without defining abstract methods."""
-    # Subclass without abstract methods.
+
     class MyStorage(Storage):
         pass
 

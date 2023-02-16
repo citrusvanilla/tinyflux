@@ -145,10 +145,8 @@ def run_tinyflux_worker():
     """
     # Loop until exit_event is set by main thread.
     while True:
-
         # Check the queue for new packets.
         if not q.empty():
-
             # Unpack MQTT packet.
             data = q.get()
             topic = data["topic"]
