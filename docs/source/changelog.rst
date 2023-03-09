@@ -1,6 +1,11 @@
 Changelog
 =========
 
+v0.2.6 (2023-3-9)
+^^^^^^^^^^^^^^^^^^
+
+* TinyFlux is not PEP 561 compliant (resolves issue #31).
+
 v0.2.4 (2023-2-15)
 ^^^^^^^^^^^^^^^^^^
 
