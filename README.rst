@@ -155,7 +155,7 @@ New ideas, new developer tools, improvements, and bugfixes are always welcome.  
 .. |Build Status| image:: https://github.com/citrusvanilla/tinyflux/actions/workflows/build.yml/badge.svg
 .. |Coverage| image:: https://codecov.io/gh/citrusvanilla/tinyflux/branch/master/graph/badge.svg?token=IEGQ4E57VA
    :target: https://app.codecov.io/gh/citrusvanilla
-.. |Version| image:: http://img.shields.io/pypi/v/tinyflux.svg?style=flat-square
+.. |Version| image:: http://img.shields.io/pypi/v/tinyflux.svg
    :target: https://pypi.python.org/pypi/tinyflux/
 .. |Downloads| image:: https://img.shields.io/pypi/dm/tinyflux.svg
    :target: https://pypi.python.org/pypi/tinyflux/
