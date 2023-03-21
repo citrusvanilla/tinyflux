@@ -1,5 +1,5 @@
-Get started with
-================
+Getting started with
+====================
 
 .. image:: https://github.com/citrusvanilla/tinyflux/blob/master/artwork/tinyfluxdb-dark.png?raw=true#gh-light-mode-only
     :width: 500px

@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information -----------------------------------------------------
 
 project = "TinyFlux"
-copyright = "2022, Justin Fung"
+copyright = "2023, Justin Fung"
 author = "Justin Fung"
 
 # The full version, including alpha/beta/rc tags
