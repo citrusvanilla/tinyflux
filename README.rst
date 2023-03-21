@@ -20,7 +20,7 @@ Recent Updates
 **************
 
 v0.3.0 (2023-3-21)
-^^^^^^^^^^^^^^^^^^
+==================
 
 * Tag and field keys can be compacted when using CSVStorage, saving potentially many bytes per Point (resolves issue #32).
 * Fixed bug that causes tag values of '' to be serialized as "_none" (resolves issue #33).
@@ -126,6 +126,11 @@ The `examples <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_
 2. `Local Analytics Workflow with a TinyFlux Database <https://github.com/citrusvanilla/tinyflux/blob/master/examples/2_analytics_workflow.ipynb>`_
 3. `TinyFlux as a MQTT Datastore for IoT Devices <https://github.com/citrusvanilla/tinyflux/blob/master/examples/3_iot_datastore_with_mqtt.py>`_
 
+Tips
+****
+
+Checkout some tips for working with TinyFlux `here <https://tinyflux.readthedocs.io/en/latest/tips.html>`_.
+
 
 TinyFlux Across the Internet
 ****************************
@@ -141,7 +146,7 @@ Contributing
 
 New ideas, new developer tools, improvements, and bugfixes are always welcome.  Follow these guidelines before getting started:
 
-1. Make sure to read `Getting Started <https://tinyflux.readthedocs.io/en/latest/getting-started.html>`_ and the `Contributing <https://tinyflux.readthedocs.io/en/latest/contributing-philosophy.html>`_ section of the documentation.
+1. Make sure to read `Getting Started <https://tinyflux.readthedocs.io/en/latest/getting-started.html>`_ and the `Contributing Tooling and Conventions <https://tinyflux.readthedocs.io/en/latest/contributing-tooling.html>`_ section of the documentation.
 2. Check GitHub for `existing open issues <https://github.com/citrusvanilla/tinyflux/issues>`_, `open a new issue <https://github.com/citrusvanilla/tinyflux/issues/new>`_ or `start a new discussion <https://github.com/citrusvanilla/tinyflux/discussions/new>`_.
 3. To get started on a pull request, fork the repository on GitHub, create a new branch, and make updates.
 4. Write unit tests, ensure the code is 100% covered, update documentation where necessary, and format and style the code correctly.
