@@ -47,7 +47,7 @@ def validate_tags(tags: Any) -> None:
 
     # Check values.
     if not all(i is None or isinstance(i, str) for i in tags.values()):
-        raise ValueError("Tag set must contain only string values.")
+        raise ValueError("Tag set must contain only string values or None.")
 
     return
 
@@ -74,7 +74,9 @@ def validate_fields(fields: Any) -> None:
             continue
 
         if isinstance(i, bool) or not isinstance(i, (int, float)):
-            raise ValueError("Field set must contain only numeric values.")
+            raise ValueError(
+                "Field set must contain only numeric values or None."
+            )
 
     return
 
@@ -98,6 +100,11 @@ class Point:
     default_measurement_name = "_default"
     _valid_kwargs = set(["time", "measurement", "tags", "fields"])
     __slots__ = ("_time", "_measurement", "_tags", "_fields")
+
+    _default_tag_key_prefix = "_tag_"
+    _default_field_key_prefix = "_field_"
+    _compact_tag_key_prefix = "t_"
+    _compact_field_key_prefix = "f_"
 
     _time: Optional[datetime]
     _measurement: str
@@ -205,18 +212,14 @@ class Point:
         repr_str = "Point("
 
         # Add time.
-        repr_str += (
-            f"time={self._time.isoformat() if self._time else 'None'}, "
-        )
+        repr_str += f"time={self._time.isoformat() if self._time else 'None'}, "
 
         # Add measurement.
         repr_str += f"measurement={self._measurement}"
 
         # Add tags.
         if self._tags:
-            tags_str = "; ".join(
-                f"{k}:{str(v)}" for k, v in self._tags.items()
-            )
+            tags_str = "; ".join(f"{k}:{str(v)}" for k, v in self._tags.items())
             repr_str += f", tags={tags_str}"
 
         # Add fields.
@@ -239,10 +242,6 @@ class Point:
 
         Returns:
             A Point object.
-
-        Raises:
-            ValueError: Deserializing encounters a bad type.
-            RuntimeError: Deserializing encounters an unexpected column.
         """
         p_time = datetime.fromisoformat(row[0]).replace(tzinfo=timezone.utc)
         p_measurement = row[1]
@@ -254,14 +253,31 @@ class Point:
         i = 2
 
         # Check for tag key/values.
-        while i < row_len and row[i][1] == "t":
-            t_key, t_value = row[i][5:], row[i + 1]
+        while i < row_len:
+            # Default tag key prefix is "_tag_" (most-used case).
+            if row[i][1] == "t":
+                t_key = row[i][len(self._default_tag_key_prefix) :]
+            # Compact tag key prefix is "t_".
+            elif row[i][0] == "t":
+                t_key = row[i][len(self._compact_tag_key_prefix) :]
+            # Otherwise, its a field -> continue.
+            else:
+                break
+
+            t_value = None if row[i + 1] == self._none_str else str(row[i + 1])
             p_tags[t_key] = t_value
             i += 2
 
         # Check for field key/values.
         while i < row_len:
-            f_key, f_value = row[i][7:], row[i + 1]
+            # Default field key prefix is "_field_" (most-used case).
+            if row[i][1] == "f":
+                f_key = row[i][len(self._default_field_key_prefix) :]
+            # Compact field key prefix is "f_".
+            else:
+                f_key = row[i][len(self._compact_field_key_prefix) :]
+
+            f_value = row[i + 1]
 
             # Value is an integer.
             if f_value.isdigit() or (
@@ -288,8 +304,13 @@ class Point:
 
         return self
 
-    def _serialize_to_list(self) -> Sequence[str]:
+    def _serialize_to_list(
+        self, compact_key_prefixes: bool = False
+    ) -> Sequence[str]:
         """Serialize a Point to a tuple of strings.
+
+        Args:
+            compact_key_prefixes: Use compact key prefixes.
 
         Returns:
             A well-formed tuple of strings, representing a Point.
@@ -297,18 +318,41 @@ class Point:
         Usage:
             >>> sp = Point()._serialize_to_list()
         """
+        # Time.
         t = (
             self._time.replace(tzinfo=None).isoformat()
             if self._time
             else self._none_str
         )
+
+        # Measurement.
         m = str(self._measurement or self._none_str)
+
+        # Tags.
+        tag_key_prefix = (
+            self._compact_tag_key_prefix
+            if compact_key_prefixes
+            else self._default_tag_key_prefix
+        )
         tags = (
-            (f"_tag_{k}", str(v) or self._none_str)
+            (
+                f"{tag_key_prefix}{k}",
+                self._none_str if v is None else str(v),
+            )
             for k, v in self._tags.items()
         )
+
+        # Fields.
+        field_key_prefix = (
+            self._compact_field_key_prefix
+            if compact_key_prefixes
+            else self._default_field_key_prefix
+        )
         fields = (
-            (f"_field_{k}", self._none_str if v is None else str(float(v)))
+            (
+                f"{field_key_prefix}{k}",
+                self._none_str if v is None else str(float(v)),
+            )
             for k, v in self._fields.items()
         )
 

@@ -453,9 +453,7 @@ class BaseQuery:
             and rhs
             and not isinstance(rhs, str)
         ):
-            raise TypeError(
-                "MeasurementQuery comparison value must be string."
-            )
+            raise TypeError("MeasurementQuery comparison value must be string.")
 
         # Validation for tags.
         if self._point_attr == "_tags" and rhs and not isinstance(rhs, str):

@@ -180,6 +180,12 @@ def test_tags():
         {
             "key1": "value1",
         },
+        {
+            "key1": "",
+        },
+        {
+            "key1": None,
+        },
         {"key2": "value2", "key3": "value3"},
     ]
 
@@ -413,4 +419,74 @@ def test_serialize_zero_values():
         new_p.fields["a"] == 0
         and new_p.fields["b"] == 0.0
         and new_p.fields["c"] is None
+    )
+
+
+def test_serialize_none_values():
+    """Test serializing/deserializing None values."""
+    p = Point(fields={"a": None}, tags={"a": None})
+    s = p._serialize_to_list()
+    assert s[3] == p._none_str and s[5] == p._none_str
+
+    new_p = Point()._deserialize_from_list(s)
+
+    assert p == new_p
+
+    assert new_p.fields["a"] is None and new_p.tags["a"] is None
+
+
+def test_serialize_empty_strings():
+    """Test serializing/deserializing empty string tag values."""
+    p = Point(tags={"a": ""})
+    s = p._serialize_to_list()
+    assert s[3] == ""
+
+    new_p = Point()._deserialize_from_list(s)
+
+    assert p == new_p
+
+    assert new_p.tags["a"] == ""
+
+
+def test_compact_tag_keys():
+    """Test compact tag keys in CSV Storage."""
+    p = Point(fields={"a": 0, "b": 0.0, "c": None})
+    s = p._serialize_to_list(compact_key_prefixes=True)
+    s1 = p._serialize_to_list(compact_key_prefixes=False)
+
+    assert all(s[i].startswith(p._compact_field_key_prefix) for i in (2, 4, 6))
+
+    new_p = Point()._deserialize_from_list(s)
+    new_p1 = Point()._deserialize_from_list(s1)
+
+    assert p == new_p == new_p1
+
+    assert all(i in new_p.fields for i in ("a", "b", "c"))
+
+    assert (
+        new_p.fields["a"] == 0
+        and new_p.fields["b"] == 0.0
+        and new_p.fields["c"] is None
+    )
+
+
+def test_compact_field_keys():
+    """Test compact tag keys in CSV Storage."""
+    p = Point(tags={"a": "aa", "b": "bb", "c": None})
+    s = p._serialize_to_list(compact_key_prefixes=True)
+    s1 = p._serialize_to_list(compact_key_prefixes=False)
+
+    assert all(s[i].startswith(p._compact_tag_key_prefix) for i in (2, 4, 6))
+
+    new_p = Point()._deserialize_from_list(s)
+    new_p1 = Point()._deserialize_from_list(s1)
+
+    assert p == new_p == new_p1
+
+    assert all(i in new_p.tags for i in ("a", "b", "c"))
+
+    assert (
+        new_p.tags["a"] == "aa"
+        and new_p.tags["b"] == "bb"
+        and new_p.tags["c"] is None
     )

@@ -31,7 +31,7 @@ TinyFlux conforms to `PEP 8`_ for style, and `Google Python Style Guide`_ for do
 Formatting
 ^^^^^^^^^^
 
-TinyFlux uses standard configuration black_ for code formatting, with an enforced line-length of 79 characters.
+TinyFlux uses standard configuration black_ for code formatting, with an enforced line-length of 80 characters.
 
 After installing the project requirements:
 
@@ -43,7 +43,7 @@ After installing the project requirements:
 Style
 ^^^^^
 
-TinyFlux uses standard configuration flake8_ for style enforcement, with an enforced line-length of 79 characters.
+TinyFlux uses standard configuration flake8_ for style enforcement, with an enforced line-length of 80 characters.
 
 After installing the project requirements:
 

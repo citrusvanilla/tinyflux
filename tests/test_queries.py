@@ -59,19 +59,11 @@ def test_repr():
     c5 = q2 | q4
     c6 = ~q3
 
-    rc1 = (
-        f"CompoundQuery({c1.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
-    )
-    rc2 = (
-        f"CompoundQuery({c2.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
-    )
+    rc1 = f"CompoundQuery({c1.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
+    rc2 = f"CompoundQuery({c2.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
     rc3 = f"CompoundQuery({c3.operator.__name__}, 'SimpleQuery')"
-    rc4 = (
-        f"CompoundQuery({c4.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
-    )
-    rc5 = (
-        f"CompoundQuery({c5.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
-    )
+    rc4 = f"CompoundQuery({c4.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
+    rc5 = f"CompoundQuery({c5.operator.__name__}, 'SimpleQuery', 'SimpleQuery')"
     rc6 = "CompoundQuery(not_, 'SimpleQuery')"
 
     assert repr(c1) == rc1
@@ -854,9 +846,7 @@ def test_basequery():
     ):
         q & (TagQuery().a == "b")
 
-    with pytest.raises(
-        RuntimeError, match="Cannot logical-OR an empty query."
-    ):
+    with pytest.raises(RuntimeError, match="Cannot logical-OR an empty query."):
         q | (TagQuery().a == "b")
 
     with pytest.raises(

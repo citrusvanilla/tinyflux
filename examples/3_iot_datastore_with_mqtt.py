@@ -54,7 +54,7 @@ TINYFLUX_DB = "my_tinyflux_mqtt_database.db"
 db = TinyFlux(TINYFLUX_DB)
 
 # Interthread queue.
-q = Queue()
+q: Queue = Queue()
 
 # Init but do not set a threading exit event for graceful exit.
 exit_event = threading.Event()

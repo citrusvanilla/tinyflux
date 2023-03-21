@@ -5,6 +5,7 @@ import os
 import random
 import re
 import tempfile
+from typing import Any
 
 import pytest
 
@@ -238,7 +239,9 @@ def test_subclassing_storage():
             """Deserialize storage."""
             ...
 
-        def _serialize_point(self, Point) -> None:
+        def _serialize_point(
+            self, point: Point, *args: Any, **kwargs: Any
+        ) -> None:
             """Serialize Point."""
             ...
 
@@ -639,3 +642,26 @@ def test_temporary_storage(tmpdir):
     # Exception should be thrown if temp storage not initialized.
     with pytest.raises(IOError):
         storage.append([], temporary=True)
+
+
+def test_compact_key_prefixes(tmpdir):
+    """Test compact keys option."""
+    # Memory.
+    m = MemoryStorage()
+    p = Point(tags={"a": "aa"}, fields={"a": 1})
+    assert (
+        m._serialize_point(p, compact_key_prefixes=True)
+        == m._serialize_point(p, compact_key_prefixes=False)
+        == m._serialize_point(p)
+        == p
+    )
+
+    # CSV.
+    path = os.path.join(tmpdir, "test.csv")
+    m = CSVStorage(path)
+    assert m._serialize_point(
+        p, compact_key_prefixes=True
+    ) == p._serialize_to_list(compact_key_prefixes=True)
+    assert m._serialize_point(
+        p, compact_key_prefixes=False
+    ) == p._serialize_to_list(compact_key_prefixes=False)

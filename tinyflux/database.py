@@ -153,9 +153,7 @@ class TinyFlux:
     _measurements: Dict[str, Measurement]
     _open: bool
 
-    def __init__(
-        self: Any, *args: Any, auto_index: bool = True, **kwargs: Any
-    ):
+    def __init__(self: Any, *args: Any, auto_index: bool = True, **kwargs: Any):
         """Initialize a new instance of TinyFlux.
 
         If 'auto_index' is set to True, an index will be built in-memory for
@@ -281,9 +279,7 @@ class TinyFlux:
         return
 
     @read_op
-    def contains(
-        self, query: Query, measurement: Optional[str] = None
-    ) -> bool:
+    def contains(self, query: Query, measurement: Optional[str] = None) -> bool:
         """Check whether the database contains a point matching a query.
 
         Defines a function that iterates over storage items and submits it to
@@ -674,12 +670,18 @@ class TinyFlux:
         return rst
 
     @append_op
-    def insert(self, point: Point, measurement: Optional[str] = None) -> int:
+    def insert(
+        self,
+        point: Point,
+        measurement: Optional[str] = None,
+        compact_key_prefixes: bool = False,
+    ) -> int:
         """Insert a Point into the database.
 
         Args:
             point: A Point object.
             measurement: An optional measurement to filter by.
+            compact_key_prefixes: Use compact key prefixes in relevant storages.
 
         Returns:
             1 if success.
@@ -688,17 +690,21 @@ class TinyFlux:
             OSError if storage cannot be appendex to.
             TypeError if point is not a Point instance.
         """
-        return self._insert_helper([point], measurement)
+        return self._insert_helper([point], measurement, compact_key_prefixes)
 
     @append_op
     def insert_multiple(
-        self, points: Iterable[Any], measurement: Optional[str] = None
+        self,
+        points: Iterable[Any],
+        measurement: Optional[str] = None,
+        compact_key_prefixes: bool = False,
     ) -> int:
         """Insert Points into the database.
 
         Args:
             points: An iterable of Point objects.
             measurement: An optional measurement to insert Points into.
+            compact_key_prefixes: Use compact key prefixes in relevant storages.
 
         Returns:
             The count of inserted points.
@@ -707,7 +713,7 @@ class TinyFlux:
             OSError if storage cannot be appendex to.
             TypeError if point is not a Point instance.
         """
-        return self._insert_helper(points, measurement)
+        return self._insert_helper(points, measurement, compact_key_prefixes)
 
     def measurement(self, name: str, **kwargs: Any) -> Measurement:
         """Return a reference to a measurement in this database.
@@ -905,9 +911,7 @@ class TinyFlux:
             raise ValueError("'keys' must be a string or iterable of strings.")
 
         keys: List[Any] = (
-            [select_keys]
-            if isinstance(select_keys, str)
-            else list(select_keys)
+            [select_keys] if isinstance(select_keys, str) else list(select_keys)
         )
 
         # Validate bad keys.
@@ -1067,9 +1071,7 @@ class TinyFlux:
             datetime, Callable[[Optional[datetime]], datetime], None
         ] = None,
         measurement: Union[str, Callable[[Optional[str]], str], None] = None,
-        tags: Union[
-            TagSet, Callable[[Mapping[Any, Any]], TagSet], None
-        ] = None,
+        tags: Union[TagSet, Callable[[Mapping[Any, Any]], TagSet], None] = None,
         fields: Union[
             FieldSet, Callable[[Mapping[Any, Any]], FieldSet], None
         ] = None,
@@ -1172,9 +1174,7 @@ class TinyFlux:
                     try:
                         point.measurement = measurement(point.measurement)
                     except ValueError:
-                        raise ValueError(
-                            "Measurement must update to a string."
-                        )
+                        raise ValueError("Measurement must update to a string.")
                 else:
                     point.measurement = measurement
 
@@ -1204,13 +1204,17 @@ class TinyFlux:
         return perform_update
 
     def _insert_helper(
-        self, points: Iterable[Any], measurement: Optional[str]
+        self,
+        points: Iterable[Any],
+        measurement: Optional[str],
+        compact_key_prefixes: bool = False,
     ) -> int:
         """Insert point helper.
 
         Args:
             updater: Update function.
             measurement: Optional measurement to insert into.
+            compact_key_prefixes: Use compact key prefixes in relevant storages.
 
         Returns:
             Count of number of updates made.
@@ -1233,7 +1237,13 @@ class TinyFlux:
                 point.time = t
 
             # Insert the points into storage.
-            self._storage.append([self._storage._serialize_point(point)])
+            self._storage.append(
+                [
+                    self._storage._serialize_point(
+                        point, compact_key_prefixes=compact_key_prefixes
+                    )
+                ]
+            )
 
             # Check index.
             if self._auto_index and self._index.valid:
