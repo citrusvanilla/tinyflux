@@ -144,7 +144,7 @@ class Storage(ABC):  # pragma: no cover
         ...
 
     @abstractmethod
-    def _serialize_point(self, point: Point) -> Any:
+    def _serialize_point(self, point: Point, *args: Any, **kwargs: Any) -> Any:
         """Serialize a point to an item for storage."""
         ...
 
@@ -372,10 +372,12 @@ class CSVStorage(Storage):
         return
 
     def _serialize_point(
-        self, point: Point
+        self, point: Point, *args: Any, **kwargs: Any
     ) -> Sequence[Union[str, float, int]]:
         """Serialize a point to an item for storage."""
-        return point._serialize_to_list()
+        return point._serialize_to_list(
+            compact_key_prefixes=kwargs.pop("compact_key_prefixes", False)
+        )
 
     def _swap_temp_with_primary(self) -> None:
         """Swap primary data store with temporary data store."""
@@ -525,7 +527,9 @@ class MemoryStorage(Storage):
         """Initialize temporary storage."""
         self._temp_memory = []
 
-    def _serialize_point(self, point: Point) -> MemStorageItem:
+    def _serialize_point(
+        self, point: Point, *args: Any, **kwargs: Any
+    ) -> MemStorageItem:
         """Serialize a point to an item for storage."""
         return point
 

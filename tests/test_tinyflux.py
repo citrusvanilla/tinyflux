@@ -897,9 +897,9 @@ def test_update():
     db = TinyFlux(storage=MemoryStorage, auto_index=False)
 
     # Insert some points.
-    t1, t2 = datetime.now(timezone.utc), datetime.now(
-        timezone.utc
-    ) + timedelta(days=1)
+    t1, t2 = datetime.now(timezone.utc), datetime.now(timezone.utc) + timedelta(
+        days=1
+    )
 
     p1 = Point(
         time=t1,
@@ -1027,13 +1027,9 @@ def test_update():
     with pytest.raises(
         ValueError, match="Measurement must update to a string."
     ):
-        db.update(
-            FieldQuery().fk2 == 2, measurement=lambda _: {"golden bears"}
-        )
+        db.update(FieldQuery().fk2 == 2, measurement=lambda _: {"golden bears"})
 
-    with pytest.raises(
-        ValueError, match="Tags must update to a valid TagSet."
-    ):
+    with pytest.raises(ValueError, match="Tags must update to a valid TagSet."):
         db.update(FieldQuery().fk2 == 2, tags=lambda _: {"golden bears"})
 
     with pytest.raises(
@@ -1174,3 +1170,61 @@ def test_open_unindexed_storage_with_autoindex_OFF(tmpdir):
     db.all()
     assert not db._index.valid
     assert db.index.empty
+
+
+def test_insert_compact_keys(tmpdir):
+    """Test insert method."""
+    # Memory storage.
+    db = TinyFlux(storage=MemoryStorage)
+    p = Point(tags={"a": "aa"}, fields={"a": 1})
+    p1 = Point(tags={"a": "aa"}, fields={"a": 1})
+    p2 = Point(tags={"a": "aa"}, fields={"a": 1})
+
+    # Insert into empty db.
+    assert db.insert(p, compact_key_prefixes=True) == 1
+    assert db.index.valid and not db.index.empty
+    assert len(db.index) == 1
+    assert len(db) == 1
+
+    assert db.all()[0] == p
+
+    assert db.insert_multiple([p1, p2], compact_key_prefixes=True) == 2
+    assert db.index.valid and not db.index.empty
+    assert len(db.index) == 3
+    assert len(db) == 3
+
+    assert db.all() == [p, p1, p2]
+
+    # CSVStorage
+    path = os.path.join(tmpdir, "test.csv")
+
+    db = TinyFlux(path)
+    assert db.index.valid
+    assert db.index.empty
+
+    assert db.insert(p, compact_key_prefixes=True) == 1
+    assert db.index.valid and not db.index.empty
+    assert len(db.index) == 1
+    assert len(db) == 1
+
+    f = open(path, "r+")
+    rows = list(csv.reader(f))
+
+    assert rows[0][2].startswith(p._compact_tag_key_prefix)
+    assert rows[0][4].startswith(p._compact_field_key_prefix)
+
+    assert db.all()[0] == p
+
+    assert db.insert_multiple([p1, p2], compact_key_prefixes=True) == 2
+    assert db.index.valid and not db.index.empty
+    assert len(db.index) == 3
+    assert len(db) == 3
+
+    f = open(path, "r+")
+    rows = list(csv.reader(f))
+
+    for row in rows:
+        assert row[2].startswith(p._compact_tag_key_prefix)
+        assert row[4].startswith(p._compact_field_key_prefix)
+
+    assert db.all() == [p, p1, p2]

@@ -21,11 +21,11 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
       - name: Check code formatting
-        run: black --check tinyflux/ tests/
+        run: black --check tinyflux/ tests/ examples/
       - name: Check code style
-        run: flake8 tinyflux/ tests/
+        run: flake8 tinyflux/ tests/ examples/
       - name: Check static typing
-        run: mypy tinyflux/ tests/
+        run: mypy tinyflux/ tests/ examples/
       - name: Run tests
         run: coverage run --source tinyflux/ -m pytest && coverage report -m
       - name: Upload Coverage to Codecov

@@ -7,3 +7,4 @@ pytest-cov
 sphinx
 sphinx_autodoc_typehints
 sphinx_rtd_theme
+types-paho-mqtt
