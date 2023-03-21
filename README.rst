@@ -4,7 +4,7 @@
 .. image:: https://github.com/citrusvanilla/tinyflux/blob/master/artwork/tinyfluxdb-dark.png?raw=true#gh-light-mode-only
     :width: 500px
 
-|Build Status| |Coverage| |Version|
+|Build Status| |Coverage| |Version| |Downloads|
 
 Quick Links
 ***********
@@ -156,4 +156,6 @@ New ideas, new developer tools, improvements, and bugfixes are always welcome.  
 .. |Coverage| image:: https://codecov.io/gh/citrusvanilla/tinyflux/branch/master/graph/badge.svg?token=IEGQ4E57VA
    :target: https://app.codecov.io/gh/citrusvanilla
 .. |Version| image:: http://img.shields.io/pypi/v/tinyflux.svg?style=flat-square
+   :target: https://pypi.python.org/pypi/tinyflux/
+.. |Downloads| image:: https://img.shields.io/pypi/dm/tinyflux.svg
    :target: https://pypi.python.org/pypi/tinyflux/
