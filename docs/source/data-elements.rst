@@ -108,7 +108,7 @@ On disk:
 Tag Key
 ^^^^^^^
 
-A tag key is the identifier for a :ref:`tag value` in a :ref:`tag set`.  On disk, a tag key is prepended with ``_tag_``.
+A tag key is the identifier for a :ref:`tag value` in a :ref:`tag set`.  On disk, a tag key is prefixed with ``_tag_`` (default) or ``t_`` (compact).
 
 In the following, the tag key is ``city``.
 
@@ -149,7 +149,7 @@ On disk:
 Field Key
 ^^^^^^^^^
 
-A field key is the identifier for a :ref:`field value` in a :ref:`field set`.  On disk, a field key is prepended with ``_field_``.
+A field key is the identifier for a :ref:`field value` in a :ref:`field set`.  On disk, a field key is prefixed with ``_field_`` (default) or ``f_`` (compact).
 
 In the following, the field key is ``num_restaurants``.
 

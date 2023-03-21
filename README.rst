@@ -16,6 +16,17 @@ Quick Links
 - `Contributing`_
 
 
+Recent Updates
+**************
+
+v0.3.0 (2023-3-21)
+^^^^^^^^^^^^^^^^^^
+
+* Tag and field keys can be compacted when using CSVStorage, saving potentially many bytes per Point (resolves issue #32).
+* Fixed bug that causes tag values of '' to be serialized as "_none" (resolves issue #33).
+
+
+
 Installation
 ************
 
@@ -78,7 +89,7 @@ Writing to TinyFlux
     ...     tags={"room": "bedroom"},
     ...     fields={"temp": 72.0}
     ... )
-    >>> db.insert(p)
+    >>> db.insert(p, compact_key_prefixes=True)
 
 
 Querying TinyFlux

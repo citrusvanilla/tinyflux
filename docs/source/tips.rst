@@ -42,6 +42,18 @@ If ``auto-index`` is set to ``True`` (the default setting), then the next read w
     If possible, Points should be inserted into TinyFlux in time-order.
 
 
+Saving Space
+^^^^^^^^^^^^
+
+If you are using a text-based storage layer (such as the default ``CSVStorage``) keep in mind that every character requires usually one (but up to four) bytes of memory for storage in a UTF-8 encoding.  To save space, here are a few tips:
+
+• Keep measurement names, tag keys, and field keys short and concise.
+• Precision matters!  Even more so with text-backed storage.  ``1.0000`` requires twice as much space to store compared to ``1.0``, and 5x more space than ``1``.
+• When inserting points into TinyFlux, make sure to set the ``compact_key_prefixes`` option to ``True`` (e.g. ``db.insert(my_point, compact_key_prefixes=True)``).  This saves three bytes per tag key/value pair and five bytes per field key/value pair.
+
+If your dataset is approaching 1 GB in size, keep reading.
+
+
 Dealing with Growing Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

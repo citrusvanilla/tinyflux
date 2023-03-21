@@ -1,10 +1,17 @@
 Changelog
 =========
 
+v0.3.0 (2023-3-21)
+^^^^^^^^^^^^^^^^^^
+
+* Tag and field keys can be compacted when using CSVStorage, saving potentially many bytes per Point (resolves issue #32).
+* Fixed bug that causes tag values of '' to be serialized as "_none" (resolves issue #33).
+
+
 v0.2.6 (2023-3-9)
 ^^^^^^^^^^^^^^^^^^
 
-* TinyFlux is not PEP 561 compliant (resolves issue #31).
+* TinyFlux is now PEP 561 compliant (resolves issue #31).
 
 v0.2.4 (2023-2-15)
 ^^^^^^^^^^^^^^^^^^
