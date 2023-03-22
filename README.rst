@@ -19,12 +19,13 @@ Quick Links
 Recent Updates
 **************
 
-v0.3.0 (2023-3-21)
+v0.3.0 - March 3rd, 2023
 ==================
 
 * Tag and field keys can be compacted when using CSVStorage, saving potentially many bytes per Point (resolves issue #32).
-* Fixed bug that causes tag values of '' to be serialized as "_none" (resolves issue #33).
+* Fixed bug that causes tag values of `""` to be serialized as `"_none"` (resolves issue #33).
 
+See the `Changelog <https://tinyflux.readthedocs.io/en/latest/changelog.html>`_ for more.
 
 
 Installation
