@@ -814,6 +814,9 @@ class TinyFlux:
         Returns:
             A list of found Points.
         """
+        if not isinstance(query, (SimpleQuery, CompoundQuery)):
+            raise ValueError("query must be a TinyFlux Query.")
+
         use_index = self._index.valid
 
         # If we are auto-indexing and the index is valid, check it.
@@ -1040,6 +1043,8 @@ class TinyFlux:
         measurement: Union[str, Callable[[str], str], None] = None,
         tags: Union[TagSet, Callable[[TagSet], TagSet], None] = None,
         fields: Union[FieldSet, Callable[[FieldSet], FieldSet], None] = None,
+        unset_fields: Union[str, Iterable[str], None] = None,
+        unset_tags: Union[str, Iterable[str], None] = None,
         _measurement: Optional[str] = None,
     ) -> int:
         """Update all matching Points in the database with new attributes.
@@ -1050,6 +1055,8 @@ class TinyFlux:
             measurement: A string or Callable returning one.
             tags: A mapping or Callable returning one.
             fields: A mapping or Callable returning one.
+            unset_fields: Field keys to remove upon update.
+            unset_tags: Tag keys to remove upon update.
             _measurement: An optional Measurement to filter by.
 
         Returns:
@@ -1059,7 +1066,15 @@ class TinyFlux:
             OSError if storage cannot be written to.
         """
         return self._update_helper(
-            False, query, time, measurement, tags, fields, _measurement
+            False,
+            query,
+            time=time,
+            measurement=measurement,
+            tags=tags,
+            fields=fields,
+            _measurement=_measurement,
+            unset_fields=unset_fields,
+            unset_tags=unset_tags,
         )
 
     @read_op
@@ -1075,6 +1090,8 @@ class TinyFlux:
         fields: Union[
             FieldSet, Callable[[Mapping[Any, Any]], FieldSet], None
         ] = None,
+        unset_fields: Union[str, Iterable[str], None] = None,
+        unset_tags: Union[str, Iterable[str], None] = None,
     ) -> int:
         """Update all points in the database with new attributes.
 
@@ -1083,6 +1100,8 @@ class TinyFlux:
             measurement: A string or Callable returning one.
             tags: A mapping or Callable returning one.
             fields: A mapping or Callable returning one.
+            unset_fields: Field keys to remove upon update.
+            unset_tags: Tag keys to remove upon update.
 
         Returns:
             A count of updated points.
@@ -1091,7 +1110,15 @@ class TinyFlux:
             OSError if storage cannot be written to.
         """
         return self._update_helper(
-            True, TagQuery().noop(), time, measurement, tags, fields, None
+            True,
+            TagQuery().noop(),
+            time=time,
+            measurement=measurement,
+            tags=tags,
+            fields=fields,
+            _measurement=None,
+            unset_fields=unset_fields,
+            unset_tags=unset_tags,
         )
 
     def _generate_updater(
@@ -1101,6 +1128,8 @@ class TinyFlux:
         measurement: Union[str, Callable[[str], str], None] = None,
         tags: Union[TagSet, Callable[[TagSet], TagSet], None] = None,
         fields: Union[FieldSet, Callable[[FieldSet], FieldSet], None] = None,
+        unset_fields: Union[str, Iterable[str], None] = None,
+        unset_tags: Union[str, Iterable[str], None] = None,
     ) -> Callable[[Point], bool]:
         """Generate a routine that updates a Point with new attributes.
 
@@ -1115,6 +1144,8 @@ class TinyFlux:
             measurement: The measurement update.
             tags: The tags update.
             fields: The fields update.
+            unset_fields: Field keys to remove upon update.
+            unset_tags: Tag keys to remove upon update.
 
         Returns:
             A function that updates a Point's attributes.
@@ -1123,9 +1154,13 @@ class TinyFlux:
         if query and not isinstance(query, (SimpleQuery, CompoundQuery)):
             raise ValueError("Argument 'query' must be a TinyFlux Query.")
 
-        if not (time or measurement or tags or fields):
+        if not (
+            time or measurement or tags or fields or unset_fields or unset_tags
+        ):
             raise ValueError(
-                "Must include time, measurement, tags, and/or fields."
+                "Must include one of time, measurement, tags, or fields if "
+                "updating point attributes, or one of unset_tags or "
+                "unset_fields if removing tags and fields."
             )
 
         # Validate non-callable update arguments.
@@ -1144,6 +1179,30 @@ class TinyFlux:
 
         if fields and not callable(fields):
             validate_fields(fields)
+
+        if unset_tags and not (
+            isinstance(unset_tags, str)
+            or (
+                isinstance(unset_tags, Iterable)
+                and all(isinstance(i, str) for i in unset_tags)
+            )
+        ):
+            raise ValueError(
+                "unset_tags must be a string or iterable of strings."
+            )
+
+        if unset_fields and (
+            not (
+                isinstance(unset_fields, str)
+                or (
+                    isinstance(unset_fields, Iterable)
+                    and all(isinstance(i, str) for i in unset_fields)
+                )
+            )
+        ):
+            raise ValueError(
+                "unset_fields must be a string or iterable of strings."
+            )
 
         # Define the update function.
         def perform_update(point: Point) -> bool:
@@ -1206,6 +1265,20 @@ class TinyFlux:
                         )
                 else:
                     point.fields.update(fields)
+
+            if unset_tags:
+                if isinstance(unset_tags, str):
+                    point.tags.pop(unset_tags, None)
+                else:
+                    for i in unset_tags:
+                        point.tags.pop(i, None)
+
+            if unset_fields:
+                if isinstance(unset_fields, str):
+                    point.fields.pop(unset_fields, None)
+                else:
+                    for i in unset_fields:
+                        point.fields.pop(i, None)
 
             return point != old_point
 
@@ -1410,6 +1483,8 @@ class TinyFlux:
         tags: Union[TagSet, Callable[[TagSet], TagSet], None] = None,
         fields: Union[FieldSet, Callable[[FieldSet], FieldSet], None] = None,
         _measurement: Optional[str] = None,
+        unset_fields: Union[str, Iterable[str], None] = None,
+        unset_tags: Union[str, Iterable[str], None] = None,
     ) -> int:
         """Update all matching Points in the database with new attributes.
 
@@ -1421,6 +1496,8 @@ class TinyFlux:
             tags: A mapping or Callable returning one.
             fields: A mapping or Callable returning one.
             _measurement: Optional measurement filter.
+            unset_fields: Field keys to remove upon update.
+            unset_tags: Tag keys to remove upon update.
 
         Returns:
             A count of updated points.
@@ -1435,6 +1512,8 @@ class TinyFlux:
             measurement=measurement,
             tags=tags,
             fields=fields,
+            unset_fields=unset_fields,
+            unset_tags=unset_tags,
         )
 
         use_index = not update_all and self._index.valid

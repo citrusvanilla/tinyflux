@@ -41,7 +41,7 @@ Field updates occur much the same way as tags.  To update all items in the datab
 
 .. note:: 
 
-    Updating data with `.update()` or `.update_all()` will not remove fields or tags, even if they are not returned when using a Callable as the updater.  This is consistent with the Python `dict API <https://docs.python.org/3/library/stdtypes.html#dict.update>`_, in which keys can be overwritten, but not deleted.
+    Updating data with `.update()` or `.update_all()` through the `tags` or `fields` arguments will not remove tags or fields, even if they are not returned when using a Callable as the updater.  This is consistent with the Python `dict API <https://docs.python.org/3/library/stdtypes.html#dict.update>`_, in which keys can be overwritten, but not deleted.  To remove tags and fields completely, see :ref:`Removing Tags and Fields with Update` below.
 
 .. warning:: 
 
@@ -56,3 +56,35 @@ to recap, these are the two methods supporting the updating of data.
 +------------------------------------------+-----------------------------------------------------+
 | ``db.update_all(...)``                   | Update all points.                                  |
 +------------------------------------------+-----------------------------------------------------+
+
+Removing Tags and Fields with Update
+====================================
+
+TinyFlux supports the removal of individual tag and field key/values through the `unset_tags` and `unset_fields` arguments to `.update()` and `.update_all()`.  The values can be either individual strings, or lists of strings.  See below for examples.
+
+The following will remove all tags with the key of "city" from the database:
+
+>>> db.update_all(unset_tags="city")
+
+The following will remove all tags with the keys of "state" and "country" from the database:
+
+>>> db.update_all(unset_tags=["state", "country"])
+
+The following will remove all tags with the key of "temperature" from all Points in the "bedroom" measurement:
+
+>>> db.update(MeasurementQuery() == "bedroom", unset_tags=["temperature"])
+
+.. warning:: 
+
+    Like all other operations in TinyFlux, you cannot roll back the actions of ``update()`` or ``update_all()``.  There is no confirmation step, no access-control mechanism that prevents non-admins from performing this action, nor are there automatic snapshots stored anywhere.  If you need these kinds of features, TinyFlux is not for you.
+
+
+To recap, these are the two methods supporting the removal of individual tags and fields from points.
+
++------------------------------------------------------------+------------------------------------------------------------+
+| **Methods**                                                                                                             |
++------------------------------------------------------------+------------------------------------------------------------+
+| ``db.update(query, unset_tags=..., unset_fields=...)``     | Remove the tags and fields from points matching the query. |
++------------------------------------------------------------+------------------------------------------------------------+
+| ``db.update_all(query, unset_tags=..., unset_fields=...)`` | Remove specified tags and fields from all points.          |
++------------------------------------------------------------+------------------------------------------------------------+

@@ -788,10 +788,7 @@ def test_update():
     assert len(db) == 3
 
     # Bad invocation.
-    with pytest.raises(
-        ValueError,
-        match="Must include time, measurement, tags, and/or fields.",
-    ):
+    with pytest.raises(ValueError):
         m1.update(TagQuery().tk1 == "tv1")
 
     with pytest.raises(

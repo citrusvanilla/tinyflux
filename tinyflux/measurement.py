@@ -319,6 +319,8 @@ class Measurement:
         measurement: Union[str, Callable[[str], str], None] = None,
         tags: Union[TagSet, Callable[[TagSet], TagSet], None] = None,
         fields: Union[FieldSet, Callable[[FieldSet], FieldSet], None] = None,
+        unset_fields: Union[str, Iterable[str], None] = None,
+        unset_tags: Union[str, Iterable[str], None] = None,
     ) -> int:
         """Update all matching Points in this measurement with new attributes.
 
@@ -328,12 +330,21 @@ class Measurement:
             measurement: A string or Callable returning one.
             tags: A mapping or Callable returning one.
             fields: A mapping or Callable returning one.
+            unset_fields: Field keys to remove upon update.
+            unset_tags: Tag keys to remove upon update.
 
         Returns:
             A count of updated points.
         """
         return self._db.update(
-            query, time, measurement, tags, fields, self._name
+            query,
+            time,
+            measurement,
+            tags,
+            fields,
+            unset_fields,
+            unset_tags,
+            self._name,
         )
 
     def update_all(
@@ -342,6 +353,8 @@ class Measurement:
         measurement: Union[str, Callable[[str], str], None] = None,
         tags: Union[TagSet, Callable[[TagSet], TagSet], None] = None,
         fields: Union[FieldSet, Callable[[FieldSet], FieldSet], None] = None,
+        unset_fields: Union[str, Iterable[str], None] = None,
+        unset_tags: Union[str, Iterable[str], None] = None,
     ) -> int:
         """Update all matching Points in this measurement with new attributes.
 
@@ -351,10 +364,19 @@ class Measurement:
             measurement: A string or Callable returning one.
             tags: A mapping or Callable returning one.
             fields: A mapping or Callable returning one.
+            unset_fields: Field keys to remove upon update.
+            unset_tags: Tag keys to remove upon update.
 
         Returns:
             A count of updated points.
         """
-        q = MeasurementQuery().noop()
-
-        return self._db.update(q, time, measurement, tags, fields, self._name)
+        return self._db.update(
+            MeasurementQuery().noop(),
+            time,
+            measurement,
+            tags,
+            fields,
+            unset_fields,
+            unset_tags,
+            self._name,
+        )
