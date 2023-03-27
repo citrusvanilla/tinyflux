@@ -1159,9 +1159,11 @@ class TinyFlux:
 
             if time:
                 if callable(time):
+                    old_time = point.time
+
                     try:
-                        assert point.time
-                        point.time = time(point.time)
+                        assert old_time
+                        point.time = time(old_time)
                     except ValueError:
                         raise ValueError(
                             "Time must update to a datetime object."
@@ -1171,8 +1173,10 @@ class TinyFlux:
 
             if measurement:
                 if callable(measurement):
+                    old_measurement = point.measurement
+
                     try:
-                        point.measurement = measurement(point.measurement)
+                        point.measurement = measurement(old_measurement)
                     except ValueError:
                         raise ValueError("Measurement must update to a string.")
                 else:
@@ -1180,8 +1184,10 @@ class TinyFlux:
 
             if tags:
                 if callable(tags):
+                    old_tags = copy.deepcopy(point.tags)
+
                     try:
-                        point.tags.update(tags(point.tags))
+                        point.tags.update(tags(old_tags))
                     except ValueError:
                         raise ValueError("Tags must update to a valid TagSet.")
 
@@ -1190,8 +1196,10 @@ class TinyFlux:
 
             if fields:
                 if callable(fields):
+                    old_fields = copy.deepcopy(point.fields)
+
                     try:
-                        point.fields.update(fields(point.fields))
+                        point.fields.update(fields(old_fields))
                     except ValueError:
                         raise ValueError(
                             "Fields must update to a valid FieldSet."
