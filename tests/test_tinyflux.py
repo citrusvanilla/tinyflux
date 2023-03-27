@@ -1070,6 +1070,25 @@ def test_update_all():
     assert db.count(TimeQuery() == t - timedelta(days=1)) == 3
 
 
+def test_update_does_not_remove_tags_fields():
+    """Test updating does not remove existing fields or tags."""
+    db = TinyFlux(storage=MemoryStorage)
+    p = Point(tags={"a": "1"}, fields={"a": 1})
+    db.insert(p)
+
+    def f1(x: dict):
+        x.pop("a")
+        return x
+
+    db.update_all(tags=f1)
+
+    assert "a" in p.tags
+
+    db.update_all(fields=f1)
+
+    assert "a" in p.fields
+
+
 def test_multipledbs():
     """Test inserting points into multiple DBs."""
     db1 = TinyFlux(storage=MemoryStorage)
