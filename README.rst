@@ -19,12 +19,12 @@ Quick Links
 Recent Updates
 **************
 
-v0.3.1 - March 27rd, 2023
+v0.3.1 - March 27, 2023
 =========================
 
 * Fixed bug that allowed user to delete key/field tags with `.update()` and `.update_all()` (resolves issue #36).
 
-v0.3.0 - March 23rd, 2023
+v0.3.0 - March 23, 2023
 =========================
 
 * Tag and field keys can be compacted when using CSVStorage, saving potentially many bytes per Point (resolves issue #32).
