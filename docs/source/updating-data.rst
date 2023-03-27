@@ -58,7 +58,7 @@ to recap, these are the two methods supporting the updating of data.
 +------------------------------------------+-----------------------------------------------------+
 
 Removing Tags and Fields with Update
-====================================
+------------------------------------
 
 TinyFlux supports the removal of individual tag and field key/values through the `unset_tags` and `unset_fields` arguments to `.update()` and `.update_all()`.  The values can be either individual strings, or lists of strings.  See below for examples.
 
