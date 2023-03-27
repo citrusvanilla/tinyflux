@@ -10,22 +10,27 @@ Quick Links
 ***********
 
 - `Example Code Snippets`_
-- `Full Example Notebooks and Scripts <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_
-- `Documentation <http://tinyflux.readthedocs.org/>`_
-- `Changelog <https://tinyflux.readthedocs.io/en/latest/changelog.html>`_
+- `Full Example Notebooks and Scripts <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`__
+- `Documentation <http://tinyflux.readthedocs.org/>`__
+- `Changelog <https://tinyflux.readthedocs.io/en/latest/changelog.html>`__
 - `Contributing`_
 
 
 Recent Updates
 **************
 
-v0.3.0 - March 3rd, 2023
-==================
+v0.3.1 - March 27rd, 2023
+=========================
+
+* Fixed bug that allowed user to delete key/field tags with `.update()` and `.update_all()` (resolves issue #36).
+
+v0.3.0 - March 23rd, 2023
+=========================
 
 * Tag and field keys can be compacted when using CSVStorage, saving potentially many bytes per Point (resolves issue #32).
 * Fixed bug that causes tag values of `""` to be serialized as `"_none"` (resolves issue #33).
 
-See the `Changelog <https://tinyflux.readthedocs.io/en/latest/changelog.html>`_ for more.
+See the `Changelog <https://tinyflux.readthedocs.io/en/latest/changelog.html>`__ for more.
 
 
 Installation
@@ -47,7 +52,7 @@ Introduction
 
 TinyFlux is the tiny time series database optimized for your happiness :)
 
-TinyFlux is a time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`_ that is also written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.
+TinyFlux is a time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`__ that is also written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.
 
 TinyFlux is:
 
@@ -65,7 +70,7 @@ TinyFlux is:
 
 - **100% test coverage:** No explanation needed.
 
-To get started, head over to the `TinyFlux docs <https://tinyflux.readthedocs.io/>`_.  Examples can be found in the `examples directory <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_.  You can also discuss topics related to TinyFlux including general development, extensions, or showcase your TinyFlux-based projects on the `GitHub discussion forum <https://github.com/citrusvanilla/tinyflux/discussions>`_.
+To get started, head over to the `TinyFlux docs <https://tinyflux.readthedocs.io/>`__.  Examples can be found in the `examples directory <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`__.  You can also discuss topics related to TinyFlux including general development, extensions, or showcase your TinyFlux-based projects on the `GitHub discussion forum <https://github.com/citrusvanilla/tinyflux/discussions>`__.
 
 Supported Python Versions
 *************************
@@ -121,16 +126,16 @@ Querying TinyFlux
 Full Example Notebooks and Workflows
 ************************************
 
-The `examples <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_ directory of this repository contains three common uses cases for TinyFlux and the associated boilerplate to get you started:
+The `examples <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`__ directory of this repository contains three common uses cases for TinyFlux and the associated boilerplate to get you started:
 
-1. `Loading a TinyFlux DB from a CSV <https://github.com/citrusvanilla/tinyflux/blob/master/examples/1_initializing_and_loading_new_db.ipynb>`_
-2. `Local Analytics Workflow with a TinyFlux Database <https://github.com/citrusvanilla/tinyflux/blob/master/examples/2_analytics_workflow.ipynb>`_
-3. `TinyFlux as a MQTT Datastore for IoT Devices <https://github.com/citrusvanilla/tinyflux/blob/master/examples/3_iot_datastore_with_mqtt.py>`_
+1. `Loading a TinyFlux DB from a CSV <https://github.com/citrusvanilla/tinyflux/blob/master/examples/1_initializing_and_loading_new_db.ipynb>`__
+2. `Local Analytics Workflow with a TinyFlux Database <https://github.com/citrusvanilla/tinyflux/blob/master/examples/2_analytics_workflow.ipynb>`__
+3. `TinyFlux as a MQTT Datastore for IoT Devices <https://github.com/citrusvanilla/tinyflux/blob/master/examples/3_iot_datastore_with_mqtt.py>`__
 
 Tips
 ****
 
-Checkout some tips for working with TinyFlux `here <https://tinyflux.readthedocs.io/en/latest/tips.html>`_.
+Checkout some tips for working with TinyFlux `here <https://tinyflux.readthedocs.io/en/latest/tips.html>`__.
 
 
 TinyFlux Across the Internet
@@ -138,8 +143,8 @@ TinyFlux Across the Internet
 
 Articles, tutorials, and other instances of TinyFlux:
 
-- `"Introducing TinyFlux: The Tiny Time Series Database for Python-based IoT & Analytics Applications" <https://citrusvanilla.medium.com/introducing-tinyflux-the-tiny-time-series-database-for-python-based-iot-analytics-applications-c3ef3c3bedf>`_: A Medium.com article announcing the release of TinyFlux
-- `"Storing Time Series Data in Python Using TinyFluxDB" <http://www.steves-internet-guide.com/storing-time-series-data-python-using-tinyflux-db/>`_: A tutorial from `Steve's Internet Guide <http://www.steves-internet-guide.com/>`_, a portal for learning MQTT and IoT development for Python
+- `"Introducing TinyFlux: The Tiny Time Series Database for Python-based IoT & Analytics Applications" <https://citrusvanilla.medium.com/introducing-tinyflux-the-tiny-time-series-database-for-python-based-iot-analytics-applications-c3ef3c3bedf>`__: A Medium.com article announcing the release of TinyFlux
+- `"Storing Time Series Data in Python Using TinyFluxDB" <http://www.steves-internet-guide.com/storing-time-series-data-python-using-tinyflux-db/>`__: A tutorial from `Steve's Internet Guide <http://www.steves-internet-guide.com/>`__, a portal for learning MQTT and IoT development for Python
 
 
 Contributing
@@ -147,8 +152,8 @@ Contributing
 
 New ideas, new developer tools, improvements, and bugfixes are always welcome.  Follow these guidelines before getting started:
 
-1. Make sure to read `Getting Started <https://tinyflux.readthedocs.io/en/latest/getting-started.html>`_ and the `Contributing Tooling and Conventions <https://tinyflux.readthedocs.io/en/latest/contributing-tooling.html>`_ section of the documentation.
-2. Check GitHub for `existing open issues <https://github.com/citrusvanilla/tinyflux/issues>`_, `open a new issue <https://github.com/citrusvanilla/tinyflux/issues/new>`_ or `start a new discussion <https://github.com/citrusvanilla/tinyflux/discussions/new>`_.
+1. Make sure to read `Getting Started <https://tinyflux.readthedocs.io/en/latest/getting-started.html>`__ and the `Contributing Tooling and Conventions <https://tinyflux.readthedocs.io/en/latest/contributing-tooling.html>`__ section of the documentation.
+2. Check GitHub for `existing open issues <https://github.com/citrusvanilla/tinyflux/issues>`__, `open a new issue <https://github.com/citrusvanilla/tinyflux/issues/new>`__ or `start a new discussion <https://github.com/citrusvanilla/tinyflux/discussions/new>`__.
 3. To get started on a pull request, fork the repository on GitHub, create a new branch, and make updates.
 4. Write unit tests, ensure the code is 100% covered, update documentation where necessary, and format and style the code correctly.
 5. Send a pull request.

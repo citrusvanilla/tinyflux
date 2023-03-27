@@ -1,6 +1,12 @@
 Changelog
 =========
 
+v0.3.1 (2023-3-27)
+^^^^^^^^^^^^^^^^^^
+
+* Fixed bug that allowed user to delete key/field tags with `.update()` and `.update_all()`. (resolves issue #36).
+
+
 v0.3.0 (2023-3-21)
 ^^^^^^^^^^^^^^^^^^
 
@@ -9,7 +15,7 @@ v0.3.0 (2023-3-21)
 
 
 v0.2.6 (2023-3-9)
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
 * TinyFlux is now PEP 561 compliant (resolves issue #31).
 
