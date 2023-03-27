@@ -790,6 +790,10 @@ def test_search():
     db.insert_multiple([p1, p2])
     db.reindex()
 
+    # Bad invocation.
+    with pytest.raises(ValueError):
+        db.search(True)
+
     # Valid index, no candidates.
     assert not db.search(TagQuery().b == "B")
 
@@ -925,10 +929,7 @@ def test_update():
     with pytest.raises(ValueError, match="Measurement must be a string."):
         db.update(TagQuery().tk1 == "tv1", measurement={"blehh"})
 
-    with pytest.raises(
-        ValueError,
-        match="Must include time, measurement, tags, and/or fields.",
-    ):
+    with pytest.raises(ValueError):
         db.update(TagQuery().tk1 == "tv1")
 
     with pytest.raises(
@@ -948,10 +949,7 @@ def test_update():
         db.update(TagQuery().noop(), fields={"a": "a"})
 
     # Missing updates.
-    with pytest.raises(
-        ValueError,
-        match="Must include time, measurement, tags, and/or fields.",
-    ):
+    with pytest.raises(ValueError):
         db.update(TagQuery().city == "la")
 
     # Bad selector.
@@ -1087,6 +1085,54 @@ def test_update_does_not_remove_tags_fields():
     db.update_all(fields=f1)
 
     assert "a" in p.fields
+
+
+def test_update_unset():
+    """Test update unset removes fields and tags."""
+    db = TinyFlux(storage=MemoryStorage)
+    p1 = Point(tags={"a": "1", "b": "2"}, fields={"a": 1, "b": 2})
+    p2 = Point(tags={"b": "2", "c": "3"}, fields={"b": 2, "c": 3})
+    db.insert_multiple([p1, p2])
+
+    # bad invocations.
+    with pytest.raises(ValueError):
+        db.update_all(unset_fields=True)
+
+    with pytest.raises(ValueError):
+        db.update_all(unset_tags=True)
+
+    with pytest.raises(ValueError):
+        db.update_all(unset_fields=("1", 2))
+
+    with pytest.raises(ValueError):
+        db.update_all(unset_tags=("1", 2))
+
+    # Test string param.
+    assert db.search(FieldQuery().a.exists())
+    db.update_all(unset_fields="a")
+    assert not db.search(FieldQuery().a.exists())
+
+    assert db.search(TagQuery().a.exists())
+    db.update_all(unset_tags="a")
+    assert not db.search(TagQuery().a.exists())
+
+    # Test iterable param.
+    assert db.search(FieldQuery().b.exists())
+    db.update_all(unset_fields=["b"])
+    assert not db.search(FieldQuery().b.exists())
+
+    assert db.search(TagQuery().b.exists())
+    db.update_all(unset_tags=["b"])
+    assert not db.search(TagQuery().b.exists())
+
+    assert db.get(TagQuery().c.exists())
+    db.update(TagQuery().c.exists(), unset_tags=["c"])
+    assert not db.search(TagQuery().c.exists())
+
+    db.insert(Point(tags={"d": "4", "e": "5"}))
+    assert db.get(TagQuery().d.exists() & TagQuery().e.exists())
+    db.update_all(unset_tags=["d", "e"])
+    assert not db.get(TagQuery().d.exists() | TagQuery().e.exists())
 
 
 def test_multipledbs():

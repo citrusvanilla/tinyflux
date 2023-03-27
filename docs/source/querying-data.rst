@@ -1,4 +1,3 @@
-
 Querying Data
 =============
 
