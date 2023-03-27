@@ -20,8 +20,6 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Check README
-        run: rstcheck README.rst
       - name: Check code formatting
         run: black --check tinyflux/ tests/ examples/
       - name: Check code style
