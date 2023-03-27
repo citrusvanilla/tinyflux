@@ -1,7 +1,7 @@
 Updating Points
 ===============
 
-Though updating time series data tends to occur much less frequently than with other types of data, TinyFlux nonetheless supports the update of data with two methods.  Update by query with the ``update()`` method and update all with the ``update_all()`` method.  Updates are provided to both methods through the keyword arguments of ``measurement``, ``time``, ``tags``, or ``fields``.  The values for these arguments are either static values, or a ``Callable`` returning static values.  See below for examples.
+Though updating time series data tends to occur much less frequently than with other types of data, TinyFlux nonetheless supports the updating of data with two methods: 1. Update by query with the ``update()`` method, and 2. Update all points with the ``update_all()`` method.  ``measurement``, ``time``, ``tags``, and/or ``fields`` are updated on an individual basis through the associated keyword arguments to these two methods.  The values for these arguments are either static values (like a string, float, integer, or boolean), or a ``Callable`` returning static values.  See below for examples.
 
 .. note:: 
 
@@ -38,6 +38,10 @@ Field updates occur much the same way as tags.  To update all items in the datab
 ...     else:
 ...         return fields
 >>> db.update_all(fields=fahrenheit_to_celcius)
+
+.. note:: 
+
+    Updating data with `.update()` or `.update_all()` will not remove fields or tags, even if they are not returned when using a Callable as the updater.  This is consistent with the Python `dict API <https://docs.python.org/3/library/stdtypes.html#dict.update>`_, in which keys can be overwritten, but not deleted.
 
 .. warning:: 
 
