@@ -22,18 +22,14 @@ Recent Updates
 v0.4.0 - March 27, 2023
 =======================
 
-* Tags and Fields can be removed from individual points. See `the documentation <https://tinyflux.readthedocs.io/en/latest/updating-data.html#removing-tags-and-fields-with-update>`__ for more (resolves issue #27).
-
-v0.3.1 - March 27, 2023
-=======================
-
-* Fixed bug that allowed user to delete key/field tags with `.update()` and `.update_all()` (resolves issue #36).
+* Tags and Fields can be removed from individual points. See the `documentation <https://tinyflux.readthedocs.io/en/latest/updating-data.html#removing-tags-and-fields-with-update>`__ for details (issue #27).
+* Bugfixes (issue #36).
 
 v0.3.0 - March 23, 2023
 =======================
 
-* Tag and field keys can be compacted when using CSVStorage, saving potentially many bytes per Point (resolves issue #32).
-* Fixed bug that causes tag values of `""` to be serialized as `"_none"` (resolves issue #33).
+* Tag and field keys can be compacted when using ``CSVStorage``, saving potentially many bytes per Point (issue #32).
+* Bugfixes (issue #33).
 
 See the `Changelog <https://tinyflux.readthedocs.io/en/latest/changelog.html>`__ for more.
 
@@ -41,15 +37,11 @@ See the `Changelog <https://tinyflux.readthedocs.io/en/latest/changelog.html>`__
 Installation
 ************
 
+TinyFlux is hosted at `PyPI <https://pypi.org/project/tinyflux/>`__ and is easily downloaded with ``pip``:
+
 .. code-block:: bash
 
     $ pip install tinyflux
-
-Or, download this repository, ``cd`` into it, and:
-
-.. code-block:: bash
-
-    $ pip install .
 
 
 Introduction
