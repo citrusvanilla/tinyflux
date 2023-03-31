@@ -37,7 +37,7 @@ See the `Changelog <https://tinyflux.readthedocs.io/en/latest/changelog.html>`__
 Installation
 ************
 
-TinyFlux is hosted at `PyPI <https://pypi.org/project/tinyflux/>`__ and is easily downloaded with ``pip``:
+TinyFlux is hosted at `PyPI <https://pypi.org/project/tinyflux/>`__ and is easily downloadable with ``pip``:
 
 .. code-block:: bash
 
@@ -156,8 +156,9 @@ New ideas, new developer tools, improvements, and bugfixes are always welcome.  
 5. Send a pull request.
 
 .. |Build Status| image:: https://github.com/citrusvanilla/tinyflux/actions/workflows/build.yml/badge.svg
+   :target: https://github.com/citrusvanilla/tinyflux/actions
 .. |Coverage| image:: https://codecov.io/gh/citrusvanilla/tinyflux/branch/master/graph/badge.svg?token=IEGQ4E57VA
-   :target: https://app.codecov.io/gh/citrusvanilla
+   :target: https://app.codecov.io/gh/citrusvanilla/tinyflux
 .. |Version| image:: http://img.shields.io/pypi/v/tinyflux.svg
    :target: https://pypi.python.org/pypi/tinyflux/
 .. |Downloads| image:: https://img.shields.io/pypi/dm/tinyflux.svg
