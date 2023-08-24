@@ -1,11 +1,14 @@
 black
 flake8
 flake8-docstrings
+influxdb_client
 mypy
 pytest
 pytest-cov
 rstcheck
+schedule
 sphinx
 sphinx_autodoc_typehints
 sphinx_rtd_theme
+types-influxdb-client
 types-paho-mqtt

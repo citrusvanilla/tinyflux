@@ -20,7 +20,8 @@ import schedule
 
 from tinyflux import TinyFlux, Point as TinyFluxPoint, TimeQuery
 
-from myThermometer import ThermSensor1  # This is arbitrary.
+# This is an arbitrary module for a device.
+from myThermometer import ThermSensor1  # type: ignore
 
 # Your device.
 sensor = ThermSensor1()
@@ -79,7 +80,7 @@ schedule.every(4).hours.do(backup_db)
 
 
 def main():
-    """Main."""
+    """Define Main."""
     # Your control loop.
     while True:
         # Get the temperature from your device.
