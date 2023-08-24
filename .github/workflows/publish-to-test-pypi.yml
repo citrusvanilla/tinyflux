@@ -10,20 +10,20 @@ jobs:
     name: Build and publish to PyPI and TestPyPI
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.10"
-    - name: Install build
-      run: |
-        pip install --upgrade pip
-        pip install build
-    - name: Build a binary wheel and a source tarball
-      run: |
-        echo $GITHUB_REF_NAME >> version.txt
-        python -m build
-    - name: Publish distribution to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.PYPI_API_TOKEN }}
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install build
+        run: |
+          pip install --upgrade pip
+          pip install build
+      - name: Build a binary wheel and a source tarball
+        run: |
+          echo $GITHUB_REF_NAME >> version.txt
+          python -m build
+      - name: Publish distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
