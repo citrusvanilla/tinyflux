@@ -128,6 +128,7 @@ The `examples <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`_
 1. `Loading a TinyFlux DB from a CSV <https://github.com/citrusvanilla/tinyflux/blob/master/examples/1_initializing_and_loading_new_db.ipynb>`__
 2. `Local Analytics Workflow with a TinyFlux Database <https://github.com/citrusvanilla/tinyflux/blob/master/examples/2_analytics_workflow.ipynb>`__
 3. `TinyFlux as a MQTT Datastore for IoT Devices <https://github.com/citrusvanilla/tinyflux/blob/master/examples/3_iot_datastore_with_mqtt.py>`__
+4. `TinyFlux at the Edge (with Backup Strategy) <https://github.com/citrusvanilla/tinyflux/blob/master/examples/4_backing_up_tinyflux_at_the_edge.py>`__
 
 Tips
 ****
