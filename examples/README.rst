@@ -52,6 +52,19 @@ To install Mosquitto using ``brew``:
     $ brew install mosquitto
 
 
+Example 4: TinyFlux at the Edge (with a backup schedule)
+--------------------------------------------------------
+
+``examples/4_backing_up_tinyflux_at_the_edge.py``
+
+This example demonstrates how TinyFlux can be backed up to a remote datastore when using TinyFlux as a datastore at the edge.  The benefit of this method is using a python-based scheduler in the same process as the capture/store control loop.  To run this example you will need to have an influx instance running, along with the `schedule` and `influx-client` pip libraries.
+
+.. code-block:: bash
+
+    $ pip install schedule
+    $ pip install 'influxdb-client[ciso]'
+  
+
 Have Other Use-Cases for TinyFlux?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
