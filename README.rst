@@ -4,7 +4,12 @@
 .. image:: https://github.com/citrusvanilla/tinyflux/blob/master/artwork/tinyfluxdb-dark.png?raw=true#gh-light-mode-only
     :width: 500px
 
+TinyFlux is the tiny time series database optimized for your happiness :)
+
+TinyFlux is a time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`__ that is also written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.  TinyFlux has 100% coverage, tens of thousands of downloads, and no open issues.
+
 |Build Status| |Coverage| |Version| |Downloads|
+
 
 Quick Links
 ***********
@@ -16,28 +21,10 @@ Quick Links
 - `Contributing`_
 
 
-Recent Updates
-**************
-
-v0.4.0 - March 27, 2023
-=======================
-
-* Tags and Fields can be removed from individual points. See the `documentation <https://tinyflux.readthedocs.io/en/latest/updating-data.html#removing-tags-and-fields-with-update>`__ for details (issue #27).
-* Bugfixes (issue #36).
-
-v0.3.0 - March 23, 2023
-=======================
-
-* Tag and field keys can be compacted when using ``CSVStorage``, saving potentially many bytes per Point (issue #32).
-* Bugfixes (issue #33).
-
-See the `Changelog <https://tinyflux.readthedocs.io/en/latest/changelog.html>`__ for more.
-
-
 Installation
 ************
 
-TinyFlux is hosted at `PyPI <https://pypi.org/project/tinyflux/>`__ and is easily downloadable with ``pip``:
+TinyFlux is hosted at `PyPI <https://pypi.org/project/tinyflux/>`__ and is easily downloadable with ``pip``. TinyFlux has been tested with Python 3.7 - 3.12 and PyPy-3.9 on Linux and Windows platforms.
 
 .. code-block:: bash
 
@@ -46,10 +33,6 @@ TinyFlux is hosted at `PyPI <https://pypi.org/project/tinyflux/>`__ and is easil
 
 Introduction
 ************
-
-TinyFlux is the tiny time series database optimized for your happiness :)
-
-TinyFlux is a time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`__ that is also written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.
 
 TinyFlux is:
 
@@ -69,10 +52,6 @@ TinyFlux is:
 
 To get started, head over to the `TinyFlux docs <https://tinyflux.readthedocs.io/>`__.  Examples can be found in the `examples directory <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`__.  You can also discuss topics related to TinyFlux including general development, extensions, or showcase your TinyFlux-based projects on the `GitHub discussion forum <https://github.com/citrusvanilla/tinyflux/discussions>`__.
 
-Supported Python Versions
-*************************
-
-TinyFlux has been tested with Python 3.7 - 3.12 and PyPy-3.9 on Linux and Windows platforms.
 
 Example Code Snippets
 *********************
