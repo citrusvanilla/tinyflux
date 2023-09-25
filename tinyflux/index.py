@@ -148,8 +148,8 @@ class Index:
         return self._valid
 
     @property
-    def lateset_time(self) -> datetime:
-        """Return the lastest time in the index."""
+    def latest_time(self) -> datetime:
+        """Return the latest time in the index."""
         return datetime.fromtimestamp(self._timestamps[-1]).astimezone(
             timezone.utc
         )

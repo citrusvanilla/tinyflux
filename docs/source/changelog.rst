@@ -1,6 +1,12 @@
 Changelog
 =========
 
+v0.4.1 - September 25, 2023
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Spelling bug fix in support of issue #44.
+
+
 v0.4.0 - March 27, 2023
 ^^^^^^^^^^^^^^^^^^^^^^^
 
