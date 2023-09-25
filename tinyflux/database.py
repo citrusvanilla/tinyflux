@@ -1330,7 +1330,7 @@ class TinyFlux:
             if self._auto_index and self._index.valid:
                 if (
                     not self._index.empty
-                    and point.time < self._index.lateset_time
+                    and point.time < self._index.latest_time
                 ):
                     self._index.invalidate()
                 else:
