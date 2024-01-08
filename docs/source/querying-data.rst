@@ -27,7 +27,7 @@ Measurement Queries
 
 To query for a specific measurement, the right-hand side of the ``MeasurementQuery`` should be a Python ``str``:
 
->>> from tinydb import MeasurementQuery
+>>> from tinyflux import MeasurementQuery
 >>> Measurement = MeasurementQuery()
 >>> db.search(Measurement == "city temperatures")
 
@@ -36,7 +36,7 @@ Tag Queries
 
 To query for tags, the *tag key* of interest takes the form of a query attribute (following the ``.``), while the *tag value* forms the right-hand side.  An example to illustrate:
 
->>> from tinydb import TagQuery
+>>> from tinyflux import TagQuery
 >>> Tags = TagQuery()
 >>> db.search(Tags.city == "Greenwich")
 
@@ -47,7 +47,7 @@ Field Queries
 
 Similar to tags, to query for fields, the field key takes the form of a query attribute, while the field value forms the right-hand side:
 
->>> from tinydb import FieldQuery
+>>> from tinyflux import FieldQuery
 >>> Fields = FieldQuery()
 >>> db.search(Fields.high > 50.0)
 
@@ -55,7 +55,7 @@ This will query the database for all points with the field key of ``high`` excee
 
 Some tag keys and field keys are not valid Python identifiers (for example, if the key contains whitespace), and can alternately be queried with string attributes:
 
->>> from tinydb import TagQuery
+>>> from tinyflux import TagQuery
 >>> Tags = TagQuery()
 >>> db.search(Tags["country name"] == "United States of America")
 
@@ -64,7 +64,7 @@ Time Queries
 
 To query based on time, the "right-hand side" of the ``TimeQuery`` should be a timezone-aware ``datetime`` object:
 
->>> from tinydb import TimeQuery
+>>> from tinyflux import TimeQuery
 >>> from datetime import datetime, timezone
 >>> Time = TimeQuery()
 >>> db.search(Time > datetime(2000, 1, 1, tzinfo=timezone.utc))
@@ -151,7 +151,7 @@ Compound Queries and Query Modifiers
 
 TinyFlux also allows supports compound queries through the use of logical operators.  This is particularly useful for time queries when a time range is needed.
 
->>> from tinydb import TimeQuery
+>>> from tinyflux import TimeQuery
 >>> from datetime import datetime, timezone
 >>> Time = TimeQuery()
 >>> q1 = Time > datetime(1990, 1, 1, tzinfo=timezone.utc)
