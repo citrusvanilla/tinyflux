@@ -2,6 +2,7 @@
 
 Tests are generally organized by TinyFlux class method.
 """
+
 import csv
 from datetime import datetime, timezone, timedelta
 import os

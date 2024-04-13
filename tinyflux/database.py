@@ -1,4 +1,5 @@
 """The main module of the TinyFlux package, containing the TinyFlux class."""
+
 import copy
 from datetime import datetime, timezone
 from functools import wraps

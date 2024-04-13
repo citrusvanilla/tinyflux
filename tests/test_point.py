@@ -1,4 +1,5 @@
 """Tests for the tinyflux.point module."""
+
 from datetime import datetime, timezone, timedelta
 import pytest
 from tinyflux.point import Point, validate_tags, validate_fields

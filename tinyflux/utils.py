@@ -1,4 +1,5 @@
 """Defintion of TinyFlux utils."""
+
 import bisect
 from typing import Any, List, Optional
 

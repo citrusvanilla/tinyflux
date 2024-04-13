@@ -27,6 +27,7 @@ Usage:
     >>> q2 = FieldQuery().aqi > 100
     >>> hazardous_days_in_LA_2020 = db.search(q1 & q2)
 """
+
 from .database import TinyFlux
 from .point import Point
 from .queries import TagQuery, FieldQuery, MeasurementQuery, TimeQuery

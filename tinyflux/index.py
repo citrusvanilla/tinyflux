@@ -8,6 +8,7 @@ Index instance is not a part of the TinyFlux interface.
 An IndexResult returns the indicies of revelant TinyFlux queries for further
 handling, usually as an input to a storage retrieval.
 """
+
 from datetime import datetime, timezone
 import operator
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union

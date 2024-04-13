@@ -10,6 +10,7 @@ Requires TinyFlux, influxdb-client, and schedule, downloadable from pip.
 
 See https://github.com/dbader/schedule for documentation.
 """
+
 from datetime import datetime
 import time
 

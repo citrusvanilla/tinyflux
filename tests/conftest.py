@@ -1,4 +1,5 @@
 """PyTest configuration and test fixtures."""
+
 import pytest
 
 from tinyflux.storages import CSVStorage, MemoryStorage

@@ -1,4 +1,5 @@
 """Tests for the tinyflux.storages module."""
+
 import csv
 from datetime import datetime, timezone, timedelta
 import os

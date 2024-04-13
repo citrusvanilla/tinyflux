@@ -1,4 +1,5 @@
 """Tests for tinyflux.utils module."""
+
 import pytest
 
 from tinyflux.utils import (

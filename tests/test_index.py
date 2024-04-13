@@ -1,4 +1,5 @@
 """Tests for tinyflux.index module."""
+
 from datetime import datetime, timezone, timedelta
 import pytest
 

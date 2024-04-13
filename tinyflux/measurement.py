@@ -8,6 +8,7 @@ Usage:
     >>> db = TinyFlux(storage=MemoryStorage)
     >>> m = db.measurement("my_measurement")
 """
+
 from __future__ import annotations
 
 from datetime import datetime

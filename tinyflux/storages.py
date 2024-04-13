@@ -13,6 +13,7 @@ Usage:
     >>> my_mem_db = TinyFlux(storage=MemoryStorage)
     >>> my_csv_db = TinyFlux('path/to/my.csv', storage=CSVStorage)
 """
+
 from abc import ABC, abstractmethod
 import csv
 from datetime import datetime

@@ -14,6 +14,7 @@ Each SimpleQuery instance contains attributes that constitute the
 right-hand side) so that the other consumers of queries, includng an Index, may
 use them for their own purposes.
 """
+
 from datetime import datetime
 import operator
 import re

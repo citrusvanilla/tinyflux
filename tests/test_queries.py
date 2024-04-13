@@ -1,4 +1,5 @@
 """Tests for the tinyflux.queries module."""
+
 import operator
 from datetime import datetime, timezone, timedelta
 from itertools import combinations
