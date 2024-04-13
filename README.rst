@@ -141,5 +141,5 @@ New ideas, new developer tools, improvements, and bugfixes are always welcome.  
    :target: https://app.codecov.io/gh/citrusvanilla/tinyflux
 .. |Version| image:: http://img.shields.io/pypi/v/tinyflux.svg
    :target: https://pypi.python.org/pypi/tinyflux/
-.. |Downloads| image:: https://img.shields.io/pypi/dm/tinyflux.svg
+.. |Downloads| image:: https://img.shields.io/pepy/dt/tinyflux
    :target: https://pypi.python.org/pypi/tinyflux/
