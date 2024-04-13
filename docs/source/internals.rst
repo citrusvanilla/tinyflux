@@ -12,12 +12,12 @@ TinyFlux ships with two types of storage:
 To use the CSV store, pass a filepath during TinyFlux initialization.
 
 >>> my_database = "db.csv"
->>> db = TinyDB(my_database)
+>>> db = TinyFlux(my_database)
 
 To use the memory store:
 
->>> from tinydb.storages import MemoryStorage
->>> db = TinyDB(storage=MemoryStorage)
+>>> from tinyflux.storages import MemoryStorage
+>>> db = TinyFlux(storage=MemoryStorage)
 
 In nearly all cases, users should opt for the former as it persists the data on disk.
 
