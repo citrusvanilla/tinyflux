@@ -1,10 +1,10 @@
 Changelog
 =========
 
-v0.4.2 - April 13, 2024
+v1.0.0 - April 13, 2024
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-* Spell-checked all source code and documentation. Some private variable names may have changed.
+* Official Release 🎉. TinyFlux has been stable for over 20 months.
 
 
 v0.4.1 - September 25, 2023
