@@ -26,7 +26,7 @@ The CSV format is familiar to most, but at its heart it's just a row-based datas
 The usage of CSV offers TinyFlux two distinct advantages for typical time-series workflows:
 
 1. Appends do not require reading of data, and occur in a constant amount of time regardless of the size of the underlying database.
-2. Sequential iteration allows for a full read of the data without having to simulateously keep the entirety of the data store in memory all at once.  Logic can be performed on an individual row, and results kept or discarded as desired.
+2. Sequential iteration allows for a full read of the data without having to simultaneously keep the entirety of the data store in memory all at once.  Logic can be performed on an individual row, and results kept or discarded as desired.
 
 TinyFlux storage is also designed to be extensible.
 

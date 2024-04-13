@@ -36,7 +36,7 @@ def test_freeze():
 
 
 def test_frozen_dict_hash():
-    """Tesh the hash function on FrozenDict class."""
+    """Test the hash function on FrozenDict class."""
     my_frozen_set1 = FrozenDict({"city": "la", "state": "ca"})
     my_frozen_set2 = FrozenDict({"state": "ca", "city": "la"})
     my_frozen_set3 = FrozenDict({"temp": 70})

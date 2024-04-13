@@ -626,7 +626,7 @@ def test_measurement():
     assert not db._measurements
     assert not db.get_measurements()
 
-    # Create a reference to a measurment that does not exist.
+    # Create a reference to a measurement that does not exist.
     m = db.measurement("a")
     assert "a" in db._measurements
     assert not len(m)

@@ -1,4 +1,4 @@
-"""Defintion of TinyFlux measurement class.
+"""Definition of TinyFlux measurement class.
 
 The measurement class provides a convenient interface into a subset of
 data points with a common measurement name.  A measurement is analogous to a
@@ -299,7 +299,7 @@ class Measurement:
     ) -> List[Tuple[Union[datetime, str, int, float, None]]]:
         """Get specified attributes from Points specified by a query.
 
-        'keys' should be an iterable of attributres including 'time',
+        'keys' should be an iterable of attributes including 'time',
         'measurement', and tag keys and tag values.  Passing 'tags' or 'fields'
         in the 'keys' iterable will not retrieve all tag and/or field values.
         Tag and field keys must be specified individually.

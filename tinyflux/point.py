@@ -1,8 +1,8 @@
-"""Defintion of the TinyFlux Point class.
+"""Definition of the TinyFlux Point class.
 
 A Point is the data type upon which TinyFlux manages.  It contains the time
 data and metadata for an individual observation.  Points are serialized and
-deserialized from Storage.  SimpleQuerys act upon individual Points.
+deserialized from Storage. SimpleQuery act upon individual Points.
 
 A Point is comprised of a timestamp, a measurement, fields, and tags.
 

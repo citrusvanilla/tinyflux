@@ -193,7 +193,7 @@ Logical NOT ("~")
 
 .. note::
 
-    You **cannot** use ``and`` as a substitue for ``&``, ``or`` as a subsititue for ``|``, or ``not`` as a substitute for ``~``.  The ``and``, ``or``, and ``not`` keywords are reserved in Python and cannot be overridden, as the ``&``, ``|``, and ``~`` operators have been for TinyFlux queries.
+    You **cannot** use ``and`` as a substitute for ``&``, ``or`` as a substitute for ``|``, or ``not`` as a substitute for ``~``.  The ``and``, ``or``, and ``not`` keywords are reserved in Python and cannot be overridden, as the ``&``, ``|``, and ``~`` operators have been for TinyFlux queries.
 
 
 The query and search operations covered above:

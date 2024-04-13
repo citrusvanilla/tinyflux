@@ -28,16 +28,16 @@ To change all instances of "CA" to "California" in a point's tag set for the "US
 ...         return tags
 >>> db.update(Measurement == "US Metros", tags=california_updater)
 
-Field updates occur much the same way as tags.  To update all items in the database, use ``update_all()``.  For example, to convert all temperatures from Fahrenheit to Celcius if the field ``temp`` exists:
+Field updates occur much the same way as tags.  To update all items in the database, use ``update_all()``.  For example, to convert all temperatures from Fahrenheit to Celsius if the field ``temp`` exists:
 
->>> def fahrenheit_to_celcius(fields):
+>>> def fahrenheit_to_celsius(fields):
 ...     if "temp" in fields:
 ...         temp_f = fields["temp"]
 ...         temp_c =  (temp_f - 32.0) * (5/9)
 ...         return {**fields, "temp": temp_c}
 ...     else:
 ...         return fields
->>> db.update_all(fields=fahrenheit_to_celcius)
+>>> db.update_all(fields=fahrenheit_to_celsius)
 
 .. note:: 
 

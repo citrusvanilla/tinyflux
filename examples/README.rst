@@ -25,7 +25,7 @@ Example 2: Local Analytics Workflow with a TinyFlux Database
 
 This example demonstrates how the TinyFlux database created in the previous example serves as the source-of-truth for a simple exploratory analysis, using the example of California Air Quality Index (AQI) measurements for the years 2019 and 2020.  As this example is a comparative analysis of data across years, TinyFlux and other time-based data stores are a natural candidate for querying and storing the data.
 
-This example uses the beautfiul `Plotly <https://plotly.com/>`_ library for charts and graphics, in addition to Jupyter Notebook.  To install Plotly:
+This example uses the beautiful `Plotly <https://plotly.com/>`_ library for charts and graphics, in addition to Jupyter Notebook.  To install Plotly:
 
 .. code-block:: bash
 

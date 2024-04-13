@@ -165,7 +165,7 @@ class TinyFlux:
         'auto-index' to False.
 
         Args:
-            auto_index: Reindexing of data will be performed automatically.
+            auto_index: Re-indexing of data will be performed automatically.
             storage: Class of Storage instance.
         """
         self._auto_index = auto_index
@@ -214,7 +214,7 @@ class TinyFlux:
         return
 
     def __iter__(self) -> Iterator[Point]:
-        """Return an iterater for all Points in the storage layer."""
+        """Return an iterator for all Points in the storage layer."""
         for item in self._storage:
             yield self._storage._deserialize_storage_item(item)
 
@@ -688,7 +688,7 @@ class TinyFlux:
             1 if success.
 
         Raises:
-            OSError if storage cannot be appendex to.
+            OSError if storage cannot be appended to.
             TypeError if point is not a Point instance.
         """
         return self._insert_helper([point], measurement, compact_key_prefixes)
@@ -711,7 +711,7 @@ class TinyFlux:
             The count of inserted points.
 
         Raises:
-            OSError if storage cannot be appendex to.
+            OSError if storage cannot be appended to.
             TypeError if point is not a Point instance.
         """
         return self._insert_helper(points, measurement, compact_key_prefixes)
@@ -897,7 +897,7 @@ class TinyFlux:
     ) -> List[Union[Any, Tuple[Any, ...]]]:
         """Get specified attributes from Points specified by a query.
 
-        'select_keys' should be an iterable of attributres including 'time',
+        'select_keys' should be an iterable of attributes including 'time',
         'measurement', and tag keys and tag values.  Passing 'tags' or 'fields'
         in the 'select_keys' iterable will not retrieve all tag and/or field
         values.  Tag and field keys must be specified individually.

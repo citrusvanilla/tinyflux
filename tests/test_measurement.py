@@ -44,7 +44,7 @@ def test_iter():
 
 
 def test_len():
-    """Test __len__ of Measuremnt."""
+    """Test __len__ of Measurement."""
     db = TinyFlux(storage=MemoryStorage)
     m = db.measurement("a")
     assert len(m) == 0
@@ -469,7 +469,7 @@ def test_insert():
     assert len(m1) == 1
     assert len(m2) == 0
 
-    # Insert in-order, into a different measurment.
+    # Insert in-order, into a different measurement.
     assert m2.insert(p2) == 1
     assert db.index.valid and not db.index.empty
     assert len(db.index) == 2

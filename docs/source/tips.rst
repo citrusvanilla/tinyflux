@@ -19,7 +19,7 @@ If your dataset is approaching 1 GB in size, keep reading.
 Dealing with Growing Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-As concurrency is not a feature of TinyFlux, a growing database will incur increases in query and index-building times.  When queries start to slow down a workflow, it might be time to "shard" or denormalize the data, or simply upgrade to a database server like InfluxDB.
+As concurrency is not a feature of TinyFlux, a growing database will incur increases in query and index-building times.  When queries start to slow down a workflow, it might be time to "shard" or de-normalize the data, or simply upgrade to a database server like InfluxDB.
 
 For example, if a TinyFlux database currently holds Points for two separate measurements, consider making two separate databases, one for each measurement:
 
@@ -51,7 +51,7 @@ Optimizing Queries
 
 Unlike TinyDB, TinyFlux never pulls in the entirety of its data into memory (unless the ``.all()`` method is called).  This has the benefit of reducing the memory footprint of the database, but means that database operations are usually I/O bound.  By using an index, TinyFlux is able to construct a matching set of items from the storage layer without actually reading any of those items.  For database operations that return Points, TinyFlux iterates over the storage, collects the items that belong in the set, deserializes them, and finally returns them to the caller.
 
-This utlimately means that the smaller the set of matches, the less I/O TinyFlux must perform.
+This ultimately means that the smaller the set of matches, the less I/O TinyFlux must perform.
 
 .. hint::
     
@@ -78,7 +78,7 @@ True
 >>> db.index.valid
 False
 
-If ``auto-index`` is set to ``True`` (the default setting), then the next read will rebuild the index, which may just seem like a very slow query.  For smaller datasets, reindexing is usually not noticeable.
+If ``auto-index`` is set to ``True`` (the default setting), then the next read will rebuild the index, which may just seem like a very slow query.  For smaller datasets, re-indexing is usually not noticeable.
 
 .. hint::
     

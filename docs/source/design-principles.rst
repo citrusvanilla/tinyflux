@@ -12,7 +12,7 @@ InfluxDB implements optimal design principles for time series data. Some of thes
 
 Prioritize High-Speed Writes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Time series data is often write-heavy, and in cases when a time series database is used as a real-time data store, the frequency of writes can be quite high.  TinyFlux has been designed to minimize any disruptions to writing to disk in a single thread in as fast a manner as possible.  To accomplish this, TinyFlux utilizes a default CSV store which supports nearly instantaneous appends, regardless of underlying file size.  TinyFlux will also invalidate its index if upon any insert, the timestamp for a Point preceeds that of the most-recent insert.  TinyFlux will not attempt to rebuild its index upon invalidation during a write op.
+Time series data is often write-heavy, and in cases when a time series database is used as a real-time data store, the frequency of writes can be quite high.  TinyFlux has been designed to minimize any disruptions to writing to disk in a single thread in as fast a manner as possible.  To accomplish this, TinyFlux utilizes a default CSV store which supports nearly instantaneous appends, regardless of underlying file size.  TinyFlux will also invalidate its index if upon any insert, the timestamp for a Point precedes that of the most-recent insert.  TinyFlux will not attempt to rebuild its index upon invalidation during a write op.
 
 
 Minimize Memory Footprint
@@ -23,7 +23,7 @@ need for fast querying with a small memory footprint, TinyFlux builds an interna
 
 Prioritize Searches for Time
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TinyFlux builds an index on time by keeping a sorted container data structure of timestamps in memory, and searches over the index quickly by parsing queries and invoking optimized search algorithms for sorted containers to retrive candidate Points quickly.  This reduces potentially slow and exhaustive evaluations significantly.
+TinyFlux builds an index on time by keeping a sorted container data structure of timestamps in memory, and searches over the index quickly by parsing queries and invoking optimized search algorithms for sorted containers to retrieve candidate Points quickly.  This reduces potentially slow and exhaustive evaluations significantly.
 
 
 Schemaless design

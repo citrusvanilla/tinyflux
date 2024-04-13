@@ -54,7 +54,7 @@ TINYFLUX_DB = "my_tinyflux_mqtt_database.db"
 # TinyFlux DB.
 db = TinyFlux(TINYFLUX_DB)
 
-# Interthread queue.
+# Inter-thread queue.
 q: Queue = Queue()
 
 # Init but do not set a threading exit event for graceful exit.
@@ -103,12 +103,12 @@ def on_disconnect(_, __, rc):
 def on_message(_, __, msg):
     """Define callback for new message event.
 
-    Unmarshalls the message and writes new data to the interthread queue.
+    Un-marshalls the message and writes new data to the inter-thread queue.
 
     Args:
         msg: A Paho MQTT message object.
     """
-    # Unmarshall the message.
+    # Un-marshall the message.
     topic = msg.topic
     payload = json.loads(msg.payload.decode("utf-8"))
 
@@ -141,7 +141,7 @@ def initialize_mqtt_client():
 def run_tinyflux_worker():
     """Define the TinyFlux worker thread.
 
-    Loops until the exit event is set.  Pops from the interthread queue
+    Loops until the exit event is set.  Pops from the inter-thread queue
     and writes to TinyFlux.
     """
     # Loop until exit_event is set by main thread.

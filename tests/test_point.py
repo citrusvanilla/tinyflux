@@ -285,7 +285,7 @@ def test_points_are_equal():
 
 
 def test_serialize_point():
-    """Test serializaiton of a Point object."""
+    """Test serialization of a Point object."""
     time_now = datetime.now(timezone.utc)
     time_now_str = time_now.replace(tzinfo=None).isoformat()
 

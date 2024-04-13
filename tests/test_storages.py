@@ -103,7 +103,7 @@ def test_csv_write_read(tmpdir):
 
 
 def test_csv_kwargs(tmpdir):
-    """Test kwargs propogation."""
+    """Test kwargs propagation."""
     dbfile = os.path.join(tmpdir, "test.csv")
 
     # Pass the 'delimiter' kwarg from csv module.
@@ -134,9 +134,9 @@ def test_create_dirs():
     temp_dir = tempfile.gettempdir()
 
     while True:
-        dname = os.path.join(temp_dir, str(random.getrandbits(20)))
-        if not os.path.exists(dname):
-            dbdir = dname
+        dbname = os.path.join(temp_dir, str(random.getrandbits(20)))
+        if not os.path.exists(dbname):
+            dbdir = dbname
             dbfile = os.path.join(dbdir, "db.json")
             break
 
@@ -364,7 +364,7 @@ def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
     storage.append([storage._serialize_point(p3)])
     assert storage.reindex_count == 0
 
-    # Read without reindexing.
+    # Read without re-indexing.
     assert storage.read() == [p2, p1, p3]
     assert storage.reindex_count == 0
     assert storage.write_count == 0
@@ -442,7 +442,7 @@ def test_reindex_on_read_memory(mem_storage_with_counters):
     assert storage.reindex_count == 0
     assert storage.write_count == 0
 
-    # Read contents with reindexing.
+    # Read contents with re-indexing.
     storage.read()
     assert storage.append_count == 3
     assert storage.reindex_count == 0

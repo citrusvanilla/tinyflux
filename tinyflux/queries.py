@@ -1,4 +1,4 @@
-"""Defintion of TinyFlux Queries.
+"""Definition of TinyFlux Queries.
 
 A query contains logic in the form of a test and it acts upon a single Point
 when it is eventually evaluated.
@@ -10,8 +10,8 @@ instances support logical AND, OR, and NOT operations, which result in the
 initialization of a new CompoundQuery object.
 
 Each SimpleQuery instance contains attributes that constitute the
-"deconstuction" of a query into several key parts (e.g. the operator, the
-right-hand side) so that the other consumers of queries, includng an Index, may
+"deconstruction" of a query into several key parts (e.g. the operator, the
+right-hand side) so that the other consumers of queries, including an Index, may
 use them for their own purposes.
 """
 
@@ -215,7 +215,7 @@ class SimpleQuery:
             operator: The operator portion of a test.
             rhs: The value that a test should evaluated against.
             test: The combined logic as a callable.
-            path_resolver: A fetcher/translater for Point metadata that the
+            path_resolver: A fetcher/translator for Point metadata that the
                            query will be evaluated on.
             hashval: The hash value for the query.
         """
@@ -324,10 +324,10 @@ class SimpleQuery:
 class BaseQuery:
     """A base class for the different TinyFlux query types.
 
-    A query type that explicity unifies the divergent interfaces of TimeQuery,
+    A query type that explicitly unifies the divergent interfaces of TimeQuery,
     MeasurementQuery, TagQuery, and FieldQuery.
 
-    A BaseQuery is not iteslf callable. When it is combined with test logic,
+    A BaseQuery is not itself callable. When it is combined with test logic,
     it generates a SimpleQuery, which is callable without exception.
 
     Usage:
@@ -422,7 +422,7 @@ class BaseQuery:
         Args:
             operator: A Callable.
             rhs: A value to test against.
-            test_against_rhs: Whether the test should evaulate against RHS.
+            test_against_rhs: Whether the test should evaluate against RHS.
             hashval: The hash value for the query.
         """
         # Make sure this query has some keys if they are required.
@@ -469,7 +469,7 @@ class BaseQuery:
             raise TypeError("FieldQuery comparison value must be numeric.")
 
         def test(x: Any) -> bool:
-            """The test function from an operator and righthand side."""
+            """The test function from an operator and right-hand side."""
             if not test_against_rhs:
                 return operator(x, *args) if args else operator(x)
 
@@ -656,7 +656,7 @@ class BaseQuery:
         >>> FieldQuery()["my field"].test(test_func)
 
         Warning:
-            The test fuction provided needs to be deterministic (returning the
+            The test function provided needs to be deterministic (returning the
             same value when provided with the same arguments), otherwise this
             may mess up the query cache that :class:`~tinyflux.table.Table`
             implements.

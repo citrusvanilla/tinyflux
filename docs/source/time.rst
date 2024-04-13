@@ -32,7 +32,7 @@ To illustrate the way time is handled in TinyFlux, below are the five ways time 
 3.  ``time`` is set with a ``datetime`` object that is "timezone-naive".  TinyFlux considers this time to be local to the timezone of the computer that is running TinyFlux and will convert this time to UTC using the ``astimezone`` attribute of the ``datetime`` module upon insertion.  This will lead to confusion down the road if TinyFlux is running on a remote computer, or the user was annotating data for points corresponding to places in other timezones.
 
     >>> from datetime import datetime
-    >>> # Example: Our computer is in Californa, but we are working with a dataset of
+    >>> # Example: Our computer is in California, but we are working with a dataset of
     >>> #          air quality measurements for Beijing, China.
     >>> # Here, AQI was measured at 1pm local time in Beijing on Aug 28, 2021.
     >>> p = Point(
@@ -76,7 +76,7 @@ To illustrate the way time is handled in TinyFlux, below are the five ways time 
 
         If you need to keep the original, non-UTC timezone along with the dataset, consider adding a ``tag`` to your point indicating the timezone, for easier conversion after retrieval.  TinyFlux will not assume nor attempt to store the timezone of your data for you.
 
-5.  ``time`` is set with a ``datetime`` object that is timezone-aware and the timezone is UTC.  This is the easiest way to handle time.  If needed, infomation about the timezone is stored in a tag.
+5.  ``time`` is set with a ``datetime`` object that is timezone-aware and the timezone is UTC.  This is the easiest way to handle time.  If needed, information about the timezone is stored in a tag.
 
     >>> from datetime import datetime, timezone
     >>> from tinyflux import TinyFlux, Point

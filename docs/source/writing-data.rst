@@ -11,7 +11,7 @@ The standard method for inserting a new data point is through the ``db.insert(..
 
     **TinyFlux vs. TinyDB Alert!**
     
-    In TinyDB there is a serious performance reason to use ``db.insert_multiple([...])`` over ``db.insert(...)`` as every write in TinyDB is preceeded by a full read of the data.  TinyFlux inserts are *append-only* and are **not** preceeded by a read.  Therefore, there is no significant *performance* reason to use ``db.insert_multiple([...])`` instead of ``db.insert(...)``.  If you are using TinyFlux to capture real-time data, you should insert points into TinyFlux as you see them, with ``db.insert(...)``.
+    In TinyDB there is a serious performance reason to use ``db.insert_multiple([...])`` over ``db.insert(...)`` as every write in TinyDB is preceded by a full read of the data.  TinyFlux inserts are *append-only* and are **not** preceded by a read.  Therefore, there is no significant *performance* reason to use ``db.insert_multiple([...])`` instead of ``db.insert(...)``.  If you are using TinyFlux to capture real-time data, you should insert points into TinyFlux as you see them, with ``db.insert(...)``.
 
 Example:
 

@@ -76,7 +76,7 @@ def test_repr():
 
 
 def test_no_path():
-    """Test absense of path for Tag and Field queries.
+    """Test absence of path for Tag and Field queries.
 
     TagQuery and FieldQuery should have paths.
     """
@@ -227,7 +227,7 @@ def test_lt():
     # Test for tag key "city".
     taq_q = TagQuery().city < "melbourne"
     assert taq_q(Point(tags={"city": "amsterdam"}))
-    assert not taq_q(Point(tags={"city": "zansibar"}))
+    assert not taq_q(Point(tags={"city": "zanzibar"}))
     assert not taq_q(Point())
     assert hash(taq_q)
 

@@ -34,9 +34,9 @@ This returns an integer.
 
 This returns a Point instance, or ``None`` if no Points were found.
 
->>> # Return the first Point in the db for LA w/ more than 1 inch of precipitaion.
+>>> # Return the first Point in the db for LA w/ more than 1 inch of precipitation.
 >>> q1 = TagQuery().city == "Los Angeles"
->>> q3 = FieldQuery().preciptation > 1.0
+>>> q3 = FieldQuery().precipitation > 1.0
 >>> db.get(q1 & q3) 
 
 
@@ -174,13 +174,13 @@ The list of all the data exploration methods covered above:
 +------------------------------------+------------------------------------------------------------------+
 | ``db.search(query)``               | Get all points from the database matching a query                |
 +------------------------------------+------------------------------------------------------------------+
-| ``db.select(attrributes, query)``  | Get attributes froms points matching a query                     |
+| ``db.select(attributes, query)``   | Get attributes from points matching a query                      |
 +------------------------------------+------------------------------------------------------------------+
 | **Attribute-based Exploration**                                                                       |
 +------------------------------------+------------------------------------------------------------------+
 | ``db.get_measurements()``          | Get the names of all measurements in the database                |
 +------------------------------------+------------------------------------------------------------------+
-| ``db.get_timestmaps()``            | Get all the timestamps from the database, by insertion order     |
+| ``db.get_timestamps()``            | Get all the timestamps from the database, by insertion order     |
 +------------------------------------+------------------------------------------------------------------+
 | ``db.get_tag_keys()``              | Get all tag keys from the database                               |
 +------------------------------------+------------------------------------------------------------------+

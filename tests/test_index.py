@@ -119,7 +119,7 @@ def test_insert_time_method():
     assert index._timestamps == [t1.timestamp(), t2.timestamp()]
 
 
-def test_index_measuments_method():
+def test_index_measurements_method():
     """Test _insert_measurements helper of Index."""
     index = Index()
 
@@ -382,7 +382,7 @@ def test_search_compound_query_not():
     rst = index.search(~fiel_q)
     assert rst.items == {0, 1}
 
-    # Compount NOT FieldQuery.
+    # Compound NOT FieldQuery.
     rst = index.search(~fiel_q & tags_q)
     assert rst.items == {0}
 

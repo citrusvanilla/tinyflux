@@ -1,4 +1,4 @@
-"""Defintion of TinyFlux storages classes.
+"""Definition of TinyFlux storages classes.
 
 Storage defines an abstract base case using the built-in ABC of python. This
 class defines the requires abstract methods of read, write, and append, as well
@@ -59,7 +59,7 @@ class Storage(ABC):  # pragma: no cover
     Defines an extensible, static interface with required read/write ops and
     index-related getter/setters.
 
-    Custom storage classes should inheret like so:
+    Custom storage classes should inherit like so:
         >>> from tinyflux import Storage
         >>> class MyStorageClass(Storage):
                 ...
@@ -97,7 +97,7 @@ class Storage(ABC):  # pragma: no cover
         """Append points to the store.
 
         Args:
-            points: A list of Point objets.
+            points: A list of Point objects.
             temporary: Whether or not to append to temporary storage.
         """
         ...
