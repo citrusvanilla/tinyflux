@@ -259,7 +259,7 @@ def test_le():
     # Test for tag key "city".
     taq_q = TagQuery().city <= "melbourne"
     assert taq_q(Point(tags={"city": "melbourne"}))
-    assert not taq_q(Point(tags={"city": "zansibar"}))
+    assert not taq_q(Point(tags={"city": "zanzibar"}))
     assert not taq_q(Point())
     assert hash(taq_q)
 
@@ -290,7 +290,7 @@ def test_gt():
     """Test simple greater than comparison."""
     # Test for tag key "city".
     taq_q = TagQuery().city > "melbourne"
-    assert taq_q(Point(tags={"city": "zansibar"}))
+    assert taq_q(Point(tags={"city": "zanzibar"}))
     assert not taq_q(Point(tags={"city": "amsterdam"}))
     assert not taq_q(Point())
     assert hash(taq_q)
