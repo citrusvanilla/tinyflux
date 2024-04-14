@@ -8,7 +8,7 @@ TinyFlux is the tiny time series database optimized for your happiness :)
 
 TinyFlux is a time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`__ that is also written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.  TinyFlux has 100% test coverage, over 50,000 downloads, and no open issues.
 
-|Build Status| |Coverage| |Version| |Downloads|
+|Version| |Downloads| |Coverage| |Build Status|
 
 
 Quick Links
