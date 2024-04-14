@@ -6,7 +6,7 @@
 
 TinyFlux is the tiny time series database optimized for your happiness :)
 
-TinyFlux is a time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`__ that is also written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.  TinyFlux has 100% test coverage, over 50,000 downloads, and no open issues.
+TinyFlux is a time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`__ that is written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.  TinyFlux has 100% test coverage, over 50,000 downloads, and no open issues.
 
 |Version| |Downloads| |Coverage| |Build Status|
 
@@ -36,19 +36,20 @@ Introduction
 
 TinyFlux is:
 
-- **time-centric:** Python datetime objects are first-class citizens and queries are optimized for time, above all else.
+- **optimized for your happiness:** TinyFlux is designed to be simple and fun to use by providing a clean API that can be learned in about 90 seconds.
 
-- **optimized for your happiness:** TinyFlux is designed to be simple and
-  fun to use by providing a simple and clean API that can be learned in 5 minutes.
+- **time-centric:** Python datetime objects are first-class citizens, and both the storage and queries are optimized for time above all else.
 
-- **tiny:** The current source code has 4,000 lines of code (with about 50%
-  documentation) and 4,000 lines of tests.  TinyFlux is about 150kb, unzipped.
+- **human-friendly:** The primary datastore is a CSV, making your database human-readable from the very first write. No need to use SQL to investigate your data, just open the DB file in any tabular-friendly application.
 
-- **written in pure Python:** TinyFlux needs neither an external server nor any dependencies.
+- **pure Python:** TinyFlux needs neither an external server nor any dependencies.
 
-- **works on Python 3.7+ and PyPy-3.9:** TinyFlux works on all modern versions of Python and PyPy.
+- **tiny:** TinyFlux is about 150kb, unzipped. The current source code has 4,000 lines of code (with about 50% documentation) and 4,000 lines of tests.  
 
-- **100% test coverage:** No explanation needed.
+- **100% covered by tests:** No explanation needed.
+
+- **developed for modern Python** TinyFlux works on all modern versions of Python (3.7 - 3.12) and PyPy (3.9).
+
 
 To get started, head over to the `TinyFlux docs <https://tinyflux.readthedocs.io/>`__.  Examples can be found in the `examples directory <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`__.  You can also discuss topics related to TinyFlux including general development, extensions, or showcase your TinyFlux-based projects on the `GitHub discussion forum <https://github.com/citrusvanilla/tinyflux/discussions>`__.
 
