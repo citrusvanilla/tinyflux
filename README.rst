@@ -4,7 +4,7 @@
 .. image:: https://github.com/citrusvanilla/tinyflux/blob/master/artwork/tinyfluxdb-dark.png?raw=true#gh-light-mode-only
     :width: 500px
 
-TinyFlux is the tiny time series database optimized for your happiness :)
+TinyFlux is the tiny time series database optimized for your happiness 😎
 
 TinyFlux is the time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`__ that is written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.  TinyFlux has 100% test coverage, over 50,000 downloads, and no open issues.
 
@@ -102,7 +102,7 @@ Querying TinyFlux
 Full Example Notebooks and Workflows
 ************************************
 
-The `examples <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`__ directory of this repository contains three common uses cases for TinyFlux and the associated boilerplate to get you started:
+The `examples <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`__ directory of this repository contains four common uses cases for TinyFlux and the associated boilerplate to get you started:
 
 1. `Loading a TinyFlux DB from a CSV <https://github.com/citrusvanilla/tinyflux/blob/master/examples/1_initializing_and_loading_new_db.ipynb>`__
 2. `Local Analytics Workflow with a TinyFlux Database <https://github.com/citrusvanilla/tinyflux/blob/master/examples/2_analytics_workflow.ipynb>`__
@@ -118,7 +118,7 @@ Checkout some tips for working with TinyFlux `here <https://tinyflux.readthedocs
 TinyFlux Across the Internet
 ****************************
 
-Articles, tutorials, and other instances of TinyFlux:
+Articles, tutorials, and other instances of TinyFlux in the wild:
 
 - `"Introducing TinyFlux: The Tiny Time Series Database for Python-based IoT & Analytics Applications" <https://citrusvanilla.medium.com/introducing-tinyflux-the-tiny-time-series-database-for-python-based-iot-analytics-applications-c3ef3c3bedf>`__: A Medium.com article announcing the release of TinyFlux
 - `"Storing Time Series Data in Python Using TinyFluxDB" <http://www.steves-internet-guide.com/storing-time-series-data-python-using-tinyflux-db/>`__: A tutorial from `Steve's Internet Guide <http://www.steves-internet-guide.com/>`__, a portal for learning MQTT and IoT development for Python
@@ -127,7 +127,7 @@ Articles, tutorials, and other instances of TinyFlux:
 Contributing
 ************
 
-New ideas, new developer tools, improvements, and bugfixes are always welcome.  Follow these guidelines before getting started:
+New ideas, developer tools, improvements, and bugfixes are always welcome.  Follow these guidelines before getting started:
 
 1. Make sure to read `Getting Started <https://tinyflux.readthedocs.io/en/latest/getting-started.html>`__ and the `Contributing Tooling and Conventions <https://tinyflux.readthedocs.io/en/latest/contributing-tooling.html>`__ section of the documentation.
 2. Check GitHub for `existing open issues <https://github.com/citrusvanilla/tinyflux/issues>`__, `open a new issue <https://github.com/citrusvanilla/tinyflux/issues/new>`__ or `start a new discussion <https://github.com/citrusvanilla/tinyflux/discussions/new>`__.
