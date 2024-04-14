@@ -46,10 +46,9 @@ TinyFlux is:
 
 - **tiny:** TinyFlux is about 150kb, unzipped. The current source code has 4,000 lines of code (with about 50% documentation) and 4,000 lines of tests.  
 
+- **developed for modern Python:** TinyFlux works on all modern versions of Python (3.7 - 3.12) and PyPy (3.9).
+
 - **100% covered by tests:** No explanation needed.
-
-- **developed for modern Python** TinyFlux works on all modern versions of Python (3.7 - 3.12) and PyPy (3.9).
-
 
 To get started, head over to the `TinyFlux docs <https://tinyflux.readthedocs.io/>`__.  Examples can be found in the `examples directory <https://github.com/citrusvanilla/tinyflux/tree/master/examples>`__.  You can also discuss topics related to TinyFlux including general development, extensions, or showcase your TinyFlux-based projects on the `GitHub discussion forum <https://github.com/citrusvanilla/tinyflux/discussions>`__.
 
