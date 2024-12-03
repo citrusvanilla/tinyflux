@@ -6,9 +6,9 @@
 
 TinyFlux is the tiny time series database optimized for your happiness 😎
 
-TinyFlux is the time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`__ that is written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.  TinyFlux has 100% test coverage, over 60,000 downloads, and no open issues.
+TinyFlux is the time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`__ that is written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.  TinyFlux has 100% test coverage, over 75,000 downloads, and no open issues.
 
-|Version| |Downloads| |Coverage| |Build Status|
+|Docs| |Version| |Downloads| |Coverage| |Build Status|
 
 
 Quick Links
@@ -135,6 +135,8 @@ New ideas, developer tools, improvements, and bugfixes are always welcome.  Foll
 4. Write unit tests, ensure the code is 100% covered, update documentation where necessary, and format and style the code correctly.
 5. Send a pull request.
 
+.. |Docs| image:: https://img.shields.io/readthedocs/docs
+   :target: https://tinyflux.readthedocs.io/en/latest/
 .. |Build Status| image:: https://github.com/citrusvanilla/tinyflux/actions/workflows/build.yml/badge.svg
    :target: https://github.com/citrusvanilla/tinyflux/actions
 .. |Coverage| image:: https://codecov.io/gh/citrusvanilla/tinyflux/branch/master/graph/badge.svg?token=IEGQ4E57VA
