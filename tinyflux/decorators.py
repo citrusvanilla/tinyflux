@@ -63,7 +63,7 @@ def temp_storage_op(method: Callable[..., Any]) -> Callable[..., Any]:
     """
 
     @wraps(method)
-    def op(self: Any, seprate=None, *args: Any, **kwargs: Any) -> Any:
+    def op(self: Any, *args: Any, **kwargs: Any) -> Any:
         """Decorate."""
         # Init temp storage in the storage class.
         self._storage._init_temp_storage()
