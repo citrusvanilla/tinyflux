@@ -1,6 +1,16 @@
 Changelog
 =========
 
+v1.0.1 - September 19, 2025
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Updated Python support: Removed Python 3.7, added Python 3.13 support
+* Updated CI/CD workflows to test against Python 3.8-3.13
+* Updated GitHub Actions to latest versions for better security and performance
+* Updated documentation and package metadata for new Python version requirements
+* Fixed decorator bug in temp_storage_op that was introduced in decorator refactoring
+* Updated download count to reflect 120,000+ downloads
+
 v1.0.0 - April 13, 2024
 ^^^^^^^^^^^^^^^^^^^^^^^
 
