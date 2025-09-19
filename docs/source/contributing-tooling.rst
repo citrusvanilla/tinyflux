@@ -1,7 +1,7 @@
 Tooling and Conventions
 =======================
 
-TinyFlux should be developed locally with the latest stable version of Python on any platform  (3.10 as of this writing).
+TinyFlux should be developed locally with the latest stable version of Python on any platform  (3.13 as of this writing).
 
 
 Versioning

@@ -6,7 +6,7 @@
 
 TinyFlux is the tiny time series database optimized for your happiness 😎
 
-TinyFlux is the time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`__ that is written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.  TinyFlux has 100% test coverage, over 75,000 downloads, and no open issues.
+TinyFlux is the time series version of `TinyDB <https://tinydb.readthedocs.io/en/latest/index.html>`__ that is written in Python and has no external dependencies.  It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores.  TinyFlux has 100% test coverage, over 120,000 downloads, and no open issues.
 
 |Docs| |Version| |Downloads| |Coverage| |Build Status|
 
@@ -24,7 +24,7 @@ Quick Links
 Installation
 ************
 
-TinyFlux is hosted at `PyPI <https://pypi.org/project/tinyflux/>`__ and is easily downloadable with ``pip``. TinyFlux has been tested with Python 3.7 - 3.12 and PyPy-3.9 on Linux and Windows platforms.
+TinyFlux is hosted at `PyPI <https://pypi.org/project/tinyflux/>`__ and is easily downloadable with ``pip``. TinyFlux has been tested with Python 3.8 - 3.13 and PyPy-3.9 on Linux and Windows platforms.
 
 .. code-block:: bash
 
@@ -46,7 +46,7 @@ TinyFlux is:
 
 - **tiny:** TinyFlux is about 150kb, unzipped. The current source code has 4,000 lines of code (with about 50% documentation) and 4,000 lines of tests.  
 
-- **developed for modern Python:** TinyFlux works on all modern versions of Python (3.7 - 3.12) and PyPy (3.9).
+- **developed for modern Python:** TinyFlux works on all modern versions of Python (3.8 - 3.13) and PyPy (3.9).
 
 - **100% covered by tests:** No explanation needed.
 
