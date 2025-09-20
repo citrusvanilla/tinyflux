@@ -638,7 +638,7 @@ class TinyFlux:
             measurement: An optional measurement to insert Points into.
             compact_key_prefixes: Use compact key prefixes in relevant storages.
             batch_size: Number of points per batch (default: 1,000). Larger
-                        batches = fewer fsync operations but more memory usage.
+            batches = fewer fsync operations but more memory usage.
 
         Returns:
             The count of inserted points.

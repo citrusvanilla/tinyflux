@@ -255,7 +255,7 @@ class Measurement:
         Args:
             points: An iterable of Point objects (can be generator/iterator).
             batch_size: Number of points per batch (default: 1,000). Larger
-                        batches = fewer fsync operations but more memory usage.
+            batches = fewer fsync operations but more memory usage.
 
         Returns:
             The count of inserted points.
