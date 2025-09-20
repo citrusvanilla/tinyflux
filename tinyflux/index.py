@@ -274,7 +274,11 @@ class Index:
 
             # Check to see if there is overlap, if so, extend results.
             if measurement_items.intersection(set(field_items)):
-                field_values = [i[1] for i in items]
+                # Only include field values for points in the specified
+                # measurement
+                field_values = [
+                    i[1] for i in items if i[0] in measurement_items
+                ]
                 rst.extend(field_values)
 
         return rst

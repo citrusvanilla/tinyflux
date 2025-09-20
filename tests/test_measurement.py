@@ -15,9 +15,112 @@ from tinyflux.queries import FieldQuery, MeasurementQuery, TagQuery, TimeQuery
 from tinyflux.storages import MemoryStorage
 
 
-def test_init():
+@pytest.fixture
+def db():
+    """Create a TinyFlux database with MemoryStorage."""
+    return TinyFlux(storage=MemoryStorage)
+
+
+@pytest.fixture
+def db_no_index():
+    """Create a TinyFlux database with MemoryStorage and auto_index=False."""
+    return TinyFlux(storage=MemoryStorage, auto_index=False)
+
+
+@pytest.fixture
+def basic_measurements(db):
+    """Create basic measurements m1 and m2 with some test data."""
+    m1 = db.measurement("m1")
+    m2 = db.measurement("m2")
+
+    # Insert basic test data
+    m1.insert(Point(tags={"a": "A"}, fields={"a": 1}))
+    m1.insert(Point(tags={"a": "A"}, fields={"b": 2}))
+    m2.insert(Point(tags={"b": "B"}, fields={"a": 1}))
+    m2.insert(Point(tags={"b": "B"}, fields={"b": 2}))
+
+    return db, m1, m2
+
+
+@pytest.fixture
+def test_times():
+    """Generate standard test timestamps."""
+    t_now = datetime.now(timezone.utc)
+    return {
+        "t_past": t_now - timedelta(days=10),
+        "t_now": t_now,
+        "t_future": t_now + timedelta(days=10),
+        "t_yesterday": t_now - timedelta(days=1),
+        "t_year_ago": t_now - timedelta(days=365),
+    }
+
+
+@pytest.fixture
+def db_with_index():
+    """Create a TinyFlux database with MemoryStorage and auto_index=True."""
+    return TinyFlux(auto_index=True, storage=MemoryStorage)
+
+
+@pytest.fixture
+def batch_measurement(db_with_index):
+    """Create a test measurement for batch testing."""
+    return db_with_index.measurement("test_batch")
+
+
+@pytest.fixture
+def base_time():
+    """Generate base time for batch testing."""
+    return datetime.now(timezone.utc)
+
+
+@pytest.fixture
+def ordered_points(base_time):
+    """Create 4 time-ordered points for testing."""
+    points = []
+    for i in range(4):
+        point = Point(
+            time=base_time + timedelta(seconds=i * 10),
+            measurement="test_batch",
+            tags={"device": f"device_{i}"},
+            fields={"value": float(i)},
+        )
+        points.append(point)
+    return points
+
+
+@pytest.fixture
+def out_of_order_points(base_time):
+    """Create 4 points with some out of time order."""
+    return [
+        Point(
+            time=base_time + timedelta(seconds=0),
+            measurement="test_batch",
+            tags={"device": "device_0"},
+            fields={"value": 0.0},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=10),
+            measurement="test_batch",
+            tags={"device": "device_1"},
+            fields={"value": 1.0},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=5),  # Out of order!
+            measurement="test_batch",
+            tags={"device": "device_2"},
+            fields={"value": 2.0},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=20),
+            measurement="test_batch",
+            tags={"device": "device_3"},
+            fields={"value": 3.0},
+        ),
+    ]
+
+
+def test_init(db):
     """Test __init__ of Measurement instance."""
-    db = TinyFlux(storage=MemoryStorage)
     m = db.measurement("a")
     m2 = db.measurement("b")
 
@@ -27,9 +130,8 @@ def test_init():
     assert db.index == m.index == m2.index
 
 
-def test_iter():
+def test_iter(db):
     """Test __iter__ method of Measurement instance."""
-    db = TinyFlux(storage=MemoryStorage)
     db.insert(Point())
 
     m = db.measurement("a")
@@ -43,9 +145,8 @@ def test_iter():
     assert len(m.all()) == 1
 
 
-def test_len():
+def test_len(db, test_times):
     """Test __len__ of Measurement."""
-    db = TinyFlux(storage=MemoryStorage)
     m = db.measurement("a")
     assert len(m) == 0
 
@@ -55,7 +156,7 @@ def test_len():
     assert len(m.index.get_measurements()) == 1
 
     # Insert point out of order.
-    m.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=365)))
+    m.insert(Point(time=test_times["t_year_ago"]))
     assert not m.index.valid
 
     # Get len again
@@ -95,24 +196,21 @@ def test_repr():
     )
 
 
-def test_name():
+def test_name(db):
     """Test name property of Measurement instance."""
-    db = TinyFlux(storage=MemoryStorage)
     m = db.measurement("a")
     assert m.name == m._name == "a"
 
 
-def test_storage():
+def test_storage(db):
     """Test storage property of Measurement instance."""
-    db = TinyFlux(storage=MemoryStorage)
     m1 = db.measurement("a")
     m2 = db.measurement("b")
     assert m1.storage == m2.storage == db.storage
 
 
-def test_all():
+def test_all(db, test_times):
     """Test fetching all points from a measurement."""
-    db = TinyFlux(storage=MemoryStorage)
     p1 = Point(tags={"a": "1"})
     p2 = Point(tags={"a": "2"})
     m = db.measurement("s")
@@ -123,7 +221,7 @@ def test_all():
     m.insert(p2)
     assert m.all() == [p1, p2]
 
-    p3 = Point(time=datetime.now(timezone.utc) - timedelta(days=10))
+    p3 = Point(time=test_times["t_past"])
     m.insert(p3)
 
     # Test "sorted" argument.
@@ -131,16 +229,30 @@ def test_all():
     assert m.all(sorted=True) == [p3, p1, p2]
 
 
-def test_contains():
-    """Test the contains method of the Measurement class."""
-    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+@pytest.fixture
+def query_test_setup(db_no_index):
+    """Set up for contains/count/get query tests."""
+    db = db_no_index
     m1 = db.measurement("m1")
     m2 = db.measurement("m2")
 
-    m1.insert(Point(tags={"a": "A"}, fields={"a": 1}))
-    m1.insert(Point(tags={"a": "A"}, fields={"a": 2}))
-    m2.insert(Point(tags={"b": "B"}, fields={"b": 1}))
-    m2.insert(Point(tags={"b": "B"}, fields={"b": 2}))
+    # Insert base test data (matching test_contains original data)
+    p1 = Point(tags={"a": "A"}, fields={"a": 1})
+    p2 = Point(tags={"a": "A"}, fields={"a": 2})
+    p3 = Point(tags={"b": "B"}, fields={"b": 1})  # Fixed: was {"a": 1}
+    p4 = Point(tags={"b": "B"}, fields={"b": 2})
+
+    m1.insert(p1)
+    m1.insert(p2)
+    m2.insert(p3)
+    m2.insert(p4)
+
+    return db, m1, m2, (p1, p2, p3, p4)
+
+
+def test_contains(query_test_setup, test_times):
+    """Test the contains method of the Measurement class."""
+    db, m1, m2, (p1, p2, p3, p4) = query_test_setup
 
     # Test contains with invalid invocation.
     with pytest.raises(TypeError):
@@ -162,7 +274,7 @@ def test_contains():
     # Test with invalid index.
     m1.insert(
         Point(
-            time=datetime.now(timezone.utc) - timedelta(days=365),
+            time=test_times["t_year_ago"],
             tags={"a": "c"},
             fields={"a": 3},
         )
@@ -172,16 +284,9 @@ def test_contains():
     assert not m2.contains(FieldQuery().a == 3)
 
 
-def test_count():
+def test_count(query_test_setup, test_times):
     """Test the count method of the Measurement class."""
-    db = TinyFlux(storage=MemoryStorage, auto_index=False)
-    m1 = db.measurement("m1")
-    m2 = db.measurement("m2")
-
-    m1.insert(Point(tags={"a": "A"}, fields={"a": 1}))
-    m1.insert(Point(tags={"a": "A"}, fields={"b": 2}))
-    m2.insert(Point(tags={"b": "B"}, fields={"a": 1}))
-    m2.insert(Point(tags={"b": "B"}, fields={"b": 2}))
+    db, m1, m2, (p1, p2, p3, p4) = query_test_setup
 
     # Valid index, no items.
     db.reindex()
@@ -197,7 +302,7 @@ def test_count():
     # Invalid index.
     m1.insert(
         Point(
-            time=datetime.now(timezone.utc) - timedelta(days=365),
+            time=test_times["t_year_ago"],
             tags={"a": "b", "c": "d"},
             fields={"e": 1, "f": 3},
         )
@@ -206,21 +311,9 @@ def test_count():
     assert m1.count(FieldQuery().e == 1) == 1
 
 
-def test_get():
+def test_get(query_test_setup, test_times):
     """Test the get method of the Measurement class."""
-    db = TinyFlux(storage=MemoryStorage, auto_index=False)
-    m1 = db.measurement("m1")
-    m2 = db.measurement("m2")
-
-    p1 = Point(tags={"a": "A"}, fields={"a": 1})
-    p2 = Point(tags={"a": "A"}, fields={"b": 2})
-    p3 = Point(tags={"b": "B"}, fields={"a": 1})
-    p4 = Point(tags={"b": "B"}, fields={"b": 2})
-
-    m1.insert(p1)
-    m1.insert(p2)
-    m2.insert(p3)
-    m2.insert(p4)
+    db, m1, m2, (p1, p2, p3, p4) = query_test_setup
 
     # Valid index, no items.
     db.reindex()
@@ -235,7 +328,7 @@ def test_get():
 
     # Invalid index.
     p5 = Point(
-        time=datetime.now(timezone.utc) - timedelta(days=365),
+        time=test_times["t_year_ago"],
         tags={"a": "b", "c": "d"},
         fields={"e": 1, "f": 3},
     )
@@ -244,120 +337,154 @@ def test_get():
     assert m1.get(FieldQuery().e == 1) == p5
 
 
-def test_get_field_keys():
-    """Test show field keys."""
-    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+@pytest.fixture
+def measurement_get_setup(db_no_index):
+    """Set up for get_*_keys and get_*_values tests."""
+    db = db_no_index
     m = db.measurement("_default")
     m2 = db.measurement("some_missing_measurement")
     assert db.index.valid
-
-    # Valid index, nothing in storage/index.
-    assert m.get_field_keys() == []
-
-    m.insert(Point())
-    db.reindex()
-    assert m.get_field_keys() == []
-    assert m2.get_field_keys() == []
-
-    m.insert(Point(fields={"a": 1}))
-    db.reindex()
-    assert m.get_field_keys() == ["a"]
-    assert m2.get_field_keys() == []
-
-    m.insert(Point(fields={"a": 2, "b": 3}))
-    db.reindex()
-    assert m.get_field_keys() == ["a", "b"]
-    assert m2.get_field_keys() == []
-
-    # Invalidate index.
-    m.insert(
-        Point(
-            time=datetime.now(timezone.utc) - timedelta(days=1),
-            fields={"a": 1, "c": 3},
-        )
-    )
-
-    assert m.get_field_keys() == ["a", "b", "c"]
-    assert m2.get_field_keys() == []
+    return db, m, m2
 
 
-def test_get_field_values():
-    """Test show field values."""
-    db = TinyFlux(storage=MemoryStorage, auto_index=False)
-    m = db.measurement("_default")
-    m2 = db.measurement("some_missing_measurement")
-    assert db.index.valid
+@pytest.mark.parametrize(
+    "method_name,point_data,expected_results",
+    [
+        (
+            "get_field_keys",
+            [
+                {},  # Empty point
+                {"fields": {"a": 1}},  # Single field
+                {"fields": {"a": 2, "b": 3}},  # Multiple fields
+                {
+                    "time": "t_yesterday",
+                    "fields": {"a": 1, "c": 3},
+                },  # Out of order
+            ],
+            [
+                [],  # After empty point
+                ["a"],  # After single field
+                ["a", "b"],  # After multiple fields
+                ["a", "b", "c"],  # After invalidation
+            ],
+        ),
+        (
+            "get_tag_keys",
+            [
+                {},  # Empty point
+                {"tags": {"a": "1"}},  # Single tag
+                {"tags": {"a": "2", "b": "3"}},  # Multiple tags
+                {
+                    "time": "t_yesterday",
+                    "tags": {"a": "1", "c": "3"},
+                },  # Out of order
+            ],
+            [
+                [],  # After empty point
+                ["a"],  # After single tag
+                ["a", "b"],  # After multiple tags
+                ["a", "b", "c"],  # After invalidation
+            ],
+        ),
+    ],
+)
+def test_get_keys_methods(
+    measurement_get_setup, method_name, point_data, expected_results, test_times
+):
+    """Test get_field_keys and get_tag_keys methods."""
+    db, m, m2 = measurement_get_setup
 
-    # Valid index, nothing in storage/index.
-    assert m.get_field_values("a") == []
+    # Valid index, nothing in storage/index
+    assert getattr(m, method_name)() == []
 
-    m.insert(Point())
-    db.reindex()
-    assert m.get_field_values("a") == []
-    assert m2.get_field_values("a") == []
+    for i, (point_spec, expected) in enumerate(
+        zip(point_data, expected_results)
+    ):
+        # Handle time references
+        if "time" in point_spec and isinstance(point_spec["time"], str):
+            point_spec = {**point_spec, "time": test_times[point_spec["time"]]}
 
-    m.insert(Point(fields={"a": 1}))
-    db.reindex()
-    assert m.get_field_values("a") == [1]
-    assert m2.get_field_values("a") == []
+        # Create and insert point
+        m.insert(Point(**point_spec))
 
-    m.insert(Point(fields={"a": 2, "b": 3}))
-    db.reindex()
-    assert m.get_field_values("a") == [1, 2]
-    assert m2.get_field_values("b") == []
+        # Reindex if not the last item (which invalidates the index)
+        if i < len(point_data) - 1:
+            db.reindex()
 
-    # Invalidate index.
-    m.insert(
-        Point(
-            time=datetime.now(timezone.utc) - timedelta(days=1),
-            fields={"a": 1, "c": 3},
-        )
-    )
+        # Test main measurement
+        assert getattr(m, method_name)() == expected
 
-    assert m.get_field_values("a") == [1, 2, 1]
-    assert m2.get_field_values("a") == []
+        # Test missing measurement (should always be empty except after
+        # invalidation)
+        if i < len(point_data) - 1:
+            assert getattr(m2, method_name)() == []
 
 
-def test_get_tag_keys():
-    """Test show tag keys."""
-    db = TinyFlux(storage=MemoryStorage, auto_index=False)
-    m = db.measurement("_default")
-    m2 = db.measurement("some_missing_measurement")
-    assert db.index.valid
+@pytest.mark.parametrize(
+    "method_name,field_key,point_data,expected_results",
+    [
+        (
+            "get_field_values",
+            "a",
+            [
+                {},  # Empty point
+                {"fields": {"a": 1}},  # Single field
+                {
+                    "fields": {"a": 2, "b": 3}
+                },  # Multiple fields with different key
+                {
+                    "time": "t_yesterday",
+                    "fields": {"a": 1, "c": 3},
+                },  # Out of order
+            ],
+            [
+                [],  # After empty point
+                [1],  # After single field
+                [1, 2],  # After multiple fields
+                [1, 2, 1],  # After invalidation (includes duplicate)
+            ],
+        ),
+    ],
+)
+def test_get_field_values(
+    measurement_get_setup,
+    method_name,
+    field_key,
+    point_data,
+    expected_results,
+    test_times,
+):
+    """Test get_field_values method."""
+    db, m, m2 = measurement_get_setup
 
-    # Valid index, nothing in storage/index.
-    assert m.get_tag_keys() == []
+    # Valid index, nothing in storage/index
+    assert getattr(m, method_name)(field_key) == []
 
-    m.insert(Point())
-    db.reindex()
-    assert m.get_tag_keys() == []
-    assert m2.get_tag_keys() == []
+    for i, (point_spec, expected) in enumerate(
+        zip(point_data, expected_results)
+    ):
+        # Handle time references
+        if "time" in point_spec and isinstance(point_spec["time"], str):
+            point_spec = {**point_spec, "time": test_times[point_spec["time"]]}
 
-    m.insert(Point(tags={"a": "1"}))
-    db.reindex()
-    assert m.get_tag_keys() == ["a"]
-    assert m2.get_tag_keys() == []
+        # Create and insert point
+        m.insert(Point(**point_spec))
 
-    m.insert(Point(tags={"a": "2", "b": "3"}))
-    db.reindex()
-    assert m.get_tag_keys() == ["a", "b"]
-    assert m2.get_tag_keys() == []
+        # Reindex if not the last item (which invalidates the index)
+        if i < len(point_data) - 1:
+            db.reindex()
 
-    # Invalidate index.
-    m.insert(
-        Point(
-            time=datetime.now(timezone.utc) - timedelta(days=1),
-            tags={"a": "1", "c": "3"},
-        )
-    )
+        # Test main measurement
+        assert getattr(m, method_name)(field_key) == expected
 
-    assert m.get_tag_keys() == ["a", "b", "c"]
-    assert m2.get_tag_keys() == []
+        # Test missing measurement (should always be empty)
+        if i < len(point_data) - 1:
+            assert getattr(m2, method_name)(field_key) == []
 
 
-def test_get_tag_values():
-    """Test show tag keys."""
-    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+def test_get_tag_values(db_no_index, test_times):
+    """Test show tag values."""
+    db = db_no_index
     m = db.measurement("_default")
     m2 = db.measurement("other_measurement")
     m3 = db.measurement("missing_measurement")
@@ -397,12 +524,7 @@ def test_get_tag_values():
     assert m3.get_tag_values() == {}
 
     # Invalidate index.
-    m.insert(
-        Point(
-            time=datetime.now(timezone.utc) - timedelta(days=1),
-            tags={"a": "a", "c": "3"},
-        )
-    )
+    m.insert(Point(time=test_times["t_yesterday"], tags={"a": "a", "c": "3"}))
 
     assert m.get_tag_values() == {"a": ["1", "a"], "b": ["2"], "c": ["3"]}
     assert m.get_tag_values(["c"]) == {"c": ["3"]}
@@ -412,9 +534,9 @@ def test_get_tag_values():
     assert m2.get_tag_values() == {"a": ["cow", "horse"], "b": ["bird"]}
 
 
-def test_get_timestamps():
+def test_get_timestamps(db_no_index, test_times):
     """Test get timestamps."""
-    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+    db = db_no_index
     m1 = db.measurement("_default")
     m2 = db.measurement("other_measurement")
     assert db.index.valid
@@ -423,36 +545,34 @@ def test_get_timestamps():
     assert m1.get_timestamps() == []
     assert m2.get_timestamps() == []
 
-    t1 = datetime.now(timezone.utc)
+    t1 = test_times["t_now"]
     m1.insert(Point(time=t1))
     db.reindex()
     assert m1.get_timestamps() == [t1]
     assert m2.get_timestamps() == []
 
-    t2 = t1 + timedelta(days=1)
+    t2 = test_times["t_future"]
     m1.insert(Point(time=t2))
     db.reindex()
     assert m1.get_timestamps() == [t1, t2]
     assert m2.get_timestamps() == []
 
-    t3 = t2 + timedelta(days=1)
+    t3 = test_times["t_future"]
     m2.insert(Point(time=t3))
     db.reindex()
     assert m1.get_timestamps() == [t1, t2]
     assert m2.get_timestamps() == [t3]
 
     # Invalidate index.
-    t4 = t1 - timedelta(days=1)
+    t4 = test_times["t_yesterday"]
     db.insert(Point(time=t4))
 
     assert m1.get_timestamps() == [t1, t2, t4]
     assert m2.get_timestamps() == [t3]
 
 
-def test_insert():
+def test_insert(db, test_times):
     """Test the insert method of the Measurement class."""
-    db = TinyFlux(storage=MemoryStorage)
-
     # Assert exception with non-point insert.
     with pytest.raises(TypeError, match="Data must be a Point instance."):
         db.measurement("a").insert({})
@@ -478,10 +598,7 @@ def test_insert():
     assert len(m2) == 1
 
     # Insert out-of-order.  Index should be invalid.
-    assert (
-        m1.insert(Point(time=datetime.now(timezone.utc) - timedelta(days=1)))
-        == 1
-    )
+    assert m1.insert(Point(time=test_times["t_yesterday"])) == 1
     assert not db.index.valid
     assert len(db.index) == 0
     assert len(m1) == 2
@@ -489,10 +606,8 @@ def test_insert():
     assert len(db) == 3
 
 
-def test_insert_multiple():
+def test_insert_multiple(db):
     """Test the insert multiple method of the Measurement class."""
-    db = TinyFlux(storage=MemoryStorage)
-
     # Some measurements.
     m1, m2 = db.measurement("a"), db.measurement("b")
     p1, p2 = Point(), Point()
@@ -597,9 +712,8 @@ def test_remove():
     assert len(db) == 0
 
 
-def test_remove_all():
+def test_remove_all(db, test_times):
     """Test the remove all method of the Measurement class."""
-    db = TinyFlux(storage=MemoryStorage)
     m1 = db.measurement("m1")
     m2 = db.measurement("m2")
     m3 = db.measurement("m3")
@@ -621,7 +735,7 @@ def test_remove_all():
     # Invalidate the index.
     m2.insert(
         Point(
-            time=datetime.now(timezone.utc) - timedelta(days=365),
+            time=test_times["t_year_ago"],
             measurement="m1",
         )
     )
@@ -884,3 +998,267 @@ def test_auto_index_off():
     assert m.get(q2) is None
     assert m.get(~q2) == p
     assert m.get(q1) == p
+
+
+def test_insert_multiple_batch_size_in_order(
+    batch_measurement, db_with_index, ordered_points
+):
+    """Test insert_multiple with batch_size=2, points in time order.
+
+    Index should stay valid when points are inserted in order.
+    """
+    # Insert with batch_size=2 (should create 2 batches)
+    count = batch_measurement.insert_multiple(ordered_points, batch_size=2)
+
+    # Verify results
+    assert count == 4
+    assert len(batch_measurement) == 4
+    assert (
+        db_with_index.index.valid
+    )  # Index should remain valid (points in order)
+    assert len(db_with_index.index) == 4  # All points in index
+
+    # Verify data integrity with queries
+    high_value_points = batch_measurement.search(FieldQuery().value >= 2)
+    assert len(high_value_points) == 2  # Points with value 2 and 3
+
+
+def test_insert_multiple_batch_size_out_of_order(
+    batch_measurement, db_with_index, out_of_order_points
+):
+    """Test insert_multiple with batch_size=2, points out of time order.
+
+    Index should be invalidated when points are out of order.
+    """
+    # Insert with batch_size=2 (should create 2 batches)
+    count = batch_measurement.insert_multiple(out_of_order_points, batch_size=2)
+
+    # Verify results
+    assert count == 4
+    assert len(batch_measurement) == 4
+    assert (
+        not db_with_index.index.valid
+    )  # Index should be invalidated (points out of order)
+
+    # Data should still be retrievable by reading storage directly
+    all_points = batch_measurement.all()
+    assert len(all_points) == 4
+
+
+def test_insert_multiple_batch_size_3_in_order(
+    batch_measurement, db_with_index, base_time
+):
+    """Test insert_multiple with batch_size=3, points in time order."""
+    # Create 6 points in time order
+    points = []
+    for i in range(6):
+        point = Point(
+            time=base_time + timedelta(seconds=i * 5),
+            measurement="test_batch",
+            tags={"sensor": f"sensor_{i % 3}"},
+            fields={"temperature": 20.0 + i, "humidity": 50.0 + i},
+        )
+        points.append(point)
+
+    # Insert with batch_size=3 (should create 2 batches)
+    count = batch_measurement.insert_multiple(points, batch_size=3)
+
+    # Verify results
+    assert count == 6
+    assert len(batch_measurement) == 6
+    assert (
+        db_with_index.index.valid
+    )  # Index should remain valid (points in order)
+    assert len(db_with_index.index) == 6  # All points in index
+
+    # Test complex queries work correctly
+    high_temp_points = batch_measurement.search(FieldQuery().temperature > 23.0)
+    assert len(high_temp_points) == 2  # Points with temp 24.0 and 25.0
+
+    sensor_0_points = batch_measurement.search(TagQuery().sensor == "sensor_0")
+    assert len(sensor_0_points) == 2  # Points 0 and 3
+
+
+def test_insert_multiple_batch_size_3_out_of_order(
+    batch_measurement, db_with_index, base_time
+):
+    """Test insert_multiple with batch_size=3, points out of time order."""
+    # Create 6 points with one out of order in second batch
+    points = [
+        Point(
+            time=base_time + timedelta(seconds=0),
+            measurement="test_batch",
+            tags={"id": "p0"},
+            fields={"seq": 0},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=10),
+            measurement="test_batch",
+            tags={"id": "p1"},
+            fields={"seq": 1},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=20),
+            measurement="test_batch",
+            tags={"id": "p2"},
+            fields={"seq": 2},
+        ),
+        # Second batch - first point in order, second out of order
+        Point(
+            time=base_time + timedelta(seconds=30),
+            measurement="test_batch",
+            tags={"id": "p3"},
+            fields={"seq": 3},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=15),
+            measurement="test_batch",  # Out of order!
+            tags={"id": "p4"},
+            fields={"seq": 4},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=40),
+            measurement="test_batch",
+            tags={"id": "p5"},
+            fields={"seq": 5},
+        ),
+    ]
+
+    # Insert with batch_size=3 (should create 2 batches)
+    count = batch_measurement.insert_multiple(points, batch_size=3)
+
+    # Verify results
+    assert count == 6
+    assert len(batch_measurement) == 6
+    assert (
+        not db_with_index.index.valid
+    )  # Index should be invalidated (points out of order)
+
+    # Data should still be accessible
+    all_points = batch_measurement.all()
+    assert len(all_points) == 6
+
+
+def test_insert_multiple_batch_size_edge_cases(
+    batch_measurement, db_with_index, base_time
+):
+    """Test insert_multiple with edge cases."""
+    # Test empty list
+    count = batch_measurement.insert_multiple([], batch_size=2)
+    assert count == 0
+    assert len(batch_measurement) == 0
+    assert db_with_index.index.valid  # Index should remain valid
+
+    # Test single point
+    single_point = [
+        Point(
+            time=base_time,
+            measurement="test_batch",
+            tags={"single": "true"},
+            fields={"value": 42.0},
+        )
+    ]
+
+    count = batch_measurement.insert_multiple(single_point, batch_size=2)
+    assert count == 1
+    assert len(batch_measurement) == 1
+    assert db_with_index.index.valid  # Index should remain valid
+    assert len(db_with_index.index) == 1
+
+    # Test batch_size larger than point count
+    more_points = [
+        Point(
+            time=base_time + timedelta(seconds=10),
+            measurement="test_batch",
+            tags={"more": "p1"},
+            fields={"value": 1.0},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=20),
+            measurement="test_batch",
+            tags={"more": "p2"},
+            fields={"value": 2.0},
+        ),
+    ]
+
+    count = batch_measurement.insert_multiple(
+        more_points, batch_size=10
+    )  # Batch larger than data
+    assert count == 2
+    assert len(batch_measurement) == 3  # 1 from before + 2 new
+    assert db_with_index.index.valid  # Index should remain valid
+    assert len(db_with_index.index) == 3
+
+
+def test_insert_multiple_auto_index_false(db_no_index, base_time):
+    """Test insert_multiple with auto_index=False."""
+    measurement = db_no_index.measurement("test_batch")
+
+    points = [
+        Point(
+            time=base_time,
+            measurement="test_batch",
+            tags={"test": "1"},
+            fields={"value": 1.0},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=10),
+            measurement="test_batch",
+            tags={"test": "2"},
+            fields={"value": 2.0},
+        ),
+    ]
+
+    # Insert with batch_size=2
+    count = measurement.insert_multiple(points, batch_size=2)
+
+    # Verify results
+    assert count == 2
+    assert len(measurement) == 2
+    assert (
+        not db_no_index.index.valid
+    )  # Index should be invalid (auto_index=False)
+
+    # Data should still be accessible through storage
+    all_points = measurement.all()
+    assert len(all_points) == 2
+
+
+def test_insert_multiple_batch_size_validation_measurement(
+    batch_measurement, ordered_points
+):
+    """Test insert_multiple batch_size validation on Measurement."""
+    # Test batch_size = 0
+    with pytest.raises(ValueError, match="batch_size must be at least 1"):
+        batch_measurement.insert_multiple(ordered_points, batch_size=0)
+
+    # Test batch_size < 0
+    with pytest.raises(ValueError, match="batch_size must be at least 1"):
+        batch_measurement.insert_multiple(ordered_points, batch_size=-1)
+
+    # Test batch_size = 1 (should work)
+    count = batch_measurement.insert_multiple(ordered_points, batch_size=1)
+    assert count == 4
+
+
+def test_insert_multiple_batch_size_validation_database(
+    db_with_index, ordered_points
+):
+    """Test insert_multiple batch_size validation on TinyFlux database."""
+    # Test batch_size = 0
+    with pytest.raises(ValueError, match="batch_size must be at least 1"):
+        db_with_index.insert_multiple(
+            ordered_points, measurement="test_batch", batch_size=0
+        )
+
+    # Test batch_size < 0
+    with pytest.raises(ValueError, match="batch_size must be at least 1"):
+        db_with_index.insert_multiple(
+            ordered_points, measurement="test_batch", batch_size=-1
+        )
+
+    # Test batch_size = 1 (should work)
+    count = db_with_index.insert_multiple(
+        ordered_points, measurement="test_batch", batch_size=1
+    )
+    assert count == 4

@@ -525,3 +525,172 @@ def test_update():
 
     index.insert([Point(time=t)])
     assert index._num_items == 3
+
+
+def test_get_field_values_measurement_filtering():
+    """Test get_field_values with measurement filtering.
+
+    This specifically tests the bug fix where get_field_values was returning
+    field values from all measurements instead of filtering by the specified
+    measurement.
+    """
+    # Create index with points from different measurements
+    index = Index()
+    base_time = datetime.now(timezone.utc)
+
+    # Points for measurement1
+    p1 = Point(
+        time=base_time,
+        measurement="measurement1",
+        fields={"temperature": 25.0, "humidity": 50.0},
+    )
+    p2 = Point(
+        time=base_time + timedelta(seconds=20),
+        measurement="measurement1",
+        fields={"temperature": 20.0, "pressure": 1013.0},
+    )
+
+    # Points for measurement2
+    p3 = Point(
+        time=base_time + timedelta(seconds=10),
+        measurement="measurement2",
+        fields={"temperature": 30.0, "humidity": 60.0},
+    )
+    p4 = Point(
+        time=base_time + timedelta(seconds=30),
+        measurement="measurement2",
+        fields={"temperature": 35.0, "flow": 100.0},
+    )
+
+    # Build index
+    index.build([p1, p2, p3, p4])
+
+    # Test: get_field_values without measurement filter (should return all)
+    all_temps = index.get_field_values("temperature")
+    assert sorted(all_temps) == [20.0, 25.0, 30.0, 35.0]
+
+    # Test: get_field_values with measurement1 filter (bug fix verification)
+    measurement1_temps = index.get_field_values("temperature", "measurement1")
+    assert sorted(measurement1_temps) == [
+        20.0,
+        25.0,
+    ]  # Should NOT include 30.0, 35.0
+
+    # Test: get_field_values with measurement2 filter
+    measurement2_temps = index.get_field_values("temperature", "measurement2")
+    assert sorted(measurement2_temps) == [
+        30.0,
+        35.0,
+    ]  # Should NOT include 20.0, 25.0
+
+    # Test: get_field_values for field that exists in only one measurement
+    measurement1_pressure = index.get_field_values("pressure", "measurement1")
+    assert measurement1_pressure == [1013.0]
+
+    measurement2_pressure = index.get_field_values("pressure", "measurement2")
+    assert measurement2_pressure == []  # Should be empty
+
+    # Test: get_field_values for non-existent measurement
+    nonexistent_temps = index.get_field_values("temperature", "nonexistent")
+    assert nonexistent_temps == []
+
+    # Test: get_field_values for non-existent field
+    nonexistent_field = index.get_field_values("nonexistent", "measurement1")
+    assert nonexistent_field == []
+
+
+def test_all_get_methods_measurement_filtering_consistency():
+    """Test that all get_* methods properly filter by measurement.
+
+    This comprehensive test verifies that get_field_keys, get_field_values,
+    get_tag_keys, and get_tag_values all correctly filter by measurement
+    and don't suffer from similar bugs.
+    """
+    # Create index with points from different measurements
+    index = Index()
+    base_time = datetime.now(timezone.utc)
+
+    # Points for measurement1
+    p1 = Point(
+        time=base_time,
+        measurement="measurement1",
+        tags={"device": "A", "type": "sensor"},
+        fields={"temperature": 25.0, "humidity": 50.0},
+    )
+    p2 = Point(
+        time=base_time + timedelta(seconds=20),
+        measurement="measurement1",
+        tags={"device": "B", "type": "actuator"},
+        fields={"temperature": 20.0, "pressure": 1013.0},
+    )
+
+    # Points for measurement2
+    p3 = Point(
+        time=base_time + timedelta(seconds=10),
+        measurement="measurement2",
+        tags={"device": "C", "category": "primary"},
+        fields={"temperature": 30.0, "humidity": 60.0},
+    )
+    p4 = Point(
+        time=base_time + timedelta(seconds=30),
+        measurement="measurement2",
+        tags={"device": "D", "category": "secondary"},
+        fields={"temperature": 35.0, "flow": 100.0},
+    )
+
+    # Build index
+    index.build([p1, p2, p3, p4])
+
+    # Test get_field_keys filtering
+    measurement1_field_keys = index.get_field_keys("measurement1")
+    measurement2_field_keys = index.get_field_keys("measurement2")
+    assert measurement1_field_keys == {"temperature", "humidity", "pressure"}
+    assert measurement2_field_keys == {"temperature", "humidity", "flow"}
+    assert (
+        "flow" not in measurement1_field_keys
+    )  # Should not leak from measurement2
+    assert (
+        "pressure" not in measurement2_field_keys
+    )  # Should not leak from measurement1
+
+    # Test get_field_values filtering (the one that was buggy)
+    measurement1_temps = index.get_field_values("temperature", "measurement1")
+    measurement2_temps = index.get_field_values("temperature", "measurement2")
+    assert sorted(measurement1_temps) == [20.0, 25.0]
+    assert sorted(measurement2_temps) == [30.0, 35.0]
+    # Verify no cross-contamination
+    assert 30.0 not in measurement1_temps
+    assert 35.0 not in measurement1_temps
+    assert 20.0 not in measurement2_temps
+    assert 25.0 not in measurement2_temps
+
+    # Test get_tag_keys filtering
+    measurement1_tag_keys = index.get_tag_keys("measurement1")
+    measurement2_tag_keys = index.get_tag_keys("measurement2")
+    assert measurement1_tag_keys == {"device", "type"}
+    assert measurement2_tag_keys == {"device", "category"}
+    assert (
+        "category" not in measurement1_tag_keys
+    )  # Should not leak from measurement2
+    assert (
+        "type" not in measurement2_tag_keys
+    )  # Should not leak from measurement1
+
+    # Test get_tag_values filtering
+    measurement1_tag_values = index.get_tag_values(measurement="measurement1")
+    measurement2_tag_values = index.get_tag_values(measurement="measurement2")
+
+    # Check device tag values (exists in both measurements)
+    assert measurement1_tag_values["device"] == {"A", "B"}
+    assert measurement2_tag_values["device"] == {"C", "D"}
+    # Verify no cross-contamination
+    assert "C" not in measurement1_tag_values["device"]
+    assert "D" not in measurement1_tag_values["device"]
+    assert "A" not in measurement2_tag_values["device"]
+    assert "B" not in measurement2_tag_values["device"]
+
+    # Check measurement-specific tag values
+    assert measurement1_tag_values["type"] == {"sensor", "actuator"}
+    assert measurement2_tag_values["category"] == {"primary", "secondary"}
+    assert "type" not in measurement2_tag_values  # Should not exist
+    assert "category" not in measurement1_tag_values  # Should not exist

@@ -10,6 +10,12 @@ To access TinyFlux through a measurement, use ``db.measurement(name)``:
 >>> m.insert(Point(time=datetime(2022, 1, 1, tzinfo=timezone.utc), tags={"my_tag_key": "my_tag_value"}))
 >>> m.all()
 [Point(time=2022-01-01T00:00:00+00:00, measurement=my_measurement, tags=my_tag_key:my_tag_value)]
+
+Measurements support all the same methods as the main database, including ``insert_multiple()`` with batch processing:
+
+>>> # Insert multiple points into a specific measurement
+>>> points = [Point(...), Point(...), ...]
+>>> m.insert_multiple(points, batch_size=1000)  # Configurable batching
 >>> for point in m:
 >>>     print(point)
 Point(time=2022-01-01T00:00:00+00:00, measurement=my_measurement, tags=my_tag_key:my_tag_value)

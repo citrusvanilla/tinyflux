@@ -1,6 +1,45 @@
 Changelog
 =========
 
+v1.1.0 - September 20, 2025
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**🚀 Major Performance and Bug Fix Release**
+
+**New Features:**
+
+* **Optimized insert_multiple Performance**: Added configurable batched processing with ``batch_size`` parameter (default: 1,000)
+  
+  - Reduces fsync operations from O(n) to O(n/batch_size) for significant performance improvements
+  - Memory-efficient iterator-based processing supports large datasets and generators
+  - Maintains correct index state management during batch operations
+  - Addresses issue #54: "Optimize db.insert_multiple(points) Execution Time"
+
+* **Enhanced Data Validation**: Added comprehensive ``batch_size`` validation with proper error handling
+
+  - ``batch_size`` must be >= 1, raises ``ValueError`` with descriptive message for invalid values
+  - Consistent validation across both ``TinyFlux.insert_multiple()`` and ``Measurement.insert_multiple()``
+
+**Bug Fixes:**
+
+* **Fixed Critical Measurement Filtering Bug**: Resolved issue where ``get_field_values()`` returned incorrect results
+  
+  - Index path was returning field values from all measurements instead of filtering by specified measurement
+  - Now ensures perfect parity between storage path and index path behaviors across all get_* methods
+  - Fixes issue #58: "get_field_values not working correctly"
+
+**Testing & Quality:**
+
+* Achieved 100% test coverage with 175 passing tests
+* Added comprehensive test suites for batching, validation, and measurement filtering
+* Verified consistency across all storage types (Memory, CSV) and access patterns
+* Enhanced test fixtures to reduce code duplication and improve maintainability
+
+**Documentation:**
+
+* Updated Sphinx documentation with detailed ``batch_size`` parameter usage and performance considerations
+* Added examples demonstrating optimal batch sizes for different use cases
+
 v1.0.1 - September 19, 2025
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
