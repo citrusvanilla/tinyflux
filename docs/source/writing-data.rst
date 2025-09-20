@@ -1,7 +1,7 @@
 Writing Data
 ============
 
-The standard method for inserting a new data point is through the ``db.insert(...)`` method.  To insert more than one Point at the same time, use the ``db.insert_multiple([...])`` method, which accepts a ``list`` of points.  This might be useful when creating a TinyFlux database from a CSV of existing observations.
+The standard method for inserting a new data point is through the ``db.insert(...)`` method.  To insert more than one Point at the same time, use the ``db.insert_multiple([...])`` method, which accepts an iterable of points (including generators and iterators).  This method processes points in configurable batches for optimal performance and memory usage.
 
 .. hint::
 
@@ -9,9 +9,27 @@ The standard method for inserting a new data point is through the ``db.insert(..
 
 .. note:: 
 
-    **TinyFlux vs. TinyDB Alert!**
+    **Performance Considerations**
     
-    In TinyDB there is a serious performance reason to use ``db.insert_multiple([...])`` over ``db.insert(...)`` as every write in TinyDB is preceded by a full read of the data.  TinyFlux inserts are *append-only* and are **not** preceded by a read.  Therefore, there is no significant *performance* reason to use ``db.insert_multiple([...])`` instead of ``db.insert(...)``.  If you are using TinyFlux to capture real-time data, you should insert points into TinyFlux as you see them, with ``db.insert(...)``.
+    Starting in v1.1.0, ``db.insert_multiple([...])`` offers significant performance advantages over multiple ``db.insert(...)`` calls when inserting large datasets. The method processes points in batches (default: 1,000 points per batch), reducing the number of fsync operations and improving throughput.
+    
+    For real-time data capture where points arrive individually, continue using ``db.insert(...)`` for immediate persistence. For bulk data loading from CSVs, APIs, or other batch sources, use ``db.insert_multiple([...])`` for optimal performance.
+
+.. tip::
+
+    **Tuning Batch Size for Performance**
+    
+    The ``batch_size`` parameter controls how many points are processed together before writing to storage:
+    
+    - **Larger batch sizes** = Fewer fsync operations = Better performance, but higher memory usage
+    - **Smaller batch sizes** = More frequent writes = Lower memory usage, but potentially slower
+    - **Default (1,000)** provides a good balance for most use cases
+    
+    Examples:
+    
+    - For memory-constrained environments: ``db.insert_multiple(points, batch_size=100)``
+    - For maximum performance with large datasets: ``db.insert_multiple(points, batch_size=10000)``
+    - For generators/iterators: The method automatically handles memory efficiently regardless of total size
 
 Example:
 
@@ -26,10 +44,10 @@ Example:
 
 To recap, these are the two methods supporting the insertion of data.
 
-+------------------------------------------------------------------+-----------------------------------------------------+
-| **Methods**                                                                                                            |
-+------------------------------------------------------------------+-----------------------------------------------------+
-| ``db.insert(point, compact_key_prefixes=False)``                 | Insert one Point into the database.                 |
-+------------------------------------------------------------------+-----------------------------------------------------+
-| ``db.insert_multiple([point, ...], compact_key_prefixes=False)`` | Insert multiple Points into the database.           |
-+------------------------------------------------------------------+-----------------------------------------------------+
++-------------------------------------------------------------------------------------------+-----------------------------------------------------+
+| **Methods**                                                                                                                                         |
++-------------------------------------------------------------------------------------------+-----------------------------------------------------+
+| ``db.insert(point, compact_key_prefixes=False)``                                          | Insert one Point into the database.                 |
++-------------------------------------------------------------------------------------------+-----------------------------------------------------+
+| ``db.insert_multiple(points, compact_key_prefixes=False, batch_size=1000)``               | Insert multiple Points with configurable batching.  |
++-------------------------------------------------------------------------------------------+-----------------------------------------------------+
