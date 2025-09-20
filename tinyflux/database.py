@@ -626,13 +626,19 @@ class TinyFlux:
         points: Iterable[Any],
         measurement: Optional[str] = None,
         compact_key_prefixes: bool = False,
+        batch_size: int = 1000,
     ) -> int:
         """Insert Points into the database.
 
+        Points are processed in batches for memory efficiency when handling
+        large datasets or generators. Each batch is written with one fsync.
+
         Args:
-            points: An iterable of Point objects.
+            points: An iterable of Point objects (can be generator/iterator).
             measurement: An optional measurement to insert Points into.
             compact_key_prefixes: Use compact key prefixes in relevant storages.
+            batch_size: Number of points per batch (default: 1,000). Larger
+                        batches = fewer fsync operations but more memory usage.
 
         Returns:
             The count of inserted points.
@@ -640,8 +646,14 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be appended to.
             TypeError if point is not a Point instance.
+            ValueError if batch_size is less than 1.
         """
-        return self._insert_helper(points, measurement, compact_key_prefixes)
+        if batch_size < 1:
+            raise ValueError("batch_size must be at least 1")
+
+        return self._insert_helper(
+            points, measurement, compact_key_prefixes, batch_size
+        )
 
     def measurement(self, name: str, **kwargs: Any) -> Measurement:
         """Return a reference to a measurement in this database.
@@ -1217,60 +1229,96 @@ class TinyFlux:
         points: Iterable[Any],
         measurement: Optional[str],
         compact_key_prefixes: bool = False,
+        batch_size: int = 1000,
     ) -> int:
         """Insert point helper.
 
         Args:
-            updater: Update function.
+            points: Points to insert (can be iterator/generator).
             measurement: Optional measurement to insert into.
             compact_key_prefixes: Use compact key prefixes in relevant storages.
+            batch_size: Number of points to process per batch (default: 1,000).
 
         Returns:
             Count of number of updates made.
         """
         t = datetime.now(timezone.utc)
-        count = 0
+        total_count = 0
+        points_iter = iter(points)
+        index_is_valid = self._auto_index and self._index.valid
+        last_timestamp = (
+            self._index.latest_time
+            if index_is_valid and not self._index.empty
+            else None
+        )
 
-        for point in points:
-            if not isinstance(point, Point):
-                raise TypeError("Data must be a Point instance.")
+        while True:
+            # Process one batch at a time to handle generators efficiently
+            batch_points = []
+            serialized_batch = []
 
-            # Update the measurement name if it doesn't match.
-            if measurement and point.measurement != measurement:
-                point.measurement = measurement
+            # Collect batch_size points or until iterator is exhausted
+            for _ in range(batch_size):
+                try:
+                    point = next(points_iter)
+                except StopIteration:
+                    break
 
-            # Add time if not exists.
-            if point.time:
-                point.time = point.time.astimezone(timezone.utc)
-            else:
-                point.time = t
+                if not isinstance(point, Point):
+                    raise TypeError("Data must be a Point instance.")
 
-            # Insert the points into storage.
-            self._storage.append(
-                [
+                # Update the measurement name if it doesn't match.
+                if measurement and point.measurement != measurement:
+                    point.measurement = measurement
+
+                # Add time if not exists.
+                if point.time:
+                    point.time = point.time.astimezone(timezone.utc)
+                else:
+                    point.time = t
+
+                if index_is_valid:
+                    if (
+                        last_timestamp is not None
+                        and point.time < last_timestamp
+                    ):
+                        index_is_valid = False
+                        last_timestamp = None
+                        self._index.invalidate()
+                    else:
+                        last_timestamp = point.time
+
+                batch_points.append(point)
+                total_count += 1
+
+                # Serialize point
+                serialized_batch.append(
                     self._storage._serialize_point(
                         point, compact_key_prefixes=compact_key_prefixes
                     )
-                ]
-            )
+                )
 
-            # Check index.
-            if self._auto_index and self._index.valid:
-                if (
-                    not self._index.empty
-                    and point.time < self._index.latest_time
-                ):
-                    self._index.invalidate()
-                else:
-                    self._index.insert([point])
+            # If no points in this batch, we're done
+            if not batch_points:
+                break
 
-            count += 1
+            # Insert this batch in one storage operation (one fsync per batch)
+            self._storage.append(serialized_batch)
 
-        # Invalidate index.
-        if count and not self._auto_index and self._index.valid:
+            # Handle index for this batch
+            if index_is_valid:
+                self._index.insert(batch_points)
+
+            # If we got fewer points than batch_size, we've exhausted
+            # the iterator
+            if len(batch_points) < batch_size:
+                break
+
+        # Handle the auto_index=False case (from original logic)
+        if total_count and not self._auto_index and self._index.valid:
             self._index.invalidate()
 
-        return count
+        return total_count
 
     def _remove_helper(
         self, query: Query, measurement: Optional[str] = None

@@ -1294,3 +1294,333 @@ def test_insert_compact_keys(tmpdir):
         assert row[4].startswith(p._compact_field_key_prefix)
 
     assert db.all() == [p, p1, p2]
+
+
+def test_get_field_keys_invalid_index_with_measurement_filter():
+    """Test get_field_keys with invalid index and measurement filtering.
+
+    This covers the continue statement on line 411 when filtering by measurement
+    with an invalid index. After fixing the index bug, both paths return same
+    results.
+    """
+    from datetime import datetime, timezone, timedelta
+
+    # Create DB with auto_index=False to force storage path (for coverage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+
+    # Insert points with different measurements
+    base_time = datetime.now(timezone.utc)
+    db.insert(
+        Point(
+            time=base_time,
+            measurement="measurement1",
+            tags={"device": "A"},
+            fields={"temperature": 25.0},
+        )
+    )
+    db.insert(
+        Point(
+            time=base_time + timedelta(seconds=10),
+            measurement="measurement2",
+            tags={"device": "B"},
+            fields={"humidity": 60.0},
+        )
+    )
+    db.insert(
+        Point(
+            time=base_time + timedelta(seconds=20),
+            measurement="measurement1",
+            tags={"device": "C"},
+            fields={"pressure": 1013.0},
+        )
+    )
+
+    # Verify index is invalid (auto_index=False)
+    assert not db.index.valid
+
+    # This should trigger the continue statement for non-matching measurements
+    field_keys = db.get_field_keys(measurement="measurement1")
+    assert sorted(field_keys) == ["pressure", "temperature"]
+
+    # Verify it filtered out measurement2's "humidity" field
+    all_keys = db.get_field_keys()  # No measurement filter
+    assert sorted(all_keys) == ["humidity", "pressure", "temperature"]
+
+
+def test_get_field_values_invalid_index_with_measurement_filter():
+    """Test get_field_values with invalid index and measurement filtering.
+
+    This covers the continue statement on line 447 when filtering by measurement
+    with an invalid index. After fixing the index bug, both paths return same
+    results.
+    """
+    from datetime import datetime, timezone, timedelta
+
+    # Create DB with auto_index=False to force storage path (for coverage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+
+    # Insert points with different measurements
+    base_time = datetime.now(timezone.utc)
+    db.insert(
+        Point(
+            time=base_time,
+            measurement="measurement1",
+            tags={"device": "A"},
+            fields={"temperature": 25.0},
+        )
+    )
+    db.insert(
+        Point(
+            time=base_time + timedelta(seconds=10),
+            measurement="measurement2",
+            tags={"device": "B"},
+            fields={
+                "temperature": 30.0
+            },  # Same field name, different measurement
+        )
+    )
+
+    db.insert(
+        Point(
+            time=base_time + timedelta(seconds=20),
+            measurement="measurement1",
+            tags={"device": "C"},
+            fields={"temperature": 20.0},
+        )
+    )
+
+    # Verify index is invalid (auto_index=False)
+    assert not db.index.valid
+
+    # This should trigger the continue statement for non-matching measurements
+    temp_values = db.get_field_values("temperature", measurement="measurement1")
+    assert sorted(temp_values) == [20.0, 25.0]  # Only measurement1 values
+
+    # Verify it filtered out measurement2's temperature value
+    all_temp_values = db.get_field_values(
+        "temperature"
+    )  # No measurement filter
+    assert sorted(all_temp_values) == [20.0, 25.0, 30.0]  # All values
+
+
+def test_get_tag_keys_invalid_index_with_measurement_filter():
+    """Test get_tag_keys with invalid index and measurement filtering.
+
+    This covers the continue statement on line 502 when filtering by measurement
+    with an invalid index. After fixing the index bug, both paths return same
+    results.
+    """
+    from datetime import datetime, timezone, timedelta
+
+    # Create DB with auto_index=False to force storage path (for coverage)
+    db = TinyFlux(storage=MemoryStorage, auto_index=False)
+
+    # Insert points with different measurements
+    base_time = datetime.now(timezone.utc)
+    db.insert(
+        Point(
+            time=base_time,
+            measurement="measurement1",
+            tags={"device": "A", "location": "room1"},
+            fields={"value": 1.0},
+        )
+    )
+    db.insert(
+        Point(
+            time=base_time + timedelta(seconds=10),
+            measurement="measurement2",
+            tags={"sensor": "B", "type": "temp"},
+            fields={"value": 2.0},
+        )
+    )
+
+    db.insert(
+        Point(
+            time=base_time + timedelta(seconds=20),
+            measurement="measurement1",
+            tags={"device": "C", "status": "active"},
+            fields={"value": 3.0},
+        )
+    )
+
+    # Verify index is invalid (auto_index=False)
+    assert not db.index.valid
+
+    # This should trigger the continue statement for non-matching measurements
+    tag_keys = db.get_tag_keys(measurement="measurement1")
+    assert sorted(tag_keys) == ["device", "location", "status"]
+
+    # Verify it filtered out measurement2's tag keys
+    all_tag_keys = db.get_tag_keys()  # No measurement filter
+    assert sorted(all_tag_keys) == [
+        "device",
+        "location",
+        "sensor",
+        "status",
+        "type",
+    ]
+
+
+def test_index_storage_consistency_after_bug_fix():
+    """Test that index and storage paths return identical results after bug fix.
+
+    This verifies the bug fix for get_field_values where index path was
+    incorrectly returning values from all measurements instead of filtering.
+    """
+    base_time = datetime.now(timezone.utc)
+
+    # Test get_field_values consistency
+    for auto_index in [True, False]:
+        db = TinyFlux(storage=MemoryStorage, auto_index=auto_index)
+
+        db.insert(
+            Point(
+                time=base_time,
+                measurement="measurement1",
+                fields={"temperature": 25.0},
+            )
+        )
+        db.insert(
+            Point(
+                time=base_time + timedelta(seconds=10),
+                measurement="measurement2",
+                fields={"temperature": 30.0},
+            )
+        )
+        db.insert(
+            Point(
+                time=base_time + timedelta(seconds=20),
+                measurement="measurement1",
+                fields={"temperature": 20.0},
+            )
+        )
+
+        # Both should return only measurement1 values: [20.0, 25.0]
+        result = db.get_field_values("temperature", measurement="measurement1")
+        assert sorted(result) == [20.0, 25.0]
+
+        # Both should return all values: [20.0, 25.0, 30.0]
+        result_all = db.get_field_values("temperature")
+        assert sorted(result_all) == [20.0, 25.0, 30.0]
+
+
+def test_all_get_methods_parity_storage_vs_index():
+    """Test complete parity between storage and index paths for get_* methods.
+
+    This ensures that auto_index=False (storage path) and auto_index=True
+    (index path) return identical results for all get_* methods with
+    measurement filtering.
+    """
+    base_time = datetime.now(timezone.utc)
+    test_points = [
+        Point(
+            time=base_time,
+            measurement="measurement1",
+            tags={"device": "A", "type": "sensor"},
+            fields={"temperature": 25.0, "humidity": 50.0},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=20),
+            measurement="measurement1",
+            tags={"device": "B", "type": "actuator"},
+            fields={"temperature": 20.0, "pressure": 1013.0},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=10),
+            measurement="measurement2",
+            tags={"device": "C", "category": "primary"},
+            fields={"temperature": 30.0, "humidity": 60.0},
+        ),
+        Point(
+            time=base_time + timedelta(seconds=30),
+            measurement="measurement2",
+            tags={"device": "D", "category": "secondary"},
+            fields={"temperature": 35.0, "flow": 100.0},
+        ),
+    ]
+
+    # Test all methods for both measurements
+    for measurement in ["measurement1", "measurement2"]:
+        # Database with auto_index=False (storage path)
+        db_storage = TinyFlux(storage=MemoryStorage, auto_index=False)
+        for p in test_points:
+            db_storage.insert(p)
+
+        # Database with auto_index=True (index path)
+        db_index = TinyFlux(storage=MemoryStorage, auto_index=True)
+        for p in test_points:
+            db_index.insert(p)
+
+        # Test get_field_keys
+        storage_field_keys = sorted(db_storage.get_field_keys(measurement))
+        index_field_keys = sorted(db_index.get_field_keys(measurement))
+        assert (
+            storage_field_keys == index_field_keys
+        ), f"get_field_keys mismatch for {measurement}"
+
+        # Test get_field_values
+        storage_field_values = sorted(
+            db_storage.get_field_values("temperature", measurement)
+        )
+        index_field_values = sorted(
+            db_index.get_field_values("temperature", measurement)
+        )
+        assert (
+            storage_field_values == index_field_values
+        ), f"get_field_values mismatch for {measurement}"
+
+        # Test get_tag_keys
+        storage_tag_keys = sorted(db_storage.get_tag_keys(measurement))
+        index_tag_keys = sorted(db_index.get_tag_keys(measurement))
+        assert (
+            storage_tag_keys == index_tag_keys
+        ), f"get_tag_keys mismatch for {measurement}"
+
+        # Test get_tag_values
+        storage_tag_values = sorted(
+            db_storage.get_tag_values(["device"], measurement)["device"]
+        )
+        index_tag_values = sorted(
+            db_index.get_tag_values(["device"], measurement)["device"]
+        )
+        assert (
+            storage_tag_values == index_tag_values
+        ), f"get_tag_values mismatch for {measurement}"
+
+    # Verify specific expected values for measurement1
+    db_test = TinyFlux(storage=MemoryStorage, auto_index=False)
+    for p in test_points:
+        db_test.insert(p)
+
+    # measurement1 should have specific filtered results
+    assert sorted(db_test.get_field_keys("measurement1")) == [
+        "humidity",
+        "pressure",
+        "temperature",
+    ]
+    assert sorted(db_test.get_field_values("temperature", "measurement1")) == [
+        20.0,
+        25.0,
+    ]
+    assert sorted(db_test.get_tag_keys("measurement1")) == ["device", "type"]
+    assert sorted(
+        db_test.get_tag_values(["device"], "measurement1")["device"]
+    ) == ["A", "B"]
+
+    # measurement2 should have different filtered results
+    assert sorted(db_test.get_field_keys("measurement2")) == [
+        "flow",
+        "humidity",
+        "temperature",
+    ]
+    assert sorted(db_test.get_field_values("temperature", "measurement2")) == [
+        30.0,
+        35.0,
+    ]
+    assert sorted(db_test.get_tag_keys("measurement2")) == [
+        "category",
+        "device",
+    ]
+    assert sorted(
+        db_test.get_tag_values(["device"], "measurement2")["device"]
+    ) == ["C", "D"]

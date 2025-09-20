@@ -241,22 +241,34 @@ class Measurement:
         """
         return self._db.insert(point, self._name)
 
-    def insert_multiple(self, points: Iterable[Point]) -> int:
+    def insert_multiple(
+        self, points: Iterable[Point], batch_size: int = 1000
+    ) -> int:
         """Insert Points into this measurement.
 
         If the passed Point has a different measurement value, 'insert' will
         update the measurement value with that of this measurement.
 
+        Points are processed in batches for memory efficiency when handling
+        large datasets or generators. Each batch is written with one fsync.
+
         Args:
-            points: An iterable of Point objects.
+            points: An iterable of Point objects (can be generator/iterator).
+            batch_size: Number of points per batch (default: 1,000). Larger
+                        batches = fewer fsync operations but more memory usage.
 
         Returns:
             The count of inserted points.
 
         Raises:
             TypeError if point is not a Point instance.
+            ValueError if batch_size is less than 1.
         """
-        return self._db.insert_multiple(points, self._name)
+        if batch_size < 1:
+            raise ValueError("batch_size must be at least 1")
+        return self._db.insert_multiple(
+            points, self._name, batch_size=batch_size
+        )
 
     def remove(self, query: SimpleQuery) -> int:
         """Remove Points from this measurement by query.
