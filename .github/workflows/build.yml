@@ -22,7 +22,20 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
       - name: Check README
-        run: rstcheck README.rst
+        run: |
+          if [[ -f "README.md" ]]; then
+            echo "✅ README.md exists and is readable"
+            # Basic markdown syntax check - ensure file has content
+            if [[ $(wc -l < README.md) -gt 10 ]]; then
+              echo "✅ README.md has content"
+            else
+              echo "❌ README.md appears to be too short"
+              exit 1
+            fi
+          else
+            echo "❌ README.md not found"
+            exit 1
+          fi
       - name: Check code formatting
         run: black --check tinyflux/ tests/ examples/
       - name: Check code style

@@ -30,6 +30,3 @@ build/**
 **.egg-info
 **.whl
 **.tar.gz
-
-# Other
-performance_tests/**

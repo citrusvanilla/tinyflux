@@ -1,0 +1,307 @@
+{
+  "system_info": {
+    "platform": "macOS-15.4.1-x86_64-i386-64bit-Mach-O",
+    "processor": "i386",
+    "python_version": "3.13.5",
+    "cpu_count": "6",
+    "cpu_count_logical": "12",
+    "memory_gb": "32.0",
+    "architecture": "64bit"
+  },
+  "test_config": {
+    "write_db_sizes": [
+      10000,
+      50000,
+      100000
+    ],
+    "query_db_sizes": [
+      10000,
+      50000,
+      100000
+    ],
+    "test_date": "2025-09-19T23:29:02.627673",
+    "tinyflux_version": "1.1.0"
+  },
+  "write_performance_scaling": {
+    "memory": {
+      "10,000": {
+        "individual": {
+          "storage_type": "Memory",
+          "method": "individual_insert",
+          "total_points": 10000,
+          "total_time_seconds": 0.031,
+          "writes_per_second": 326072,
+          "batch_size": 1,
+          "file_size_mb": "N/A"
+        },
+        "batch": {
+          "storage_type": "Memory",
+          "method": "insert_multiple",
+          "total_points": 10000,
+          "total_time_seconds": 0.008,
+          "writes_per_second": 1240074,
+          "batch_size": 1000,
+          "file_size_mb": "N/A"
+        }
+      },
+      "50,000": {
+        "individual": {
+          "storage_type": "Memory",
+          "method": "individual_insert",
+          "total_points": 50000,
+          "total_time_seconds": 0.15,
+          "writes_per_second": 333242,
+          "batch_size": 1,
+          "file_size_mb": "N/A"
+        },
+        "batch": {
+          "storage_type": "Memory",
+          "method": "insert_multiple",
+          "total_points": 50000,
+          "total_time_seconds": 0.039,
+          "writes_per_second": 1277209,
+          "batch_size": 1000,
+          "file_size_mb": "N/A"
+        }
+      },
+      "100,000": {
+        "individual": {
+          "storage_type": "Memory",
+          "method": "individual_insert",
+          "total_points": 100000,
+          "total_time_seconds": 0.275,
+          "writes_per_second": 364261,
+          "batch_size": 1,
+          "file_size_mb": "N/A"
+        },
+        "batch": {
+          "storage_type": "Memory",
+          "method": "insert_multiple",
+          "total_points": 100000,
+          "total_time_seconds": 0.072,
+          "writes_per_second": 1394271,
+          "batch_size": 1000,
+          "file_size_mb": "N/A"
+        }
+      }
+    },
+    "csv": {
+      "10,000": {
+        "individual": {
+          "storage_type": "CSV",
+          "method": "individual_insert",
+          "total_points": 10000,
+          "total_time_seconds": 1.505,
+          "writes_per_second": 6642,
+          "batch_size": 1,
+          "file_size_mb": 1.79
+        },
+        "batch": {
+          "storage_type": "CSV",
+          "method": "insert_multiple",
+          "total_points": 10000,
+          "total_time_seconds": 0.145,
+          "writes_per_second": 68803,
+          "batch_size": 1000,
+          "file_size_mb": 1.81
+        }
+      },
+      "50,000": {
+        "individual": {
+          "storage_type": "CSV",
+          "method": "individual_insert",
+          "total_points": 50000,
+          "total_time_seconds": 8.04,
+          "writes_per_second": 6218,
+          "batch_size": 1,
+          "file_size_mb": 8.98
+        },
+        "batch": {
+          "storage_type": "CSV",
+          "method": "insert_multiple",
+          "total_points": 50000,
+          "total_time_seconds": 0.675,
+          "writes_per_second": 74097,
+          "batch_size": 1000,
+          "file_size_mb": 9.0
+        }
+      },
+      "100,000": {
+        "individual": {
+          "storage_type": "CSV",
+          "method": "individual_insert",
+          "total_points": 100000,
+          "total_time_seconds": 15.564,
+          "writes_per_second": 6425,
+          "batch_size": 1,
+          "file_size_mb": 17.97
+        },
+        "batch": {
+          "storage_type": "CSV",
+          "method": "insert_multiple",
+          "total_points": 100000,
+          "total_time_seconds": 1.285,
+          "writes_per_second": 77834,
+          "batch_size": 1000,
+          "file_size_mb": 17.99
+        }
+      }
+    }
+  },
+  "read_performance_scaling": {
+    "memory": {
+      "10,000": {
+        "point_lookup": {
+          "time_ms": 1.2,
+          "qps": 855,
+          "results_count": 478
+        },
+        "range_query": {
+          "time_ms": 0.2,
+          "qps": 4634,
+          "results_count": 0
+        },
+        "field_filter": {
+          "time_ms": 6.0,
+          "qps": 166,
+          "results_count": 4892
+        },
+        "complex_query": {
+          "time_ms": 6.0,
+          "qps": 166,
+          "results_count": 1256
+        }
+      },
+      "50,000": {
+        "point_lookup": {
+          "time_ms": 8.6,
+          "qps": 116,
+          "results_count": 2497
+        },
+        "range_query": {
+          "time_ms": 1.7,
+          "qps": 587,
+          "results_count": 0
+        },
+        "field_filter": {
+          "time_ms": 35.5,
+          "qps": 28,
+          "results_count": 24972
+        },
+        "complex_query": {
+          "time_ms": 38.2,
+          "qps": 26,
+          "results_count": 6210
+        }
+      },
+      "100,000": {
+        "point_lookup": {
+          "time_ms": 19.7,
+          "qps": 50,
+          "results_count": 4988
+        },
+        "range_query": {
+          "time_ms": 8.2,
+          "qps": 122,
+          "results_count": 0
+        },
+        "field_filter": {
+          "time_ms": 73.0,
+          "qps": 13,
+          "results_count": 50126
+        },
+        "complex_query": {
+          "time_ms": 65.7,
+          "qps": 15,
+          "results_count": 12579
+        }
+      }
+    },
+    "csv": {
+      "10,000": {
+        "point_lookup": {
+          "time_ms": 26.5,
+          "qps": 37,
+          "results_count": 508
+        },
+        "range_query": {
+          "time_ms": 0.4,
+          "qps": 2824,
+          "results_count": 0
+        },
+        "field_filter": {
+          "time_ms": 45.2,
+          "qps": 22,
+          "results_count": 5050
+        },
+        "complex_query": {
+          "time_ms": 52.3,
+          "qps": 19,
+          "results_count": 1274
+        }
+      },
+      "50,000": {
+        "point_lookup": {
+          "time_ms": 131.0,
+          "qps": 7,
+          "results_count": 2518
+        },
+        "range_query": {
+          "time_ms": 2.5,
+          "qps": 402,
+          "results_count": 0
+        },
+        "field_filter": {
+          "time_ms": 251.7,
+          "qps": 3,
+          "results_count": 24934
+        },
+        "complex_query": {
+          "time_ms": 200.4,
+          "qps": 4,
+          "results_count": 6227
+        }
+      },
+      "100,000": {
+        "point_lookup": {
+          "time_ms": 266.4,
+          "qps": 3,
+          "results_count": 4978
+        },
+        "range_query": {
+          "time_ms": 7.9,
+          "qps": 126,
+          "results_count": 0
+        },
+        "field_filter": {
+          "time_ms": 588.9,
+          "qps": 1,
+          "results_count": 49981
+        },
+        "complex_query": {
+          "time_ms": 374.4,
+          "qps": 2,
+          "results_count": 12616
+        }
+      }
+    }
+  },
+  "index_performance": {
+    "memory": {
+      "rebuild_time_seconds": 0.234,
+      "index_memory_mb": 30.36,
+      "index_memory_bytes": 31830921,
+      "index_size": 100000,
+      "total_points": 100000,
+      "index_efficiency": 100.0
+    },
+    "csv": {
+      "rebuild_time_seconds": 0.879,
+      "index_memory_mb": 34.93,
+      "index_memory_bytes": 36630913,
+      "index_size": 100000,
+      "total_points": 100000,
+      "index_efficiency": 100.0
+    }
+  }
+}
