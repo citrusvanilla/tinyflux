@@ -5,11 +5,11 @@
 
 TinyFlux is the tiny time series database optimized for your happiness 😎
 
-TinyFlux is the time series version of [TinyDB](https://tinydb.readthedocs.io/en/latest/index.html) that is written in Python and has no external dependencies. It consistently writes to file atomically at >6K writes/sec and delivers >100 QPS for range queries up to 100K points. Perfect companion for small analytics workflows and apps, as well as at-home IOT data stores. TinyFlux has 100% test coverage, over 120,000 downloads, and no open issues.
+TinyFlux is the time series version of [TinyDB](https://tinydb.readthedocs.io/en/latest/index.html) that is written in Python and has no external dependencies. It consistently writes atomically to file at over 6,000 writes per second and supports greater than 100 queries per second for time-based range queries on datasets up to 100,000 points. It's a perfect companion for small analytics workflows and apps, as well as at-home IOT data stores. TinyFlux has 100% test coverage, over 120,000 downloads, and no open issues.
 
 [![Documentation](https://readthedocs.org/projects/tinyflux/badge/?version=latest)](https://tinyflux.readthedocs.io/en/latest/?badge=latest)
 [![Version](https://img.shields.io/pypi/v/tinyflux.svg)](https://pypi.org/project/tinyflux/)
-[![Downloads](https://pepy.tech/badge/tinyflux)](https://pepy.tech/project/tinyflux)
+[![Downloads](https://img.shields.io/pypi/dm/tinyflux.svg)](https://pypi.org/project/tinyflux/)
 [![Coverage](https://codecov.io/gh/citrusvanilla/tinyflux/branch/master/graph/badge.svg)](https://codecov.io/gh/citrusvanilla/tinyflux)
 [![Build Status](https://github.com/citrusvanilla/tinyflux/workflows/CI/badge.svg)](https://github.com/citrusvanilla/tinyflux/actions)
 
