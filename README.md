@@ -9,7 +9,7 @@ TinyFlux is the time series version of [TinyDB](https://tinydb.readthedocs.io/en
 
 [![Documentation](https://readthedocs.org/projects/tinyflux/badge/?version=latest)](https://tinyflux.readthedocs.io/en/latest/?badge=latest)
 [![Version](https://img.shields.io/pypi/v/tinyflux.svg)](https://pypi.org/project/tinyflux/)
-[![Downloads](https://img.shields.io/pypi/dm/tinyflux.svg)](https://pypi.org/project/tinyflux/)
+[![Downloads](https://pepy.tech/badge/tinyflux?units=international_system)](https://pepy.tech/project/tinyflux)
 [![Coverage](https://codecov.io/gh/citrusvanilla/tinyflux/branch/master/graph/badge.svg)](https://codecov.io/gh/citrusvanilla/tinyflux)
 [![Build Status](https://github.com/citrusvanilla/tinyflux/workflows/CI/badge.svg)](https://github.com/citrusvanilla/tinyflux/actions)
 
