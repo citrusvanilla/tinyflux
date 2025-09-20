@@ -5,7 +5,7 @@
 
 TinyFlux is the tiny time series database optimized for your happiness 😎
 
-TinyFlux is the time series version of [TinyDB](https://tinydb.readthedocs.io/en/latest/index.html) that is written in Python and has no external dependencies. It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores. TinyFlux has 100% test coverage, over 120,000 downloads, and no open issues.
+TinyFlux is the time series version of [TinyDB](https://tinydb.readthedocs.io/en/latest/index.html) that is written in Python and has no external dependencies. It consistently writes to file atomically at >6K writes/sec and delivers >100 QPS for range queries up to 100K points. Perfect companion for small analytics workflows and apps, as well as at-home IOT data stores. TinyFlux has 100% test coverage, over 120,000 downloads, and no open issues.
 
 [![Documentation](https://readthedocs.org/projects/tinyflux/badge/?version=latest)](https://tinyflux.readthedocs.io/en/latest/?badge=latest)
 [![Version](https://img.shields.io/pypi/v/tinyflux.svg)](https://pypi.org/project/tinyflux/)
@@ -74,6 +74,7 @@ TinyFlux delivers high-performance time series operations across database sizes.
 ### Key Performance Metrics
 
 | Database Size | Writes (Memory) | Writes (CSV) | Range (Memory) | Range (CSV) | Lookup (Memory) | Lookup (CSV) |
+|               | **ops/sec**     | **ops/sec**  | **QPS**        | **QPS**     | **QPS**         | **QPS**      |
 |---------------|-----------------|--------------|----------------|-------------|-----------------|--------------|
 | **10K points**  | 326,072         | 6,642        | 4,635          | 2,824       | 855             | 37           |
 | **50K points**  | 333,242         | 6,218        | 587            | 402         | 116             | 7            |
@@ -83,8 +84,6 @@ TinyFlux delivers high-performance time series operations across database sizes.
 
 - **Range Queries**: Retrieve data within a time window (e.g., "all temperature readings from 9am-5pm"). This is the most common TSDB usage pattern.
 - **Point Lookups**: Find specific records by identifier (e.g., "sensor_001's latest reading"). Less common in typical time series workflows.
-
-*Individual CSV inserts skipped for 100K+ points (would take >3 minutes)*
 
 **Key Insights:**
 
@@ -169,15 +168,15 @@ db = TinyFlux(storage=MemoryStorage)
 
 ![Write Performance Scaling](performance_tests/charts/write_performance_scaling.png)
 
-*Write throughput remains consistent across database sizes for both storage types.*
+<p align="center"><i>Write throughput remains consistent across database sizes for both storage types.</i></p>
 
 ![Read Performance Scaling](performance_tests/charts/read_performance_scaling.png)
 
-*Query performance degradation analysis showing Memory vs CSV storage scaling.*
+<p align="center"><i>Query performance degradation analysis showing Memory vs CSV storage scaling.</i></p>
 
 ![Performance Analysis](performance_tests/charts/performance_analysis.png)
 
-*Comprehensive performance insights including speedup ratios and key metrics.*
+<p align="center"><i>Comprehensive performance insights including speedup ratios and key metrics.</i></p>
 
 ## Index Performance
 

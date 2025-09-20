@@ -146,85 +146,65 @@ def extract_read_performance(results: Dict[str, Any]) -> Dict[str, Any]:
 def plot_write_performance_scaling(
     write_data: Dict[str, Any], results: Dict[str, Any]
 ):
-    """Create write performance scaling chart."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    """Create write performance scaling chart with separate charts by storage type."""
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
 
     sizes = write_data["sizes"]
     x_pos = np.arange(len(sizes))
-
-    # Chart 1: Individual Writes Performance
-    ax1.bar(
-        x_pos - 0.2,
-        write_data["memory_individual"],
-        0.4,
-        label="Memory Storage",
-        color="#2E8B57",
-        alpha=0.8,
-    )
-
-    # Only plot CSV individual if we have data (not skipped for large DBs)
-    csv_individual_filtered = [
-        val if val > 0 else np.nan for val in write_data["csv_individual"]
+    size_labels = [
+        f"{size//1000}K" if size < 1000000 else f"{size//1000000}M"
+        for size in sizes
     ]
-    ax1.bar(
-        x_pos + 0.2,
-        csv_individual_filtered,
-        0.4,
-        label="CSV Storage",
-        color="#CD853F",
-        alpha=0.8,
-    )
 
+    # Chart 1: Memory Individual Writes
+    ax1.bar(x_pos, write_data["memory_individual"], color="#2E8B57", alpha=0.8)
     ax1.set_xlabel("Database Size")
     ax1.set_ylabel("Writes per Second")
-    ax1.set_title("Individual Insert Performance (insert)")
+    ax1.set_title("Memory Storage: Individual Inserts (.insert)")
     ax1.set_xticks(x_pos)
-    ax1.set_xticklabels(
-        [
-            f"{size//1000}K" if size < 1000000 else f"{size//1000000}M"
-            for size in sizes
-        ]
-    )
-    ax1.legend()
+    ax1.set_xticklabels(size_labels)
     ax1.grid(True, alpha=0.3)
-    ax1.set_yscale("log")
+    ax1.ticklabel_format(style='scientific', axis='y', scilimits=(0,0))
 
-    # Chart 2: Batch Writes Performance
-    ax2.bar(
-        x_pos - 0.2,
-        write_data["memory_batch"],
-        0.4,
-        label="Memory Storage",
-        color="#2E8B57",
-        alpha=0.8,
-    )
-    ax2.bar(
-        x_pos + 0.2,
-        write_data["csv_batch"],
-        0.4,
-        label="CSV Storage",
-        color="#CD853F",
-        alpha=0.8,
-    )
-
+    # Chart 2: Memory Batch Writes
+    ax2.bar(x_pos, write_data["memory_batch"], color="#2E8B57", alpha=0.8)
     ax2.set_xlabel("Database Size")
     ax2.set_ylabel("Writes per Second")
-    ax2.set_title("Batch Insert Performance (insert_multiple)")
+    ax2.set_title("Memory Storage: Batch Inserts (.insert_multiple)")
     ax2.set_xticks(x_pos)
-    ax2.set_xticklabels(
-        [
-            f"{size//1000}K" if size < 1000000 else f"{size//1000000}M"
-            for size in sizes
-        ]
-    )
-    ax2.legend()
+    ax2.set_xticklabels(size_labels)
     ax2.grid(True, alpha=0.3)
-    ax2.set_yscale("log")
+    ax2.ticklabel_format(style='scientific', axis='y', scilimits=(0,0))
+
+    # Chart 3: CSV Individual Writes
+    csv_individual_filtered = [val if val > 0 else 0 for val in write_data["csv_individual"]]
+    bars3 = ax3.bar(x_pos, csv_individual_filtered, color="#CD853F", alpha=0.8)
+    ax3.set_xlabel("Database Size")
+    ax3.set_ylabel("Writes per Second")
+    ax3.set_title("CSV Storage: Individual Inserts (.insert)")
+    ax3.set_xticks(x_pos)
+    ax3.set_xticklabels(size_labels)
+    ax3.grid(True, alpha=0.3)
+    
+    # Add "Skipped" text for zero values
+    for i, (bar, val) in enumerate(zip(bars3, write_data["csv_individual"])):
+        if val <= 0:
+            ax3.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(csv_individual_filtered)*0.02,
+                    'Skipped\n(>3min)', ha='center', va='bottom', fontsize=8, color='red')
+
+    # Chart 4: CSV Batch Writes
+    ax4.bar(x_pos, write_data["csv_batch"], color="#CD853F", alpha=0.8)
+    ax4.set_xlabel("Database Size")
+    ax4.set_ylabel("Writes per Second")
+    ax4.set_title("CSV Storage: Batch Inserts (.insert_multiple)")
+    ax4.set_xticks(x_pos)
+    ax4.set_xticklabels(size_labels)
+    ax4.grid(True, alpha=0.3)
 
     # Add system info
     system_info = results.get("system_info", {})
     fig.suptitle(
-        f"TinyFlux Write Performance Scaling\n{system_info.get('platform', 'Unknown Platform')} - "
+        f"TinyFlux Write Performance by Storage Type\n{system_info.get('platform', 'Unknown Platform')} - "
         f"Python {system_info.get('python_version', 'Unknown')} - "
         f"TinyFlux {results['test_config']['tinyflux_version']}",
         fontsize=16,
