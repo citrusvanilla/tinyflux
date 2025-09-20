@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v1.1.1 - September 20, 2025
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**📈 Documentation Enhancement**
+
+**Documentation Improvements:**
+
+* Fixed all Sphinx documentation build errors and formatting issues
+* Updated Read the Docs configuration for v2 compliance
+* Improved docstring formatting throughout codebase
+* Added comprehensive performance section with technical details
+
+
 v1.1.0 - September 20, 2025
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
