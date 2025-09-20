@@ -1,0 +1,4 @@
+# Performance testing dependencies
+psutil>=5.8.0  # For system information gathering
+matplotlib>=3.5.0  # For performance visualization charts
+numpy>=1.20.0  # For numerical operations in visualizations
