@@ -74,8 +74,8 @@ TinyFlux delivers high-performance time series operations across database sizes.
 ### Key Performance Metrics
 
 | Database Size | Writes (Memory) | Writes (CSV) | Range (Memory) | Range (CSV) | Lookup (Memory) | Lookup (CSV) |
-|               | **ops/sec**     | **ops/sec**  | **QPS**        | **QPS**     | **QPS**         | **QPS**      |
 |---------------|-----------------|--------------|----------------|-------------|-----------------|--------------|
+|               | **ops/sec**     | **ops/sec**  | **QPS**        | **QPS**     | **QPS**         | **QPS**      |
 | **10K points**  | 326,072         | 6,642        | 4,635          | 2,824       | 855             | 37           |
 | **50K points**  | 333,242         | 6,218        | 587            | 402         | 116             | 7            |
 | **100K points** | 364,261         | 6,425        | 122            | 126         | 50              | 3            |
