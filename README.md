@@ -1,49 +1,23 @@
-# TinyFlux
+<p align="center">
+  <img src="https://github.com/citrusvanilla/tinyflux/blob/master/artwork/tinyfluxdb-light.png?raw=true#gh-dark-mode-only" width="500px">
+  <img src="https://github.com/citrusvanilla/tinyflux/blob/master/artwork/tinyfluxdb-dark.png?raw=true#gh-light-mode-only" width="500px">
+</p>
 
-[![Build Status](https://github.com/citrusvanilla/tinyflux/workflows/CI/badge.svg)](https://github.com/citrusvanilla/tinyflux/actions)
-[![Coverage](https://codecov.io/gh/citrusvanilla/tinyflux/branch/master/graph/badge.svg)](https://codecov.io/gh/citrusvanilla/tinyflux)
+TinyFlux is the tiny time series database optimized for your happiness 😎
+
+TinyFlux is the time series version of [TinyDB](https://tinydb.readthedocs.io/en/latest/index.html) that is written in Python and has no external dependencies. It's a great companion for small analytics workflows and apps, as well as at-home IOT data stores. TinyFlux has 100% test coverage, over 120,000 downloads, and no open issues.
+
+[![Documentation](https://readthedocs.org/projects/tinyflux/badge/?version=latest)](https://tinyflux.readthedocs.io/en/latest/?badge=latest)
 [![Version](https://img.shields.io/pypi/v/tinyflux.svg)](https://pypi.org/project/tinyflux/)
-
-**TinyFlux** is a lightweight, document-oriented time series database optimized for your happiness :)
-
-TinyFlux is designed for easy use with a clean, Pythonic API that lets you work with time series data in just a few lines of code. Perfect for IoT applications, system monitoring, data logging, and prototyping.
+[![Downloads](https://pepy.tech/badge/tinyflux)](https://pepy.tech/project/tinyflux)
+[![Coverage](https://codecov.io/gh/citrusvanilla/tinyflux/branch/master/graph/badge.svg)](https://codecov.io/gh/citrusvanilla/tinyflux)
+[![Build Status](https://github.com/citrusvanilla/tinyflux/workflows/CI/badge.svg)](https://github.com/citrusvanilla/tinyflux/actions)
 
 ## Quick Links
 
 - **Documentation**: [tinyflux.readthedocs.io](https://tinyflux.readthedocs.io/)
 - **Repository**: [github.com/citrusvanilla/tinyflux](https://github.com/citrusvanilla/tinyflux)
 - **PyPI**: [pypi.org/project/tinyflux](https://pypi.org/project/tinyflux/)
-
-## Performance
-
-TinyFlux delivers high-performance time series operations across database sizes. Benchmarks conducted on **macOS 15.4.1** with **Intel i5 (6 cores), 32GB RAM, Python 3.13.5**.
-
-### Key Performance Metrics
-
-| Database Size | Writes (Memory) | Writes (CSV) | Range (Memory) | Range (CSV) | Lookup (Memory) | Lookup (CSV) |
-|---------------|-----------------|--------------|----------------|-------------|-----------------|--------------|
-| **10K points**  | 326,072         | 6,642        | 4,635          | 2,824       | 855             | 37           |
-| **50K points**  | 333,242         | 6,218        | 587            | 402         | 116             | 7            |
-| **100K points** | 364,261         | 6,425        | 122            | 126         | 50              | 3            |
-
-**Query Types Explained:**
-
-- **Range Queries**: Retrieve data within a time window (e.g., "all temperature readings from 9am-5pm"). This is the most common TSDB usage pattern.
-- **Point Lookups**: Find specific records by identifier (e.g., "sensor_001's latest reading"). Less common in typical time series workflows.
-
-*Individual CSV inserts skipped for 100K+ points (would take >3 minutes)*
-
-**Key Insights:**
-
-- ⚡ **Write performance is constant** regardless of database size (append-only architecture)
-- 🚀 **Batch inserts** achieve 10-12x speedup over individual inserts for CSV storage  
-- 📊 **Range queries** (typical TSDB usage) perform excellently: 122-4,635 QPS (Memory), 126-2,824 QPS (CSV)
-- 💾 **Time series queries** scale well on both storage types, CSV even matches Memory at 100K points
-- 🗃️ **Index scales efficiently**: 35MB memory for 100K points with 0.9s rebuild time
-
-*See detailed performance analysis below for comprehensive benchmarks and visualizations.*
-
-Run your own benchmarks: `python performance_tests/benchmark.py`
 
 ## Installation
 
@@ -92,6 +66,37 @@ print(f"Today's readings: {len(recent_data)}")
 - **Tags**: Indexed metadata for grouping and filtering (strings only) 
 - **Fields**: Actual time series values (numbers, strings, booleans)
 - **Queries**: Flexible filtering system for retrieving data
+
+## Performance
+
+TinyFlux delivers high-performance time series operations across database sizes. Benchmarks conducted on **macOS 15.4.1** with **Intel i5 (6 cores), 32GB RAM, Python 3.13.5**.
+
+### Key Performance Metrics
+
+| Database Size | Writes (Memory) | Writes (CSV) | Range (Memory) | Range (CSV) | Lookup (Memory) | Lookup (CSV) |
+|---------------|-----------------|--------------|----------------|-------------|-----------------|--------------|
+| **10K points**  | 326,072         | 6,642        | 4,635          | 2,824       | 855             | 37           |
+| **50K points**  | 333,242         | 6,218        | 587            | 402         | 116             | 7            |
+| **100K points** | 364,261         | 6,425        | 122            | 126         | 50              | 3            |
+
+**Query Types Explained:**
+
+- **Range Queries**: Retrieve data within a time window (e.g., "all temperature readings from 9am-5pm"). This is the most common TSDB usage pattern.
+- **Point Lookups**: Find specific records by identifier (e.g., "sensor_001's latest reading"). Less common in typical time series workflows.
+
+*Individual CSV inserts skipped for 100K+ points (would take >3 minutes)*
+
+**Key Insights:**
+
+- ⚡ **Write performance is constant** regardless of database size (append-only architecture)
+- 🚀 **Batch inserts** achieve 10-12x speedup over individual inserts for CSV storage  
+- 📊 **Range queries** (typical TSDB usage) perform excellently: 122-4,635 QPS (Memory), 126-2,824 QPS (CSV)
+- 💾 **Time series queries** scale well on both storage types, CSV even matches Memory at 100K points
+- 🗃️ **Index scales efficiently**: 35MB memory for 100K points with 0.9s rebuild time
+
+*See detailed performance analysis below for comprehensive benchmarks and visualizations.*
+
+Run your own benchmarks: `python performance_tests/benchmark.py`
 
 ## Advanced Features
 
