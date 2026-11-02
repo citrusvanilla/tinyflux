@@ -4,6 +4,14 @@ Changelog
 Unreleased
 ^^^^^^^^^^
 
+v1.2.1 - November 2, 2026
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Bug Fixes:**
+
+* Fixed indexed ``FieldQuery.map(...)`` searches so mapped field values are
+  evaluated consistently with storage scans.
+
 **CI/CD and Packaging:**
 
 * Updated CI/CD workflows and package metadata to support Python 3.10-3.15.
