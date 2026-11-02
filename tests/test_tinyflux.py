@@ -842,6 +842,21 @@ def test_search():
     assert db.search(FieldQuery().a.exists()) == [p2]
 
 
+def test_search_field_map_index_storage_parity():
+    """Test mapped FieldQuery search matches with and without the index."""
+    point = Point(fields={"a": 70})
+    query = FieldQuery().a.map(lambda value: value * 2) == 140
+
+    db_storage = TinyFlux(storage=MemoryStorage, auto_index=False)
+    db_storage.insert(point)
+
+    db_index = TinyFlux(storage=MemoryStorage, auto_index=True)
+    db_index.insert(point)
+
+    assert db_storage.search(query) == [point]
+    assert db_index.search(query) == [point]
+
+
 def test_select():
     """Test select method."""
     db = TinyFlux(storage=MemoryStorage, auto_index=False)
