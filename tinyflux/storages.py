@@ -368,7 +368,9 @@ class CSVStorage(Storage):
 
     def _init_temp_storage(self) -> None:
         """Initialize temporary storage."""
-        self._temp_handle = NamedTemporaryFile("w+t", newline="", delete=False)
+        self._temp_handle = NamedTemporaryFile(
+            "w+t", encoding=self._encoding, newline="", delete=False
+        )
 
         return
 

@@ -110,7 +110,7 @@ class Index:
 
     _num_items: int
     _tags: Dict[str, Dict[Union[None, str], List[int]]]
-    _fields: Dict[str, List[Tuple[int, Optional[float]]]]
+    _fields: Dict[str, List[Tuple[int, FieldValue]]]
     _measurements: Dict[str, List[int]]
     _timestamps: List[float]
     _valid: bool

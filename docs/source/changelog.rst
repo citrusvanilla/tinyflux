@@ -17,6 +17,11 @@ v1.2.1 - November 2, 2026
 * Updated CI/CD workflows and package metadata to support Python 3.10-3.15.
 * Updated README download count to 200,000+.
 
+**New Features:**
+
+* Field values may now be strings and booleans in addition to numbers.  Numbers are serialized exactly as before, so existing files read back unchanged.  Strings are written in double quotes with escaping and booleans as ``true``/``false``.
+* ``FieldQuery`` accepts string right-hand sides.  Booleans only compare equal to booleans, and ordering comparisons skip values of a different kind.
+
 v1.2.0 - January 26, 2026
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

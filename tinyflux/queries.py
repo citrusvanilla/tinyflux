@@ -32,6 +32,8 @@ from .point import Point
 
 Query = Union["SimpleQuery", "CompoundQuery"]
 
+_NE = operator.ne
+
 
 class CompoundQuery:
     """A container class for simple and/or compound queries and an operator.
@@ -467,14 +469,23 @@ class BaseQuery:
         if (
             self._point_attr == "_fields"
             and rhs
-            and not isinstance(rhs, (int, float))
+            and not isinstance(rhs, (int, float, str))
         ):
-            raise TypeError("FieldQuery comparison value must be numeric.")
+            raise TypeError(
+                "FieldQuery comparison value must be numeric, string, or bool."
+            )
 
         def test(x: Any) -> bool:
             """The test function from an operator and right-hand side."""
             if not test_against_rhs:
                 return operator(x, *args) if args else operator(x)
+
+            # A bool field is not a number, so a bool is only ever equal to
+            # another bool and never orders against a non-bool.
+            if self._point_attr == "_fields" and isinstance(
+                x, bool
+            ) != isinstance(rhs, bool):
+                return operator is _NE
 
             # Wrap this in a try/except block.
             # Some operators do not work against None types.

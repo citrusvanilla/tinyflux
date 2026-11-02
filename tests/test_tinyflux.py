@@ -960,9 +960,9 @@ def test_update():
         db.update(TagQuery().noop(), tags={"a": 1})
 
     with pytest.raises(
-        ValueError, match="Field set must contain only numeric values."
+        ValueError, match="Field set must contain only numeric, string, or bool"
     ):
-        db.update(TagQuery().noop(), fields={"a": "a"})
+        db.update(TagQuery().noop(), fields={"a": ["a"]})
 
     # Missing updates.
     with pytest.raises(ValueError):
@@ -1639,3 +1639,71 @@ def test_all_get_methods_parity_storage_vs_index():
     assert sorted(
         db_test.get_tag_values(["device"], "measurement2")["device"]
     ) == ["C", "D"]
+
+
+def test_string_and_bool_fields_mixed_types(tmpdir):
+    """Test search and update with mixed field types under one field key."""
+    path = os.path.join(tmpdir, "test.csv")
+    t = datetime(2022, 1, 1, tzinfo=timezone.utc)
+    values = ["on", True, 1, 2.5, "true", False, None, "1"]
+    points = [
+        Point(time=t + timedelta(seconds=i), fields={"state": v})
+        for i, v in enumerate(values)
+    ]
+
+    db = TinyFlux(path)
+    db.insert_multiple(points)
+
+    def check(db):
+        q = FieldQuery().state
+        assert db.search(q == "on") == [points[0]]
+        assert db.search(q == "true") == [points[4]]
+        assert db.search(q == True) == [points[1]]  # noqa: E712
+        assert db.search(q == False) == [points[5]]  # noqa: E712
+        assert db.search(q == 1) == [points[2]]
+        assert db.search(q == "1") == [points[7]]
+        assert db.search(q >= 1) == [points[2], points[3]]
+        assert db.search(q > "a") == [points[0], points[4]]
+        assert db.search(q != "on") == [
+            points[i] for i in (1, 2, 3, 4, 5, 6, 7)
+        ]
+        assert db.count(q == "on") == 1
+        assert db.get_field_values("state") == values
+
+    # Index is valid.
+    check(db)
+
+    # No index.
+    db._index.invalidate()
+    check(db)
+
+    # Reopened from disk.
+    db.close()
+    db = TinyFlux(path)
+    check(db)
+    db.reindex()
+    check(db)
+
+    # Update from one type to another.
+    assert db.update(FieldQuery().state == "on", fields={"state": False}) == 1
+    assert db.search(FieldQuery().state == "on") == []
+    assert db.get_field_values("state")[0] is False
+    db.close()
+
+    db = TinyFlux(path)
+    assert db.get_field_values("state")[0] is False
+    db.close()
+
+
+def test_string_and_bool_fields_in_measurement_and_select():
+    """Test string/bool fields through the Measurement and select APIs."""
+    db = TinyFlux(storage=MemoryStorage)
+    m = db.measurement("m")
+    m.insert(Point(fields={"s": "x", "b": True}))
+    m.insert(Point(fields={"s": "y", "b": False}))
+
+    assert m.get_field_values("s") == ["x", "y"]
+    assert m.get_field_values("b") == [True, False]
+    assert m.count(FieldQuery().b == True) == 1  # noqa: E712
+    assert m.select("fields.s", FieldQuery().s == "y") == ["y"]
+    assert db.select("fields.b", FieldQuery().s >= "x") == [True, False]

@@ -128,7 +128,7 @@ In the following, the tag value is ``Los Angeles``.
 Field Set
 ^^^^^^^^^
 
-A field set (or "fields") is the collection of :ref:`field keys<field key>` and :ref:`field values<field value>` belonging to a :ref:`point`.  TinyFlux is schemaless, so any Point can contain zero, one, or more field keys and associated field values.  Field keys are strings while field values are numeric (in Python, ``float`` or ``int``). Field keys and their values **do not** map to Points in a TinyFlux index as it is assumed that the number of their distinct values is too numerous.  On disk, field sets occupy side-by-side columns- one for the field key and one for the field value.
+A field set (or "fields") is the collection of :ref:`field keys<field key>` and :ref:`field values<field value>` belonging to a :ref:`point`.  TinyFlux is schemaless, so any Point can contain zero, one, or more field keys and associated field values.  Field keys are strings while field values are numeric (in Python, ``float`` or ``int``), string (``str``), or boolean (``bool``). Field keys and their values **do not** map to Points in a TinyFlux index as it is assumed that the number of their distinct values is too numerous.  On disk, field sets occupy side-by-side columns- one for the field key and one for the field value.
 
 In Python:
 
@@ -159,7 +159,7 @@ In the following, the field key is ``num_restaurants``.
 Field Value
 ^^^^^^^^^^^
 
-A field value is the associated value for a :ref:`field key` in a :ref:`field set`.  On disk, it occupies the column next to that of the its field key.
+A field value is the associated value for a :ref:`field key` in a :ref:`field set`.  On disk, it occupies the column next to that of the its field key.  Numbers are written as floats, booleans as ``true`` or ``false``, and strings in double quotes with backslashes, double quotes, and line breaks escaped, so the string ``"true"`` is never confused with the boolean ``true``.  A field key may hold values of different types in different points.
 
 In the following, the field value is ``12``.
 

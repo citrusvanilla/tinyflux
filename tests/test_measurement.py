@@ -918,9 +918,9 @@ def test_update():
         m1.update(TagQuery().noop(), tags={"a": 1})
 
     with pytest.raises(
-        ValueError, match="Field set must contain only numeric values."
+        ValueError, match="Field set must contain only numeric, string, or bool"
     ):
-        m1.update(TagQuery().noop(), fields={"a": "a"})
+        m1.update(TagQuery().noop(), fields={"a": ["a"]})
 
     # Valid index, no index results.
     db.reindex()

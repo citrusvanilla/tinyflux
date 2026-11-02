@@ -17,7 +17,7 @@ This term "Point" comes from InfluxDB. A well-formed Point consists of four attr
 - ``measurement``: Known as a "table" in relational databases, its value type is ``str``.
 - ``time``: The timestamp of the observation, its value is a Python ``datetime`` object that should be "timezone aware".
 - ``tags``: Text attributes of the observation as a Python ``dict`` of ``str|str`` key value pairs.
-- ``fields``: Numeric attributes of the observation as a Python ``dict`` of ``str|int`` or ``str|float`` key value pairs.
+- ``fields``: Numeric, string, or boolean attributes of the observation as a Python ``dict`` of ``str|int``, ``str|float``, ``str|str``, or ``str|bool`` key value pairs.
 
 None of the four attributes is required during initialization; an empty Point can be initialized like the following:
 
