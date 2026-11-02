@@ -352,7 +352,7 @@ def test_connect_to_existing_csv(tmpdir, csv_storage_with_counters):
 
     # Mock CSV store.  Insert points out of order.
     path = os.path.join(tmpdir, "test.csv")
-    with open(path, "w") as f:
+    with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(p2._serialize_to_list())
         w.writerow(p1._serialize_to_list())
@@ -478,7 +478,7 @@ def test_multiple_appends(
 
     # Mock CSV store.  Insert points out of order.
     path = os.path.join(tmpdir, "test.csv")
-    with open(path, "w") as f:
+    with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(p2._serialize_to_list())
         w.writerow(p1._serialize_to_list())
@@ -514,7 +514,7 @@ def test_multiple_reads(
     path = os.path.join(tmpdir, "test.csv")
     t = datetime.now(timezone.utc)
 
-    with open(path, "w") as f:
+    with open(path, "w", newline="") as f:
         w = csv.writer(f)
         for _ in range(10):
             w.writerow(Point(time=t)._serialize_to_list())
@@ -533,7 +533,7 @@ def test_multiple_reads(
 
     # Mock CSV store.  Insert points out-of-order.
     path = os.path.join(tmpdir, "test.csv")
-    with open(path, "w") as f:
+    with open(path, "w", newline="") as f:
         w = csv.writer(f)
         for _ in range(10):
             w.writerow(Point(time=t)._serialize_to_list())
