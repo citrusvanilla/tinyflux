@@ -625,6 +625,27 @@ def test_hash():
     assert not (~(q1 & q5)).is_hashable()
 
 
+def test_bool_numeric_field_query_hash_identity():
+    """Test bool field queries are distinct from numeric field queries."""
+    q_true = FieldQuery().a == True  # noqa: E712
+    q_one = FieldQuery().a == 1
+    q_one_float = FieldQuery().a == 1.0
+    q_false = FieldQuery().a == False  # noqa: E712
+    q_zero = FieldQuery().a == 0
+    q_zero_float = FieldQuery().a == 0.0
+
+    assert q_true != q_one
+    assert q_false != q_zero
+    assert q_one == q_one_float
+    assert q_zero == q_zero_float
+
+    assert q_true._hash[-1] != True  # noqa: E712
+    assert len({q_true, q_one, q_one_float, q_false, q_zero, q_zero_float}) == 4
+
+    assert (q_true & q_one) != (q_one & q_one)
+    assert (q_false | q_zero) != (q_zero | q_zero)
+
+
 def test_empty_query_evaluation():
     """Test calling an empty query raises Exception."""
     with pytest.raises(TypeError):
