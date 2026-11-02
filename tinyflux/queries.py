@@ -206,6 +206,7 @@ class SimpleQuery:
         rhs: Any,
         test: Callable[..., bool],
         path_resolver: Callable[..., Any],
+        path: Tuple[Union[str, Callable[..., Any]], ...],
         hashval: Any,
     ) -> None:
         """Initialize an SimpleQuery.
@@ -217,6 +218,7 @@ class SimpleQuery:
             test: The combined logic as a callable.
             path_resolver: A fetcher/translator for Point metadata that the
                            query will be evaluated on.
+            path: The query path from the point attribute to the tested value.
             hashval: The hash value for the query.
         """
         self._point_attr = point_attr
@@ -224,6 +226,7 @@ class SimpleQuery:
         self._rhs = rhs
         self._test = test
         self._path_resolver = path_resolver
+        self._path = path
         self._hash = hashval
 
     @property
@@ -509,6 +512,7 @@ class BaseQuery:
             rhs=rhs,
             test=test,
             path_resolver=path_resolver,
+            path=self._path,
             hashval=hashval if self.is_hashable() else None,
         )
 
@@ -732,6 +736,7 @@ class BaseQuery:
             rhs=None,
             test=lambda _: True,
             path_resolver=lambda x: x,
+            path=(),
             hashval=(),
         )
 

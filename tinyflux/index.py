@@ -600,17 +600,28 @@ class Index:
         """
         rst_items: Set[int] = set([])
 
-        for field_key, items in self._fields.items():
-            # Transform the key. We're only concerned with whether or not a
-            # storage item has a relevant field key before testing its value.
-            # It if does, then we the values, and add these items to results.
-            try:
-                query._path_resolver({field_key: 0.0})
-            except Exception:
-                continue
+        field_items: Iterable[Tuple[str, List[Tuple[int, FieldValue]]]]
 
+        if query._path and isinstance(query._path[0], str):
+            field_items = [
+                (query._path[0], self._fields.get(query._path[0], []))
+            ]
+        else:
+            field_items = self._fields.items()
+
+        for field_key, items in field_items:
             for idx, test_value in items:
-                if query._test(test_value):
+                if len(query._path) == 1 and isinstance(query._path[0], str):
+                    resolved_value = test_value
+                else:
+                    try:
+                        resolved_value = query._path_resolver(
+                            {field_key: test_value}
+                        )
+                    except Exception:
+                        continue
+
+                if query._test(resolved_value):
                     rst_items.add(idx)
 
         return rst_items

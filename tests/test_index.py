@@ -350,6 +350,23 @@ def test_search_field_query():
     assert rst.items == set({})
 
 
+def test_search_field_query_with_map():
+    """Test Index search applies map functions to field values."""
+    index = Index()
+    index._insert_fields(0, {"temp": 70.0})
+
+    rst = index.search(FieldQuery().temp.map(lambda x: x * 2) == 140.0)
+    assert rst.items == {0}
+
+    rst = index.search(
+        FieldQuery().map(lambda fields: fields["temp"] * 2) == 140.0
+    )
+    assert rst.items == {0}
+
+    rst = index.search(FieldQuery().temp.map(lambda _: 1 / 0) == 1)
+    assert rst.items == set({})
+
+
 def test_search_compound_query_not():
     """Test search_query of Index on compound 'not' queries."""
     # Some timestamps.
