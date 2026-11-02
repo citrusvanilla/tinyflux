@@ -509,6 +509,9 @@ class BaseQuery:
                 "FieldQuery comparison value must be numeric, string, or bool."
             )
 
+        is_field_query = self._point_attr == "_fields"
+        rhs_is_bool = isinstance(rhs, bool)
+
         def test(x: Any) -> bool:
             """The test function from an operator and right-hand side."""
             if not test_against_rhs:
@@ -516,9 +519,7 @@ class BaseQuery:
 
             # A bool field is not a number, so a bool is only ever equal to
             # another bool and never orders against a non-bool.
-            if self._point_attr == "_fields" and isinstance(
-                x, bool
-            ) != isinstance(rhs, bool):
+            if is_field_query and isinstance(x, bool) != rhs_is_bool:
                 return operator is _NE
 
             # Wrap this in a try/except block.

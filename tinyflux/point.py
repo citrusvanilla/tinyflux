@@ -23,7 +23,7 @@ Usage:
 
 from datetime import datetime, timezone
 import re
-from typing import Any, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Sequence, Union, cast
 
 TagSet = Dict[str, Optional[str]]
 FieldValue = Union[int, float, str, bool, None]
@@ -101,6 +101,14 @@ def _serialize_field_value(value: FieldValue, none_str: str) -> str:
     Returns:
         The serialized field value.
     """
+    value_type = type(value)
+
+    if value_type is float:
+        return str(value)
+
+    if value_type is int:
+        return str(float(cast(int, value)))
+
     if value is None:
         return none_str
 
@@ -111,7 +119,10 @@ def _serialize_field_value(value: FieldValue, none_str: str) -> str:
         escaped = "".join(_FIELD_STR_ESCAPES.get(c, c) for c in value)
         return f'"{escaped}"'
 
-    return str(float(value))
+    if isinstance(value, (int, float)):
+        return str(float(value))
+
+    raise TypeError(f"Unsupported field value type: {type(value).__name__}")
 
 
 def _deserialize_non_numeric_field_value(value: str) -> FieldValue:
