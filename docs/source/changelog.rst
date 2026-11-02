@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Unreleased
+^^^^^^^^^^
+
+**CI/CD and Packaging:**
+
+* Updated CI/CD workflows and package metadata to support Python 3.10-3.15.
+* Updated README download count to 200,000+.
+
 v1.2.0 - January 26, 2026
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

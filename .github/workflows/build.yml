@@ -3,12 +3,13 @@ name: CI
 on: [push, pull_request]
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.platform }}
     strategy:
+      fail-fast: false
       matrix:
         platform: [ubuntu-latest, windows-latest]
         python-version:
-          ["3.9", "3.10", "3.11", "3.12", "3.13"]
+          ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }} on platform ${{ matrix.platform }}
@@ -22,20 +23,12 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
       - name: Check README
-        run: |
-          if [[ -f "README.md" ]]; then
-            echo "✅ README.md exists and is readable"
-            # Basic markdown syntax check - ensure file has content
-            if [[ $(wc -l < README.md) -gt 10 ]]; then
-              echo "✅ README.md has content"
-            else
-              echo "❌ README.md appears to be too short"
-              exit 1
-            fi
-          else
-            echo "❌ README.md not found"
-            exit 1
-          fi
+        run: >-
+          python -c "from pathlib import Path;
+          p = Path('README.md');
+          assert p.is_file(), 'README.md not found';
+          assert len(p.read_text(encoding='utf-8').splitlines()) > 10, 'README.md appears to be too short';
+          print('README.md exists and has content')"
       - name: Check code formatting
         run: black --check tinyflux/ tests/ examples/
       - name: Check code style

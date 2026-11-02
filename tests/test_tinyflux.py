@@ -657,7 +657,7 @@ def test_reindex(tmpdir, capsys):
 
     # Mock CSV store.  Insert points out of order.
     path = os.path.join(tmpdir, "test.csv")
-    f = open(path, "w")
+    f = open(path, "w", newline="")
     w = csv.writer(f)
     w.writerow(p2._serialize_to_list())
     w.writerow(p1._serialize_to_list())
@@ -1175,7 +1175,7 @@ def test_storage_index_initialization_with_autoindex_ON(tmpdir, capsys):
 
     # Mock CSV store.  Insert points out of order.
     path = os.path.join(tmpdir, "test.csv")
-    with open(path, "w") as f:
+    with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(p2._serialize_to_list())
         w.writerow(p1._serialize_to_list())
@@ -1217,7 +1217,7 @@ def test_open_unindexed_storage_with_autoindex_OFF(tmpdir):
 
     # Mock CSV store.
     path = os.path.join(tmpdir, "test.csv")
-    with open(path, "w") as f:
+    with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(p2._serialize_to_list())
         w.writerow(p1._serialize_to_list())
