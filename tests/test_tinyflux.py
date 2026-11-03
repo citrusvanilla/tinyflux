@@ -857,6 +857,95 @@ def test_search_field_map_index_storage_parity():
     assert db_index.search(query) == [point]
 
 
+def test_negated_field_query_index_storage_read_parity():
+    """Test negated FieldQuery reads match with and without the index."""
+    t = datetime(2022, 1, 1, tzinfo=timezone.utc)
+    points = [
+        Point(time=t, measurement="m", fields={"a": 1}),
+        Point(time=t + timedelta(seconds=1), measurement="m", fields={"a": 2}),
+        Point(time=t + timedelta(seconds=2), measurement="m", fields={"b": 3}),
+        Point(time=t + timedelta(seconds=3), measurement="n", fields={"a": 1}),
+        Point(time=t + timedelta(seconds=4), measurement="n", fields={"b": 4}),
+        Point(
+            time=t + timedelta(seconds=5),
+            measurement="full",
+            fields={"a": 9},
+        ),
+    ]
+
+    db_storage = TinyFlux(storage=MemoryStorage, auto_index=False)
+    db_storage.insert_multiple(points)
+
+    db_index = TinyFlux(storage=MemoryStorage, auto_index=True)
+    db_index.insert_multiple(points)
+
+    queries = [
+        ~FieldQuery().a.exists(),
+        ~(FieldQuery().a == 1),
+        (MeasurementQuery() == "m") & ~(FieldQuery().a == 1),
+    ]
+
+    for query in queries:
+        for measurement in (None, "m", "full"):
+            assert db_index.search(query, measurement=measurement) == (
+                db_storage.search(query, measurement=measurement)
+            )
+            assert db_index.count(query, measurement=measurement) == (
+                db_storage.count(query, measurement=measurement)
+            )
+            assert db_index.contains(query, measurement=measurement) == (
+                db_storage.contains(query, measurement=measurement)
+            )
+            assert db_index.get(query, measurement=measurement) == (
+                db_storage.get(query, measurement=measurement)
+            )
+            assert db_index.select(
+                "fields.a", query, measurement=measurement
+            ) == (db_storage.select("fields.a", query, measurement=measurement))
+
+
+def test_negated_field_query_index_storage_write_parity():
+    """Test negated FieldQuery writes match with and without the index."""
+    t = datetime(2022, 1, 1, tzinfo=timezone.utc)
+    query = (MeasurementQuery() == "m") & ~FieldQuery().a.exists()
+
+    def make_points():
+        return [
+            Point(time=t, measurement="m", fields={"a": 1}),
+            Point(
+                time=t + timedelta(seconds=1),
+                measurement="m",
+                fields={"a": 2},
+            ),
+            Point(
+                time=t + timedelta(seconds=2),
+                measurement="m",
+                fields={"b": 3},
+            ),
+            Point(
+                time=t + timedelta(seconds=3),
+                measurement="n",
+                fields={"b": 4},
+            ),
+        ]
+
+    db_storage = TinyFlux(storage=MemoryStorage, auto_index=False)
+    db_storage.insert_multiple(make_points())
+
+    db_index = TinyFlux(storage=MemoryStorage, auto_index=True)
+    db_index.insert_multiple(make_points())
+
+    assert db_index.update(query, fields={"updated": True}) == 1
+    assert db_storage.update(query, fields={"updated": True}) == 1
+    assert db_index.all() == db_storage.all()
+
+    assert db_index.remove(query) == 1
+    assert db_storage.remove(query) == 1
+    assert db_index.remove(FieldQuery().updated == True) == 0  # noqa: E712
+    assert db_storage.remove(FieldQuery().updated == True) == 0  # noqa: E712
+    assert db_index.all() == db_storage.all()
+
+
 def test_select():
     """Test select method."""
     db = TinyFlux(storage=MemoryStorage, auto_index=False)
