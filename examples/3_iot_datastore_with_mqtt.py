@@ -43,7 +43,6 @@ import paho.mqtt.client as mqtt
 
 from tinyflux import TinyFlux, Point
 
-
 MQTT_HOST = "test.mosquitto.org"
 MQTT_PORT = 1883
 MQTT_KEEPALIVE = 60

@@ -29,7 +29,6 @@ from typing import (
 
 from .point import Point
 
-
 Query = Union["SimpleQuery", "CompoundQuery"]
 
 _NE = operator.ne

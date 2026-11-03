@@ -1,4 +1,4 @@
-black>=25,<26
+black>=26.10.1,<27
 flake8
 flake8-docstrings
 influxdb_client
