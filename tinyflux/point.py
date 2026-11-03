@@ -6,8 +6,8 @@ deserialized from Storage. SimpleQuery act upon individual Points.
 
 A Point is comprised of a timestamp, a measurement, fields, and tags.
 
-Fields contains string/numeric key-values, while tags contain
-string/string key-values.  This is enforced upon Point instantiation.
+Fields contains string/(numeric, string, or bool) key-values, while tags
+contain string/string key-values.  This is enforced upon Point instantiation.
 
 Usage:
 
@@ -22,10 +22,11 @@ Usage:
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Mapping, Optional, Sequence, Union
+import re
+from typing import Any, Dict, Mapping, Optional, Sequence, Union, cast
 
 TagSet = Dict[str, Optional[str]]
-FieldValue = Union[int, float, None]
+FieldValue = Union[int, float, str, bool, None]
 FieldSet = Dict[str, FieldValue]
 
 
@@ -73,12 +74,81 @@ def validate_fields(fields: Any) -> None:
         if i is None:
             continue
 
-        if isinstance(i, bool) or not isinstance(i, (int, float)):
+        if not isinstance(i, (int, float, str, bool)):
             raise ValueError(
-                "Field set must contain only numeric values or None."
+                "Field set must contain only numeric, string, or bool values "
+                "or None."
             )
 
     return
+
+
+_FIELD_STR_ESCAPES = {"\\": "\\\\", '"': '\\"', "\n": "\\n", "\r": "\\r"}
+_FIELD_STR_UNESCAPES = {"\\": "\\", '"': '"', "n": "\n", "r": "\r"}
+
+
+def _serialize_field_value(value: FieldValue, none_str: str) -> str:
+    """Serialize a field value to a string.
+
+    Numbers are written as floats, bools as "true"/"false", and strings in
+    double quotes with backslash, double quote, and line break characters
+    escaped so that a serialized value never spans multiple lines.
+
+    Args:
+        value: The field value.
+        none_str: The string that represents None.
+
+    Returns:
+        The serialized field value.
+    """
+    value_type = type(value)
+
+    if value_type is float:
+        return str(value)
+
+    if value_type is int:
+        return str(float(cast(int, value)))
+
+    if value is None:
+        return none_str
+
+    if isinstance(value, bool):
+        return "true" if value else "false"
+
+    if isinstance(value, str):
+        escaped = "".join(_FIELD_STR_ESCAPES.get(c, c) for c in value)
+        return f'"{escaped}"'
+
+    if isinstance(value, (int, float)):
+        return str(float(value))
+
+    raise TypeError(f"Unsupported field value type: {type(value).__name__}")
+
+
+def _deserialize_non_numeric_field_value(value: str) -> FieldValue:
+    """Deserialize a field value that is not a number.
+
+    Args:
+        value: The serialized field value.
+
+    Returns:
+        A bool for "true"/"false", a str for a double-quoted value, and None
+        for anything else.
+    """
+    if value == "true":
+        return True
+
+    if value == "false":
+        return False
+
+    if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
+        return re.sub(
+            r"\\(.)",
+            lambda m: _FIELD_STR_UNESCAPES.get(m.group(1), m.group(0)),
+            value[1:-1],
+        )
+
+    return None
 
 
 class Point:
@@ -291,9 +361,9 @@ class Point:
             try:
                 p_fields[f_key] = float(f_value)
 
-            # Value is None.
+            # Value is a bool, a string, or None.
             except Exception:
-                p_fields[f_key] = None
+                p_fields[f_key] = _deserialize_non_numeric_field_value(f_value)
 
             i += 2
 
@@ -351,7 +421,7 @@ class Point:
         fields = (
             (
                 f"{field_key_prefix}{k}",
-                self._none_str if v is None else str(float(v)),
+                _serialize_field_value(v, self._none_str),
             )
             for k, v in self._fields.items()
         )

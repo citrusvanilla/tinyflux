@@ -53,6 +53,13 @@ Similar to tags, to query for fields, the field key takes the form of a query at
 
 This will query the database for all points with the field key of ``high`` exceeding the value of 50.0.
 
+Field values of type ``str`` and ``bool`` can be queried as well:
+
+>>> db.search(Fields.status == "ok")
+>>> db.search(Fields.is_on == True)
+
+Field values are compared by type: a ``bool`` is only ever equal to a ``bool`` (so ``Fields.is_on == 1`` does not match ``True``), and a number never equals a string.  Ordering comparisons (``<``, ``<=``, ``>``, ``>=``) only match values of the same kind as the right-hand side, so ``Fields.high > 50.0`` skips points where ``high`` is a string or boolean rather than raising an error.
+
 Some tag keys and field keys are not valid Python identifiers (for example, if the key contains whitespace), and can alternately be queried with string attributes:
 
 >>> from tinyflux import TagQuery

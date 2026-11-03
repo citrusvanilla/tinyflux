@@ -2,6 +2,7 @@
 
 import copy
 from datetime import datetime, timezone
+import operator
 from typing import (
     Any,
     Callable,
@@ -34,6 +35,24 @@ from .queries import (
     Query,
 )
 from .storages import CSVStorage, Storage
+
+
+def _query_contains_negated_field_query(query: Query) -> bool:
+    """Return whether a query needs storage evaluation for field negation."""
+    if not isinstance(query, CompoundQuery):
+        return False
+
+    if (
+        query.operator == operator.not_
+        and isinstance(query.query1, SimpleQuery)
+        and query.query1.point_attr == "_fields"
+    ):
+        return True
+
+    return _query_contains_negated_field_query(query.query1) or (
+        query.query2 is not None
+        and _query_contains_negated_field_query(query.query2)
+    )
 
 
 class TinyFlux:
@@ -220,8 +239,12 @@ class TinyFlux:
         Returns:
             True if point found, else False.
         """
+        use_index = (
+            self._index.valid and not _query_contains_negated_field_query(query)
+        )
+
         # If the index is valid, check it.
-        if self._index.valid:
+        if use_index:
             if measurement:
                 mq = MeasurementQuery() == measurement
                 index_rst = self._index.search(mq & query)
@@ -261,8 +284,12 @@ class TinyFlux:
         Returns:
             A count of matching points in the measurement.
         """
+        use_index = (
+            self._index.valid and not _query_contains_negated_field_query(query)
+        )
+
         # If the index is valid, check it.
-        if self._index.valid:
+        if use_index:
             if measurement:
                 mq = MeasurementQuery() == measurement
                 index_rst = self._index.search(mq & query)
@@ -327,7 +354,9 @@ class TinyFlux:
         Returns:
             First found Point or None.
         """
-        use_index = self._index.valid
+        use_index = (
+            self._index.valid and not _query_contains_negated_field_query(query)
+        )
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
@@ -757,7 +786,9 @@ class TinyFlux:
         if not isinstance(query, (SimpleQuery, CompoundQuery)):
             raise ValueError("query must be a TinyFlux Query.")
 
-        use_index = self._index.valid
+        use_index = (
+            self._index.valid and not _query_contains_negated_field_query(query)
+        )
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
@@ -870,7 +901,9 @@ class TinyFlux:
             else:
                 raise ValueError(f"Invalid key `{key}`.")
 
-        use_index = self._index.valid
+        use_index = (
+            self._index.valid and not _query_contains_negated_field_query(query)
+        )
 
         results = []
 
@@ -1337,7 +1370,9 @@ class TinyFlux:
         Raises:
             OSError if storage cannot be written to.
         """
-        use_index = self._index.valid
+        use_index = (
+            self._index.valid and not _query_contains_negated_field_query(query)
+        )
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:
@@ -1492,7 +1527,11 @@ class TinyFlux:
             unset_tags=unset_tags,
         )
 
-        use_index = not update_all and self._index.valid
+        use_index = (
+            not update_all
+            and self._index.valid
+            and not _query_contains_negated_field_query(query)
+        )
 
         # If we are auto-indexing and the index is valid, check it.
         if use_index:

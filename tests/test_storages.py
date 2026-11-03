@@ -667,3 +667,116 @@ def test_compact_key_prefixes(tmpdir):
     assert m._serialize_point(
         p, compact_key_prefixes=False
     ) == p._serialize_to_list(compact_key_prefixes=False)
+
+
+STRING_AND_BOOL_FIELDS = {
+    "s": "plain",
+    "empty": "",
+    "t": True,
+    "f": False,
+    "str_true": "true",
+    "str_num": "1.5",
+    "str_none": "_none",
+    "comma": "a,b",
+    "quote": 'she said "hi", then left',
+    "backslash": "C:\\temp\\new",
+    "newline": "line1\nline2\r\nline3\r",
+    "unicode": "caf\u00e9 \u4e2d\u6587",
+    "n": 1.5,
+    "i": 3,
+    "none": None,
+}
+
+
+@pytest.mark.parametrize("compact_key_prefixes", [False, True])
+def test_string_and_bool_fields_round_trip(tmpdir, compact_key_prefixes):
+    """Test writing, closing, reopening, and reading string/bool fields."""
+    path = os.path.join(tmpdir, "test.csv")
+    t = datetime(2022, 1, 1, tzinfo=timezone.utc)
+    points = [
+        Point(time=t, measurement="m", fields=STRING_AND_BOOL_FIELDS),
+        Point(
+            time=t + timedelta(seconds=1),
+            measurement="m",
+            tags={"tag": "true"},
+            fields={"s": "second", "t": False},
+        ),
+    ]
+
+    db = TinyFlux(path, encoding="utf-8")
+    db.insert_multiple(points, compact_key_prefixes=compact_key_prefixes)
+    db.close()
+
+    # Each point is still exactly one line in the file.
+    with open(path, encoding="utf-8", newline="") as f:
+        assert len(f.read().split("\n")) == len(points) + 1
+
+    db = TinyFlux(path, encoding="utf-8")
+    assert len(db) == 2
+    result = db.all()
+    assert result == points
+
+    # Types survive, in particular bool vs. int vs. str.
+    first = result[0].fields
+    for key, value in STRING_AND_BOOL_FIELDS.items():
+        assert first[key] == value
+        assert type(first[key]) is (float if key == "i" else type(value))
+
+    # The index built on reopen sees the typed values.
+    assert db.get_field_values("s") == ["plain", "second"]
+    assert db.get_field_values("t") == [True, False]
+    db.close()
+
+
+def test_string_and_bool_fields_memory_storage():
+    """Test string and bool fields in memory storage."""
+    db = TinyFlux(storage=MemoryStorage)
+    p = Point(fields=STRING_AND_BOOL_FIELDS)
+    db.insert(p)
+
+    assert db.all() == [p]
+    assert db.get_field_values("quote") == [STRING_AND_BOOL_FIELDS["quote"]]
+
+
+def test_numeric_only_files_from_earlier_releases_read_identically(tmpdir):
+    """Test that a file written before string/bool support reads unchanged."""
+    path = os.path.join(tmpdir, "legacy.csv")
+
+    with open(path, "w", newline="") as f:
+        f.write(
+            "2022-01-01T00:00:00,m,_tag_a,b,_field_x,1.0,_field_y,-2.5,"
+            "_field_z,_none\r\n"
+            "2022-01-01T00:00:01,m,t_a,c,f_x,3.0,f_y,1e-07\r\n"
+        )
+
+    db = TinyFlux(path)
+    assert db.all() == [
+        Point(
+            time=datetime(2022, 1, 1, tzinfo=timezone.utc),
+            measurement="m",
+            tags={"a": "b"},
+            fields={"x": 1.0, "y": -2.5, "z": None},
+        ),
+        Point(
+            time=datetime(2022, 1, 1, 0, 0, 1, tzinfo=timezone.utc),
+            measurement="m",
+            tags={"a": "c"},
+            fields={"x": 3.0, "y": 1e-07},
+        ),
+    ]
+
+    # New string/bool points can be appended to an old file.
+    db.insert(
+        Point(
+            time=datetime(2022, 1, 1, 0, 0, 2, tzinfo=timezone.utc),
+            measurement="m",
+            fields={"x": "on", "y": True},
+        )
+    )
+    db.close()
+
+    db = TinyFlux(path)
+    assert len(db) == 3
+    assert db.all()[0].fields == {"x": 1.0, "y": -2.5, "z": None}
+    assert db.all()[2].fields == {"x": "on", "y": True}
+    db.close()

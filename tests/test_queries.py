@@ -625,6 +625,27 @@ def test_hash():
     assert not (~(q1 & q5)).is_hashable()
 
 
+def test_bool_numeric_field_query_hash_identity():
+    """Test bool field queries are distinct from numeric field queries."""
+    q_true = FieldQuery().a == True  # noqa: E712
+    q_one = FieldQuery().a == 1
+    q_one_float = FieldQuery().a == 1.0
+    q_false = FieldQuery().a == False  # noqa: E712
+    q_zero = FieldQuery().a == 0
+    q_zero_float = FieldQuery().a == 0.0
+
+    assert q_true != q_one
+    assert q_false != q_zero
+    assert q_one == q_one_float
+    assert q_zero == q_zero_float
+
+    assert q_true._hash[-1] != True  # noqa: E712
+    assert len({q_true, q_one, q_one_float, q_false, q_zero, q_zero_float}) == 4
+
+    assert (q_true & q_one) != (q_one & q_one)
+    assert (q_false | q_zero) != (q_zero | q_zero)
+
+
 def test_empty_query_evaluation():
     """Test calling an empty query raises Exception."""
     with pytest.raises(TypeError):
@@ -870,6 +891,61 @@ def test_bad_queries():
     with pytest.raises(TypeError):
         TagQuery().city == ["a", "b"]
 
-    # Test a non-numeric right hand side.
+    # Test a right hand side that is not numeric, string, or bool.
     with pytest.raises(TypeError):
-        FieldQuery().a == "a"
+        FieldQuery().a == ["a"]
+
+
+def test_string_and_bool_field_queries():
+    """Test queries against string and bool field values."""
+    s = Point(fields={"a": "abc"})
+    t = Point(fields={"a": True})
+    f = Point(fields={"a": False})
+    n = Point(fields={"a": 1})
+    z = Point(fields={"a": 0.0})
+    none = Point(fields={"a": None})
+    missing = Point(fields={"b": "abc"})
+    points = [s, t, f, n, z, none, missing]
+
+    yes, no = True, False
+
+    def matches(q):
+        return [p for p in points if q(p)]
+
+    # Equality is typed.
+    assert matches(FieldQuery().a == "abc") == [s]
+    assert matches(FieldQuery().a == "ABC") == []
+    assert matches(FieldQuery().a == "") == []
+    assert matches(FieldQuery().a == yes) == [t]
+    assert matches(FieldQuery().a == no) == [f]
+    assert matches(FieldQuery().a == 1) == [n]
+    assert matches(FieldQuery().a == 0) == [z]
+    assert matches(FieldQuery().a == "1") == []
+
+    # Inequality is typed too: a missing field is never a match.
+    assert matches(FieldQuery().a != "abc") == [t, f, n, z, none]
+    assert matches(FieldQuery().a != yes) == [s, f, n, z, none]
+    assert matches(FieldQuery().a != 1) == [s, t, f, z, none]
+
+    # Numeric comparisons skip strings and bools instead of raising.
+    assert matches(FieldQuery().a > 0) == [n]
+    assert matches(FieldQuery().a >= 0) == [n, z]
+    assert matches(FieldQuery().a < 1) == [z]
+    assert matches(FieldQuery().a <= 1) == [n, z]
+
+    # String comparisons are lexicographic and skip numbers and bools.
+    assert matches(FieldQuery().a > "abb") == [s]
+    assert matches(FieldQuery().a < "abd") == [s]
+    assert matches(FieldQuery().a >= "abc") == [s]
+    assert matches(FieldQuery().a <= "abc") == [s]
+
+    # Bools only order against bools.
+    assert matches(FieldQuery().a > no) == [t]
+    assert matches(FieldQuery().a <= yes) == [t, f]
+
+    # Compound queries work as for any other field value.
+    assert matches((FieldQuery().a == "abc") | (FieldQuery().a == yes)) == [
+        s,
+        t,
+    ]
+    assert matches(~(FieldQuery().a == "abc")) == [t, f, n, z, none, missing]

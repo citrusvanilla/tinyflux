@@ -32,6 +32,42 @@ from .point import Point
 
 Query = Union["SimpleQuery", "CompoundQuery"]
 
+_NE = operator.ne
+
+
+class _HashableRHS:
+    """A hash key for RHS values that preserves bool identity."""
+
+    __slots__ = ("_kind", "_value", "_display_value")
+
+    def __init__(self, kind: Any, value: Any, display_value: Any) -> None:
+        self._kind = kind
+        self._value = value
+        self._display_value = display_value
+
+    def __hash__(self) -> int:
+        return hash((self._kind, self._value))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, _HashableRHS):
+            return False
+
+        return bool((self._kind, self._value) == (other._kind, other._value))
+
+    def __repr__(self) -> str:
+        return repr(self._display_value)
+
+
+def _hashable_rhs(rhs: Any) -> Any:
+    """Return a hash key for RHS values that preserves bool identity."""
+    if isinstance(rhs, bool):
+        return _HashableRHS(bool, rhs, rhs)
+
+    if isinstance(rhs, (int, float)):
+        return _HashableRHS("number", float(rhs), rhs)
+
+    return _HashableRHS(type(rhs), rhs, rhs)
+
 
 class CompoundQuery:
     """A container class for simple and/or compound queries and an operator.
@@ -467,14 +503,24 @@ class BaseQuery:
         if (
             self._point_attr == "_fields"
             and rhs
-            and not isinstance(rhs, (int, float))
+            and not isinstance(rhs, (int, float, str))
         ):
-            raise TypeError("FieldQuery comparison value must be numeric.")
+            raise TypeError(
+                "FieldQuery comparison value must be numeric, string, or bool."
+            )
+
+        is_field_query = self._point_attr == "_fields"
+        rhs_is_bool = isinstance(rhs, bool)
 
         def test(x: Any) -> bool:
             """The test function from an operator and right-hand side."""
             if not test_against_rhs:
                 return operator(x, *args) if args else operator(x)
+
+            # A bool field is not a number, so a bool is only ever equal to
+            # another bool and never orders against a non-bool.
+            if is_field_query and isinstance(x, bool) != rhs_is_bool:
+                return operator is _NE
 
             # Wrap this in a try/except block.
             # Some operators do not work against None types.
@@ -532,7 +578,7 @@ class BaseQuery:
             test_against_rhs=True,
             rhs=rhs,
             args=None,
-            hashval=(self._point_attr, "==", self._path, rhs),
+            hashval=(self._point_attr, "==", self._path, _hashable_rhs(rhs)),
         )
 
     def __ne__(self, rhs: Any) -> SimpleQuery:  # type: ignore
@@ -551,7 +597,7 @@ class BaseQuery:
             test_against_rhs=True,
             rhs=rhs,
             args=None,
-            hashval=(self._point_attr, "!=", self._path, rhs),
+            hashval=(self._point_attr, "!=", self._path, _hashable_rhs(rhs)),
         )
 
     def __lt__(self, rhs: Any) -> SimpleQuery:
@@ -568,7 +614,7 @@ class BaseQuery:
             test_against_rhs=True,
             rhs=rhs,
             args=None,
-            hashval=(self._point_attr, "<", self._path, rhs),
+            hashval=(self._point_attr, "<", self._path, _hashable_rhs(rhs)),
         )
 
     def __le__(self, rhs: Any) -> SimpleQuery:
@@ -585,7 +631,7 @@ class BaseQuery:
             test_against_rhs=True,
             rhs=rhs,
             args=None,
-            hashval=(self._point_attr, "<=", self._path, rhs),
+            hashval=(self._point_attr, "<=", self._path, _hashable_rhs(rhs)),
         )
 
     def __gt__(self, rhs: Any) -> SimpleQuery:
@@ -602,7 +648,7 @@ class BaseQuery:
             test_against_rhs=True,
             rhs=rhs,
             args=None,
-            hashval=(self._point_attr, ">", self._path, rhs),
+            hashval=(self._point_attr, ">", self._path, _hashable_rhs(rhs)),
         )
 
     def __ge__(self, rhs: Any) -> SimpleQuery:
@@ -619,7 +665,7 @@ class BaseQuery:
             test_against_rhs=True,
             rhs=rhs,
             args=None,
-            hashval=(self._point_attr, ">=", self._path, rhs),
+            hashval=(self._point_attr, ">=", self._path, _hashable_rhs(rhs)),
         )
 
     def __and__(self, other: Any) -> None:

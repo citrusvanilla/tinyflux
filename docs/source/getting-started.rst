@@ -10,21 +10,21 @@ Initialize a new TinyFlux database (or connect to an existing file store) with t
 
 An individual instance of data in a TinyFlux database is known as a "Point".  In a traditional relational database, this would called called a "row", and in a document-oriented database it is called a "document".  A TinyFlux ``Point`` is a convenient object for storing its four main attributes:
 
-+-----------------+----------------------------------------------------------+------------------------------------------------------+
-| **Attribute**   | **Python Type**                                          | **Example**                                          |
-+-----------------+----------------------------------------------------------+------------------------------------------------------+
-| ``measurement`` | ``str``                                                  | ``"california air quality"``                         |
-+-----------------+----------------------------------------------------------+------------------------------------------------------+
-| ``time``        | ``datetime``                                             | ``datetime.now(timezone.utc)``                       |
-+-----------------+----------------------------------------------------------+------------------------------------------------------+
-| ``tags``        | ``Dict`` of ``str`` keys and ``str`` values              | ``{"city": "Los Angeles", "parameter": "PM2.5"}``    |
-+-----------------+----------------------------------------------------------+------------------------------------------------------+
-| ``fields``      | ``Dict`` of ``str`` keys and ``float`` or ``int`` values | ``{"aqi": 112.0}``                                   |
-+-----------------+----------------------------------------------------------+------------------------------------------------------+
++-----------------+------------------------------------------------------------------------------+------------------------------------------------------+
+| **Attribute**   | **Python Type**                                                              | **Example**                                          |
++-----------------+------------------------------------------------------------------------------+------------------------------------------------------+
+| ``measurement`` | ``str``                                                                      | ``"california air quality"``                         |
++-----------------+------------------------------------------------------------------------------+------------------------------------------------------+
+| ``time``        | ``datetime``                                                                 | ``datetime.now(timezone.utc)``                       |
++-----------------+------------------------------------------------------------------------------+------------------------------------------------------+
+| ``tags``        | ``Dict`` of ``str`` keys and ``str`` values                                  | ``{"city": "Los Angeles", "parameter": "PM2.5"}``    |
++-----------------+------------------------------------------------------------------------------+------------------------------------------------------+
+| ``fields``      | ``Dict`` of ``str`` keys and ``float``, ``int``, ``str``, or ``bool`` values | ``{"aqi": 112.0}``                                   |
++-----------------+------------------------------------------------------------------------------+------------------------------------------------------+
 
 In keeping with the analogy of a traditional RDMS, a ``measurement`` is like a table.
 
-``time`` is a field with the requirement that it is a ``datetime`` type, ``tags`` is a collection of string attributes, and ``fields`` is a collection of numeric attributes.  TinyFlux is "schemaless", so tags and fields can be added/removed to any Point.
+``time`` is a field with the requirement that it is a ``datetime`` type, ``tags`` is a collection of string attributes, and ``fields`` is a collection of numeric, string, or bool attributes.  TinyFlux is "schemaless", so tags and fields can be added/removed to any Point.
 
 To make a Point, import the Point definition and annotate the Point with the desired attributes.  If ``measurement`` is not defined, it takes the default table name of ``_default``.
 

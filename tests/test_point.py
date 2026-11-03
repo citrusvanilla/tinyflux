@@ -2,7 +2,12 @@
 
 from datetime import datetime, timezone, timedelta
 import pytest
-from tinyflux.point import Point, validate_tags, validate_fields
+from tinyflux.point import (
+    Point,
+    _serialize_field_value,
+    validate_tags,
+    validate_fields,
+)
 
 
 @pytest.fixture
@@ -100,8 +105,13 @@ def test_args_and_kwargs_invalid(args, kwargs, exception_type):
         ),
         (
             validate_fields,
-            [3, {1: "A"}, {"a": "A"}],
-            [{"a": 1}, {"temp": 70.5}, {"count": 10, "avg": 25.3}],
+            [3, {1: "A"}, {"a": ["A"]}, {"a": b"A"}],
+            [
+                {"a": 1},
+                {"temp": 70.5},
+                {"count": 10, "avg": 25.3},
+                {"s": "A", "b": True, "n": None},
+            ],
         ),
     ],
 )
@@ -199,8 +209,8 @@ def invalid_field_values(test_times):
         {test_time: "all good"},
         {tuple((1, 2)): "ok"},
         {"key": {"a": "b"}},
-        {"a": True},  # Invalid for fields (should be numeric/None)
-        # Note: {"a": 123} is valid for fields, so not included
+        {"a": ["b"]},
+        # Note: {"a": 123}, {"a": "b"}, and {"a": True} are valid for fields.
     ]
 
 
@@ -533,3 +543,100 @@ def test_compact_keys(point_data, prefix_attr, key_indices, expected_values):
     # Check that values match expected
     for key, expected_value in expected_values.items():
         assert getattr(new_p_compact, data_attr)[key] == expected_value
+
+
+@pytest.mark.parametrize(
+    "value,serialized",
+    [
+        (True, "true"),
+        (False, "false"),
+        ("abc", '"abc"'),
+        ("", '""'),
+        ("true", '"true"'),
+        ("1.5", '"1.5"'),
+        ("_none", '"_none"'),
+        ("a,b", '"a,b"'),
+        ('say "hi"', '"say \\"hi\\""'),
+        ("back\\slash", '"back\\\\slash"'),
+        ("line1\nline2\r\n", '"line1\\nline2\\r\\n"'),
+        ("\\n", '"\\\\n"'),
+        ("\u00e9\u4e2d", '"\u00e9\u4e2d"'),
+        (1, "1.0"),
+        (-2.5, "-2.5"),
+        (None, "_none"),
+    ],
+)
+def test_serialize_string_and_bool_fields(value, serialized):
+    """Test the serialized form of, and round trip for, each field type."""
+    p = Point(
+        time=datetime(2022, 1, 1, tzinfo=timezone.utc), fields={"k": value}
+    )
+    row = p._serialize_to_list()
+
+    assert row[-2:] == ("_field_k", serialized)
+    assert not any("\n" in i or "\r" in i for i in row)
+
+    result = Point()._deserialize_from_list(row)
+
+    # Numbers always come back as floats, everything else as it went in.
+    expected = float(value) if type(value) is int else value
+    assert result.fields == {"k": expected}
+    assert type(result.fields["k"]) is type(expected)
+
+
+def test_serialize_numeric_field_subclasses():
+    """Test numeric subclasses keep the same serialized form as numbers."""
+
+    class MyInt(int):
+        pass
+
+    class MyFloat(float):
+        pass
+
+    p = Point(
+        time=datetime(2022, 1, 1, tzinfo=timezone.utc),
+        fields={"i": MyInt(1), "f": MyFloat(2.5)},
+    )
+    row = p._serialize_to_list()
+
+    assert row[-4:] == ("_field_i", "1.0", "_field_f", "2.5")
+
+
+def test_serialize_unsupported_field_value():
+    """Test the serializer rejects unsupported values defensively."""
+    with pytest.raises(TypeError, match="Unsupported field value type: list"):
+        _serialize_field_value([], "_none")
+
+
+def test_deserialize_legacy_and_unknown_field_values():
+    """Test that values written by earlier releases read back unchanged."""
+    row = [
+        "2022-01-01T00:00:00",
+        "m",
+        "_tag_t",
+        "true",
+        "_field_a",
+        "1.0",
+        "_field_b",
+        "-3",
+        "_field_c",
+        "2.5e-05",
+        "_field_d",
+        "_none",
+        "_field_e",
+        "nan",
+        "_field_f",
+        "garbage",
+        "_field_g",
+        '"unterminated',
+    ]
+    p = Point()._deserialize_from_list(row)
+
+    assert p.tags == {"t": "true"}
+    assert p.fields["a"] == 1.0 and isinstance(p.fields["a"], float)
+    assert p.fields["b"] == -3 and isinstance(p.fields["b"], int)
+    assert p.fields["c"] == 2.5e-05
+    assert p.fields["d"] is None
+    assert p.fields["e"] != p.fields["e"]
+    assert p.fields["f"] is None
+    assert p.fields["g"] is None
