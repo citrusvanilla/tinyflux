@@ -2,7 +2,12 @@
 
 from datetime import datetime, timezone, timedelta
 import pytest
-from tinyflux.point import Point, validate_tags, validate_fields
+from tinyflux.point import (
+    Point,
+    _serialize_field_value,
+    validate_tags,
+    validate_fields,
+)
 
 
 @pytest.fixture
@@ -577,6 +582,30 @@ def test_serialize_string_and_bool_fields(value, serialized):
     expected = float(value) if type(value) is int else value
     assert result.fields == {"k": expected}
     assert type(result.fields["k"]) is type(expected)
+
+
+def test_serialize_numeric_field_subclasses():
+    """Test numeric subclasses keep the same serialized form as numbers."""
+
+    class MyInt(int):
+        pass
+
+    class MyFloat(float):
+        pass
+
+    p = Point(
+        time=datetime(2022, 1, 1, tzinfo=timezone.utc),
+        fields={"i": MyInt(1), "f": MyFloat(2.5)},
+    )
+    row = p._serialize_to_list()
+
+    assert row[-4:] == ("_field_i", "1.0", "_field_f", "2.5")
+
+
+def test_serialize_unsupported_field_value():
+    """Test the serializer rejects unsupported values defensively."""
+    with pytest.raises(TypeError, match="Unsupported field value type: list"):
+        _serialize_field_value([], "_none")
 
 
 def test_deserialize_legacy_and_unknown_field_values():
