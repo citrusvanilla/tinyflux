@@ -55,11 +55,11 @@ print(f"Today's readings: {len(recent_data)}")
 
 ## Why TinyFlux?
 
-**🚀 Simple**: Clean, intuitive API inspired by TinyDB  
-**📈 Fast**: Optimized for time series workloads with automatic indexing  
-**💾 Flexible**: Memory or file-based storage with human-readable CSV format  
-**🔍 Powerful**: Rich query system with time-range, tag, and field filtering  
-**🪶 Lightweight**: Zero external dependencies, pure Python  
+**Simple**: Clean, intuitive API inspired by TinyDB  
+**Fast**: Optimized for time series workloads with automatic indexing  
+**Flexible**: Memory or file-based storage with human-readable CSV format  
+**Powerful**: Rich query system with time-range, tag, and field filtering  
+**Lightweight**: Zero external dependencies, pure Python  
 
 ## Core Concepts
 
@@ -89,11 +89,11 @@ TinyFlux delivers high-performance time series operations across database sizes.
 
 **Key Insights:**
 
-- ⚡ **Write performance is constant** regardless of database size (append-only architecture)
-- 🚀 **Batch inserts** achieve 10-12x speedup over individual inserts for CSV storage  
-- 📊 **Range queries** (typical TSDB usage) perform excellently: 122-4,635 QPS (Memory), 126-2,824 QPS (CSV)
-- 💾 **Time series queries** scale well on both storage types, CSV even matches Memory at 100K points
-- 🗃️ **Index scales efficiently**: 35MB memory for 100K points with 0.9s rebuild time
+- **Write performance is constant** regardless of database size (append-only architecture)
+- **Batch inserts** achieve 10-12x speedup over individual inserts for CSV storage  
+- **Range queries** (typical TSDB usage) perform excellently: 122-4,635 QPS (Memory), 126-2,824 QPS (CSV)
+- **Time series queries** scale well on both storage types, CSV even matches Memory at 100K points
+- **Index scales efficiently**: 35MB memory for 100K points with 0.9s rebuild time
 
 *See detailed performance analysis below for comprehensive benchmarks and visualizations.*
 
