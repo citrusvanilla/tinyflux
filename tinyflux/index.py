@@ -742,8 +742,11 @@ class Index:
         op = query._operator
         rhs = query._rhs
 
+        # Mappings need not preserve ordering or equality. Only raw
+        # timestamp comparisons can use the bisect fast paths below.
+
         # Exact timestamp match.
-        if op == operator.eq:
+        if not query._path and op == operator.eq:
             # Find the exact match, or return empty set if None.
             match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
@@ -763,7 +766,7 @@ class Index:
             return results
 
         # Anything except exact timestamp match.
-        elif op == operator.ne:
+        elif not query._path and op == operator.ne:
             # Find the exact match, or return full set if None.
             match = find_eq(self._timestamps, rhs.timestamp())
             if match is None:
@@ -783,7 +786,7 @@ class Index:
             return set(self._storage_pos_sorted_by_ts).difference(results)
 
         # Everything less than rhs.
-        elif op == operator.lt:
+        elif not query._path and op == operator.lt:
             match = find_lt(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
@@ -791,7 +794,7 @@ class Index:
             return set(self._storage_pos_sorted_by_ts[: match + 1])
 
         # Every less than or equal to rhs.
-        elif op == operator.le:
+        elif not query._path and op == operator.le:
             match = find_le(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
@@ -799,7 +802,7 @@ class Index:
             return set(self._storage_pos_sorted_by_ts[: match + 1])
 
         # Everything greater than rhs.
-        elif op == operator.gt:
+        elif not query._path and op == operator.gt:
             match = find_gt(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
@@ -807,7 +810,7 @@ class Index:
             return set(self._storage_pos_sorted_by_ts[match:])
 
         # Everything greater than or equal to rhs.
-        elif op == operator.ge:
+        elif not query._path and op == operator.ge:
             match = find_ge(self._timestamps, rhs.timestamp())
             if match is None:
                 return set([])
@@ -820,13 +823,17 @@ class Index:
             for idx, timestamp in zip(
                 self._storage_pos_sorted_by_ts, self._timestamps
             ):
-                if query._test(
-                    query._path_resolver(
+                try:
+                    value = query._path_resolver(
                         datetime.fromtimestamp(timestamp).astimezone(
                             timezone.utc
                         )
                     )
-                ):
+                except Exception:
+                    # Match direct query evaluation: undefined maps do not
+                    # match, even for a not-equal comparison.
+                    continue
+                if query._test(value):
                     items.add(idx)
 
             return items
