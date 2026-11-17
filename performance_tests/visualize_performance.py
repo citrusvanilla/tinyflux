@@ -4,9 +4,11 @@ TinyFlux Performance Visualization
 
 Generates performance charts from benchmark results JSON file.
 """
+
 import json
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 from typing import Dict, List, Any
 import os
@@ -18,6 +20,32 @@ plt.rcParams["font.size"] = 11
 plt.rcParams["axes.labelsize"] = 12
 plt.rcParams["axes.titlesize"] = 14
 plt.rcParams["legend.fontsize"] = 10
+
+
+def format_compact_number(value: float, _position: int) -> str:
+    """Format chart ticks with compact units instead of scientific notation."""
+    if value == 0:
+        return "0"
+
+    abs_value = abs(value)
+    if abs_value >= 1_000_000:
+        scaled = value / 1_000_000
+        return f"{scaled:g}M"
+    if abs_value >= 1_000:
+        scaled = value / 1_000
+        return f"{scaled:g}k"
+
+    return f"{value:g}"
+
+
+def set_shared_row_axis(*axes_and_values: Any) -> None:
+    """Use one y-axis range and compact tick labels for a row of charts."""
+    max_value = max(max(values, default=0) for _, values in axes_and_values)
+    y_max = max_value * 1.1 if max_value > 0 else 1
+
+    for axis, _ in axes_and_values:
+        axis.set_ylim(0, y_max)
+        axis.yaxis.set_major_formatter(FuncFormatter(format_compact_number))
 
 
 def load_results(file_path: str = "performance_results.json") -> Dict[str, Any]:
@@ -164,7 +192,6 @@ def plot_write_performance_scaling(
     ax1.set_xticks(x_pos)
     ax1.set_xticklabels(size_labels)
     ax1.grid(True, alpha=0.3)
-    ax1.ticklabel_format(style="scientific", axis="y", scilimits=(0, 0))
 
     # Chart 2: Memory Batch Writes
     ax2.bar(x_pos, write_data["memory_batch"], color="#2E8B57", alpha=0.8)
@@ -174,7 +201,6 @@ def plot_write_performance_scaling(
     ax2.set_xticks(x_pos)
     ax2.set_xticklabels(size_labels)
     ax2.grid(True, alpha=0.3)
-    ax2.ticklabel_format(style="scientific", axis="y", scilimits=(0, 0))
 
     # Chart 3: CSV Individual Writes
     csv_individual_filtered = [
@@ -209,6 +235,15 @@ def plot_write_performance_scaling(
     ax4.set_xticks(x_pos)
     ax4.set_xticklabels(size_labels)
     ax4.grid(True, alpha=0.3)
+
+    set_shared_row_axis(
+        (ax1, write_data["memory_individual"]),
+        (ax2, write_data["memory_batch"]),
+    )
+    set_shared_row_axis(
+        (ax3, csv_individual_filtered),
+        (ax4, write_data["csv_batch"]),
+    )
 
     # Add system info
     system_info = results.get("system_info", {})
