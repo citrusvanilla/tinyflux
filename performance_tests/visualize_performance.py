@@ -248,7 +248,7 @@ def plot_write_performance_scaling(
     # Add system info
     system_info = results.get("system_info", {})
     fig.suptitle(
-        f"TinyFlux Write Performance by Storage Type\n{system_info.get('platform', 'Unknown Platform')} - "
+        f"TinyFlux Write Performance by Storage Type and Insert Method\n{system_info.get('platform', 'Unknown Platform')} - "
         f"Python {system_info.get('python_version', 'Unknown')} - "
         f"TinyFlux {results['test_config']['tinyflux_version']}",
         fontsize=16,
