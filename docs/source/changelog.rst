@@ -4,6 +4,14 @@ Changelog
 Unreleased
 ^^^^^^^^^^
 
+v1.3.1 - November 17, 2026
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Bug Fixes:**
+
+* Fixed indexed ``TimeQuery.map(...)`` comparisons so ``search()``,
+  ``remove()``, and ``update()`` match direct query evaluation.
+
 v1.3.0 - November 2, 2026
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
