@@ -6,6 +6,7 @@ Generates performance charts from benchmark results JSON file.
 """
 
 import json
+import textwrap
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.ticker import FuncFormatter
@@ -46,6 +47,43 @@ def set_shared_row_axis(*axes_and_values: Any) -> None:
     for axis, _ in axes_and_values:
         axis.set_ylim(0, y_max)
         axis.yaxis.set_major_formatter(FuncFormatter(format_compact_number))
+
+
+def set_shared_log_axis(axes: List[Any], values: List[float]) -> None:
+    """Use one log-scale y-axis range and compact tick labels for charts."""
+    positive_values = [value for value in values if value > 0]
+    if not positive_values:
+        return
+
+    y_min = 10 ** np.floor(np.log10(min(positive_values)))
+    y_max = 10 ** np.ceil(np.log10(max(positive_values)))
+    ticks = [
+        10**power
+        for power in range(int(np.log10(y_min)), int(np.log10(y_max)) + 1)
+    ]
+
+    for axis in axes:
+        axis.set_ylim(y_min, y_max)
+        axis.set_yticks(ticks)
+        axis.yaxis.set_major_formatter(FuncFormatter(format_compact_number))
+
+
+def set_query_title(axis: Any, title: str, code: str) -> None:
+    """Set a chart title with the query shown below in monospace."""
+    wrapped_code = "\n".join(
+        textwrap.wrap(code, width=50, break_long_words=False)
+    )
+    axis.set_title(title, pad=42)
+    axis.text(
+        0.5,
+        1.01,
+        wrapped_code,
+        transform=axis.transAxes,
+        ha="center",
+        va="bottom",
+        fontfamily="monospace",
+        fontsize=10,
+    )
 
 
 def load_results(file_path: str = "performance_results.json") -> Dict[str, Any]:
@@ -272,15 +310,38 @@ def plot_read_performance_scaling(
     x_pos = np.arange(len(sizes))
 
     query_types = [
-        ("point_lookup", "Point Lookups", ax1),
-        ("range_query", "Range Queries", ax2),
-        ("field_filter", "Field Filters", ax3),
-        ("complex_query", "Complex Queries", ax4),
+        (
+            "point_lookup",
+            "Point Lookups",
+            "TagQuery().sensor_id == random.choice(sensor_ids)",
+            ax1,
+        ),
+        (
+            "range_query",
+            "Range Queries",
+            "(TimeQuery() >= hour_ago) & (TimeQuery() <= now)",
+            ax2,
+        ),
+        (
+            "field_filter",
+            "Field Filters",
+            "FieldQuery().value >= 50",
+            ax3,
+        ),
+        (
+            "complex_query",
+            "Complex Queries",
+            '(FieldQuery().value >= 25) & (FieldQuery().value <= 75) & (TagQuery().location == "datacenter_1")',
+            ax4,
+        ),
     ]
+    shared_values = []
 
-    for qt, title, ax in query_types:
+    for qt, title, code, ax in query_types:
         memory_data = read_data[f"memory_{qt}"]
         csv_data = read_data[f"csv_{qt}"]
+        shared_values.extend(memory_data)
+        shared_values.extend(csv_data)
 
         ax.plot(
             x_pos,
@@ -303,7 +364,7 @@ def plot_read_performance_scaling(
 
         ax.set_xlabel("Database Size")
         ax.set_ylabel("Queries per Second")
-        ax.set_title(title)
+        set_query_title(ax, title, code)
         ax.set_xticks(x_pos)
         ax.set_xticklabels(
             [
@@ -315,6 +376,8 @@ def plot_read_performance_scaling(
         ax.grid(True, alpha=0.3)
         ax.set_yscale("log")
 
+    set_shared_log_axis([ax1, ax2, ax3, ax4], shared_values)
+
     # Add system info
     system_info = results.get("system_info", {})
     fig.suptitle(
@@ -324,7 +387,7 @@ def plot_read_performance_scaling(
         fontsize=16,
     )
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.92], h_pad=4.0)
     plt.savefig(
         "charts/read_performance_scaling.png", dpi=300, bbox_inches="tight"
     )
